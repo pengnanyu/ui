@@ -1,7 +1,11 @@
-import { isMiniProgram } from './platform';
+import { detectPlatform } from './platform';
+
+function isMiniProgram(): boolean {
+  return detectPlatform() === 'miniapp';
+}
 
 export function getItem(key: string): string | null {
-  if (isMiniProgram) {
+  if (isMiniProgram()) {
     try {
       return wx.getStorageSync(key) as string | null;
     } catch {
@@ -16,7 +20,7 @@ export function getItem(key: string): string | null {
 }
 
 export function setItem(key: string, value: string): void {
-  if (isMiniProgram) {
+  if (isMiniProgram()) {
     try {
       wx.setStorageSync(key, value);
     } catch { }
@@ -28,7 +32,7 @@ export function setItem(key: string, value: string): void {
 }
 
 export function removeItem(key: string): void {
-  if (isMiniProgram) {
+  if (isMiniProgram()) {
     try {
       wx.removeStorageSync(key);
     } catch { }

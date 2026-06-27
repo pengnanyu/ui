@@ -34,7 +34,7 @@ function AppContent() {
   const { sendMessage } = useBridgeMessage({ handlers });
 
   useEffect(() => {
-    if (isEmbedded) {
+    if (isEmbedded()) {
       sendMessage({ type: 'bms:request-status', payload: {} });
     }
   }, [sendMessage]);
