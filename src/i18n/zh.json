@@ -1,0 +1,81 @@
+{
+  "nav": {
+    "batteryInfo": "电池信息",
+    "paramConfig": "参数配置",
+    "faultRecord": "异常记录",
+    "extendedCommand": "扩展指令"
+  },
+  "battery": {
+    "soc": "SOC",
+    "soh": "SOH",
+    "voltage": "电压",
+    "current": "电流",
+    "power": "功率",
+    "cellVoltage": "单体电压",
+    "temperature": "温度",
+    "deviceInfo": "设备信息",
+    "status": "状态指示",
+    "voltageCurrentChart": "电压电流曲线",
+    "mosTemperature": "MOS 温度",
+    "maxVoltage": "最高电压",
+    "minVoltage": "最低电压",
+    "maxTemperature": "最高温度",
+    "minTemperature": "最低温度",
+    "bmsTime": "BMS 时间",
+    "bmsId": "BMS ID",
+    "chargeVoltage": "充电电压"
+  },
+  "status": {
+    "safety": "安全保护",
+    "alarm": "告警",
+    "status": "状态"
+  },
+  "param": {
+    "readParams": "读取参数",
+    "batchWrite": "批量写入",
+    "importConfig": "导入配置",
+    "exportConfig": "导出配置",
+    "preset": "一键配置",
+    "currentValue": "当前值",
+    "setValue": "设定值",
+    "unit": "单位",
+    "name": "名称",
+    "confirmWrite": "确认批量写入？",
+    "importFailed": "导入失败，文件格式不正确",
+    "writeVerifyFailed": "写入验证失败"
+  },
+  "fault": {
+    "title": "异常记录",
+    "emptyState": "暂无异常记录",
+    "warning": "警告",
+    "error": "错误",
+    "critical": "严重"
+  },
+  "command": {
+    "sendFrame": "发送帧",
+    "hexInput": "HEX 输入",
+    "send": "发送",
+    "initFrame": "初始化帧",
+    "readOneReg": "读 1 寄存器",
+    "receiveLog": "接收日志",
+    "filterAll": "全部",
+    "filterDataMemory": "Data Memory",
+    "protocolDb": "协议数据库",
+    "initProtocol": "初始化协议",
+    "version": "版本号",
+    "loadDb": "加载数据库",
+    "autoRead": "自动读取",
+    "invalidHex": "HEX 格式错误"
+  },
+  "common": {
+    "loading": "加载中...",
+    "loadFailed": "加载失败",
+    "retry": "重试",
+    "confirm": "确认",
+    "cancel": "取消",
+    "connected": "已连接",
+    "disconnected": "未连接",
+    "connecting": "连接中",
+    "error": "错误"
+  }
+}

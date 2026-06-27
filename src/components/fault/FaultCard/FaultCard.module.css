@@ -1,0 +1,65 @@
+.faultCard {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusBadge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.active {
+  background: var(--color-destructive);
+  color: var(--color-destructive-foreground);
+}
+
+.inactive {
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+}
+
+.levelBadge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.warning {
+  background: var(--color-warning);
+  color: var(--color-warning-foreground);
+}
+
+.error {
+  background: var(--color-destructive);
+  color: var(--color-destructive-foreground);
+}
+
+.critical {
+  background: oklch(0.45 0.22 25);
+  color: oklch(0.98 0 0);
+}
+
+.code {
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+  font-family: monospace;
+}
+
+.message {
+  font-size: 13px;
+  color: var(--color-foreground);
+}

@@ -1,0 +1,63 @@
+.logItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  font-family: monospace;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.time {
+  color: var(--color-muted-foreground);
+  flex-shrink: 0;
+}
+
+.direction {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tx {
+  color: oklch(0.7 0.15 60);
+}
+
+.rx {
+  color: oklch(0.6 0.15 200);
+}
+
+.configType {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dm {
+  background: oklch(0.6 0.12 260);
+  color: oklch(0.98 0 0);
+}
+
+.ir {
+  background: oklch(0.6 0.12 145);
+  color: oklch(0.98 0 0);
+}
+
+.cl {
+  background: oklch(0.7 0.15 85);
+  color: oklch(0.15 0 0);
+}
+
+.parsed {
+  color: var(--color-muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rawHex {
+  color: var(--color-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

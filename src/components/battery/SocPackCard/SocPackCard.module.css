@@ -1,0 +1,20 @@
+.gauges {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  height: 280px;
+}
+
+.currentGauge {
+  grid-column: 1 / -1;
+  min-height: 120px;
+}
+
+.voltageGauge {
+  min-height: 100px;
+}
+
+.socGauge {
+  min-height: 100px;
+}

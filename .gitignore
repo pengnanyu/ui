@@ -1,0 +1,7 @@
+node_modules/
+dist/
+tsconfig.tsbuildinfo
+.arts/
+.codeartsdoer/
+bun.lock
+*.local

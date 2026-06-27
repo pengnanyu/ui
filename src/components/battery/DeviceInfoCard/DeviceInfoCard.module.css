@@ -1,0 +1,30 @@
+.fieldList {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.field {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fieldLabel {
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+
+.fieldValue {
+  font-size: 13px;
+  color: var(--color-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.fieldUnit {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+  margin-left: 2px;
+}

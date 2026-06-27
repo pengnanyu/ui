@@ -1,0 +1,45 @@
+.group {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  cursor: pointer;
+  background: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-foreground);
+  user-select: none;
+}
+
+.groupHeader:hover {
+  background: var(--color-border);
+}
+
+.toggle {
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+}
+
+.groupContent {
+  padding: 8px 16px;
+}
+
+.rowHeader {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 60px;
+  gap: 8px;
+  padding: 4px 0 6px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 500;
+}

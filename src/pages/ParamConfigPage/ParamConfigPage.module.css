@@ -1,0 +1,16 @@
+.masonry {
+  columns: 1 200px;
+  column-gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .masonry {
+    columns: 2 200px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .masonry {
+    columns: 3 200px;
+  }
+}
