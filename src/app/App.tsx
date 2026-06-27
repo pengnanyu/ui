@@ -45,14 +45,14 @@ function AppContent() {
 
   return (
     <>
+      <main style={{ paddingBottom: '72px' }}>
+        <AppRoutes />
+      </main>
       <Nav
         activeRoute={location.pathname}
         onNavigate={handleNavigate}
         connectionStatus={connectionStatus}
       />
-      <main>
-        <AppRoutes />
-      </main>
     </>
   );
 }

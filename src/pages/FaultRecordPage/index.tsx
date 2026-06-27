@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FaultRecord } from '@/types';
-import { FaultCard } from '@/components/fault/FaultCard';
+import { FaultCard } from './components/FaultCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useTranslation } from 'react-i18next';
 import styles from './FaultRecordPage.module.css';

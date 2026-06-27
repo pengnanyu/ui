@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import type { SocData, PackData, CellVoltage, TempData, DeviceInfoField, StatusGroup, StatusFlag, VoltageCurrentDataPoint } from '@/types';
-import { SocPackCard } from '@/components/battery/SocPackCard';
-import { DeviceInfoCard } from '@/components/battery/DeviceInfoCard';
-import { StatusCard } from '@/components/battery/StatusCard';
-import { VoltageCurrentChart } from '@/components/battery/VoltageCurrentChart';
-import { CellVoltageCard } from '@/components/battery/CellVoltageCard';
-import { TemperatureCard } from '@/components/battery/TemperatureCard';
+import { SocPackCard } from './components/SocPackCard';
+import { DeviceInfoCard } from './components/DeviceInfoCard';
+import { StatusCard } from './components/StatusCard';
+import { VoltageCurrentChart } from './components/VoltageCurrentChart';
+import { CellVoltageCard } from './components/CellVoltageCard';
+import { TemperatureCard } from './components/TemperatureCard';
 import styles from './BatteryInfoPage.module.css';
 
 export function BatteryInfoPage() {

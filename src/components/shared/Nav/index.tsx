@@ -1,14 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import type { ConnectionStatus } from '@/types';
-import { ConnectionIndicator } from './ConnectionIndicator';
-import { NavItem } from './NavItem';
 import styles from './Nav.module.css';
 
 const ROUTES = [
-  { path: '/battery', i18nKey: 'nav.batteryInfo' },
-  { path: '/params', i18nKey: 'nav.paramConfig' },
-  { path: '/faults', i18nKey: 'nav.faultRecord' },
-  { path: '/commands', i18nKey: 'nav.extendedCommand' },
+  { path: '/battery', i18nKey: 'nav.batteryInfo', icon: '🔋' },
+  { path: '/params', i18nKey: 'nav.paramConfig', icon: '⚙️' },
+  { path: '/faults', i18nKey: 'nav.faultRecord', icon: '⚠️' },
+  { path: '/commands', i18nKey: 'nav.extendedCommand', icon: '📡' },
 ] as const;
 
 interface NavProps {
@@ -27,19 +25,31 @@ export function Nav({ activeRoute, onNavigate, connectionStatus }: NavProps) {
     error: t('common.error'),
   }[connectionStatus];
 
+  const dotClass = {
+    connected: styles.dotConnected,
+    connecting: styles.dotConnecting,
+    disconnected: styles.dotDisconnected,
+    error: styles.dotError,
+  }[connectionStatus];
+
   return (
-    <nav className={styles.nav}>
-      <ConnectionIndicator status={connectionStatus} label={statusLabel} />
-      <div className={styles.navItems}>
-        {ROUTES.map((route) => (
-          <NavItem
-            key={route.path}
-            label={t(route.i18nKey)}
-            active={activeRoute === route.path}
-            onClick={() => onNavigate(route.path)}
-          />
-        ))}
+    <>
+      <div className={styles.connectionIndicator}>
+        <span className={`${styles.dot} ${dotClass}`} />
+        <span>{statusLabel}</span>
       </div>
-    </nav>
+      <nav className={styles.nav}>
+        {ROUTES.map((route) => (
+          <button
+            key={route.path}
+            className={`${styles.navItem} ${activeRoute === route.path ? styles.navItemActive : ''}`}
+            onClick={() => onNavigate(route.path)}
+          >
+            <span className={styles.navIcon}>{route.icon}</span>
+            <span className={styles.navLabel}>{t(route.i18nKey)}</span>
+          </button>
+        ))}
+      </nav>
+    </>
   );
 }

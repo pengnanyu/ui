@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import type { ProtocolDatabase } from '@/types';
-import { SendFrameCard } from '@/components/command/SendFrameCard';
-import { ReceiveLogCard, type LogEntry, type LogFilter } from '@/components/command/ReceiveLogCard';
-import { ProtocolDbCard } from '@/components/command/ProtocolDbCard';
+import { SendFrameCard } from './components/SendFrameCard';
+import { ReceiveLogCard, type LogEntry, type LogFilter } from './components/ReceiveLogCard';
+import { ProtocolDbCard } from './components/ProtocolDbCard';
 import styles from './ExtendedCommandPage.module.css';
 
 export function ExtendedCommandPage() {

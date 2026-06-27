@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { ParamItem } from '@/types';
-import { ParamGroupCard } from '@/components/param/ParamGroupCard';
-import { ParamToolbar } from '@/components/param/ParamToolbar';
+import { ParamGroupCard } from './components/ParamGroupCard';
+import { ParamToolbar } from './components/ParamToolbar';
 import styles from './ParamConfigPage.module.css';
 
 export function ParamConfigPage() {
