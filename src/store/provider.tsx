@@ -13,9 +13,6 @@ const VERSION_QUERY_INTERVAL = 1000;
 const RESPONSE_TIMEOUT = 2000;
 const POLL_INTERVAL = 1000;
 
-function toHex(data: number[]): string {
-  return data.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
-}
 
 function registerToVersionHex(register: number): string {
   return bigEndianHex(register);
