@@ -230,12 +230,12 @@ function applyOperation(rawValue: number, operation: string, ratio: number): num
 
 function parseBcdTime(registers: number[]): string {
   if (registers.length < 4) return '';
-  const le0 = registers[0]! & 0xFFFF;
-  const le1 = registers[1]! & 0xFFFF;
-  const le2 = registers[2]! & 0xFFFF;
-  const le3 = registers[3]! & 0xFFFF;
+  const be0 = leRegToValue(registers[0]!) & 0xFFFF;
+  const be1 = leRegToValue(registers[1]!) & 0xFFFF;
+  const be2 = leRegToValue(registers[2]!) & 0xFFFF;
+  const be3 = leRegToValue(registers[3]!) & 0xFFFF;
 
-  const all = BigInt(le0) | (BigInt(le1) << BigInt(16)) | (BigInt(le2) << BigInt(32)) | (BigInt(le3) << BigInt(48));
+  const all = BigInt(be0) | (BigInt(be1) << BigInt(16)) | (BigInt(be2) << BigInt(32)) | (BigInt(be3) << BigInt(48));
 
   const sec = Number((all >> BigInt(0)) & BigInt(0x7F));
   const min = Number((all >> BigInt(8)) & BigInt(0x7F));
