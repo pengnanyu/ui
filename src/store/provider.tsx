@@ -292,11 +292,15 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (protocolDb && connectionStatus === 'connected') {
-      console.log('[BmsStore] Protocol DB loaded, starting auto-read');
-      autoReadInstructions(protocolDb);
+      console.log('[BmsStore] Protocol DB loaded, auto-read disabled for debugging');
+      addLog({
+        timestamp: Date.now(),
+        direction: 'RX',
+        parsedInfo: `Protocol DB ready: ${protocolDb.rows.length} rows. Click "Auto Read" to send commands.`,
+        rawHex: '',
+      });
     }
-    return () => stopAutoRead();
-  }, [protocolDb, connectionStatus, autoReadInstructions, stopAutoRead]);
+  }, [protocolDb, connectionStatus, addLog]);
 
   const autoRead = useCallback(() => {
     if (protocolDb && connectionStatus === 'connected') {
