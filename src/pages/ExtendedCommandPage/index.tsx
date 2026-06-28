@@ -6,7 +6,7 @@ import { ProtocolDbCard } from './components/ProtocolDbCard';
 import styles from './ExtendedCommandPage.module.css';
 
 export function ExtendedCommandPage() {
-  const { protocolDb, protocolLoading, logs, sendFrame } = useBmsStore();
+  const { protocolDb, protocolLoading, logs, sendFrame, autoRead } = useBmsStore();
   const [prefilledHex, setPrefilledHex] = useState<string | undefined>();
   const [filter, setFilter] = useState<LogFilter>('all');
 
@@ -27,7 +27,7 @@ export function ExtendedCommandPage() {
         loading={protocolLoading}
         onInitProtocol={() => { }}
         onLoadDatabase={() => { }}
-        onAutoRead={() => { }}
+        onAutoRead={autoRead}
         onFillCommand={handleFillCommand}
       />
     </div>

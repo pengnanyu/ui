@@ -22,6 +22,7 @@ export interface BmsState {
 export interface BmsActions {
   sendFrame: (frame: number[]) => void;
   clearLogs: () => void;
+  autoRead: () => void;
 }
 
 export type BmsStore = BmsState & BmsActions;
