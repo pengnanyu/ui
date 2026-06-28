@@ -118,10 +118,9 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
     const row = rows[i]!;
 
     if (isInstructionRow(row)) {
-      const slaveAddr = parseNum(row['Code'], 16);
+      const funcCode = parseNum(row['Code'], 16);
       const registerCode = parseNum(row['RegisterCode'], 16);
       const registerAddress = parseNum(row['RegisterAddress'], 16);
-      const funcCode = registerCode & 0x3F;
       const length = parseNum(row['Length'], 10);
       const startAddr = buildRegisterAddr(registerCode, registerAddress);
 
@@ -129,7 +128,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
       accumulatedBytes = 0;
 
       instructions.push({
-        slaveAddr,
+        slaveAddr: 0x00,
         funcCode,
         startAddr,
         quantity: length,
