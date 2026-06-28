@@ -92,6 +92,8 @@ export interface ParsedInstruction {
   startAddr: number;
   quantity: number;
   configType: string;
+  configNameEn: string;
+  configNameZh: string;
   rowIndex: number;
 }
 
@@ -107,6 +109,7 @@ export interface ParsedDataField {
   operation: string;
   ratio: number;
   name: string;
+  nameZh: string;
   unit: string;
 }
 
@@ -132,6 +135,8 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
       const length = parseNum(row['Length'], 10);
       const startAddr = buildRegisterAddr(registerCode, registerAddress);
       const configType = String(row['ConfigType'] ?? '');
+      const configNameEn = String(row['ConfigName_English'] ?? '');
+      const configNameZh = String(row['ConfigName_Chinase'] ?? '');
 
       currentInstrIdx = instructions.length;
       currentStartAddr = startAddr;
@@ -143,6 +148,8 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
         startAddr,
         quantity: length,
         configType,
+        configNameEn,
+        configNameZh,
         rowIndex: i,
       });
     } else {
@@ -157,6 +164,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
       const operation = String(row['Operation'] ?? '');
       const ratio = parseNum(row['Ratio'], 10);
       const name = String(row['Name_English'] ?? row['Name_Chinase'] ?? row['Name'] ?? row['ParameterName'] ?? '');
+      const nameZh = String(row['Name_Chinase'] ?? row['Name_English'] ?? row['Name'] ?? row['ParameterName'] ?? '');
       const unit = String(row['Unit'] ?? '');
 
       dataFields.push({
@@ -171,6 +179,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
         operation,
         ratio,
         name,
+        nameZh,
         unit,
       });
 
@@ -217,12 +226,15 @@ export function parseModbusResponse(data: number[]): {
 
 export interface FieldValue {
   name: string;
+  nameZh: string;
   rawValue: number;
   value: number;
   displayValue: string;
   unit: string;
   dataType: string;
   configType: string;
+  configNameEn: string;
+  configNameZh: string;
   rowIndex: number;
 }
 
@@ -464,12 +476,15 @@ export function parseDataFields(
 
     results.push({
       name: field.name,
+      nameZh: field.nameZh,
       rawValue,
       value,
       displayValue,
       unit: field.unit,
       dataType: field.dataType,
       configType,
+      configNameEn: instrIdx >= 0 && instrIdx < instructions.length ? instructions[instrIdx]!.configNameEn : '',
+      configNameZh: instrIdx >= 0 && instrIdx < instructions.length ? instructions[instrIdx]!.configNameZh : '',
       rowIndex: field.rowIndex,
     });
   }

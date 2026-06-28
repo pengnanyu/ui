@@ -11,6 +11,12 @@ export interface LogEntry {
   rawHex: string;
 }
 
+export interface DataMemeryGroup {
+  configNameEn: string;
+  configNameZh: string;
+  fields: FieldValue[];
+}
+
 export interface BmsState {
   connectionStatus: ConnectionStatus;
   protocolDb: ProtocolDatabase | null;
@@ -19,6 +25,7 @@ export interface BmsState {
   parsedFields: Map<string, number>;
   parsedValues: FieldValue[];
   parsedProtocol: ParsedProtocol | null;
+  dataMemeryGroups: DataMemeryGroup[];
   logs: LogEntry[];
 }
 

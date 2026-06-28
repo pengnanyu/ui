@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import type { ConnectionStatus, ProtocolDatabase, BridgeMessage } from '@/types';
-import type { BmsStore, LogEntry } from './context';
+import type { BmsStore, LogEntry, DataMemeryGroup } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
@@ -46,6 +46,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const [parsedFields, setParsedFields] = useState<Map<string, number>>(new Map());
   const [parsedValues, setParsedValues] = useState<FieldValue[]>([]);
   const [parsedProtocol, setParsedProtocol] = useState<ParsedProtocol | null>(null);
+  const [dataMemeryGroups, setDataMemeryGroups] = useState<DataMemeryGroup[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   const sendMessageRef = useRef<((msg: BridgeMessage) => void) | null>(null);
@@ -92,6 +93,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setParsedFields(new Map());
     setParsedValues([]);
     setParsedProtocol(null);
+    setDataMemeryGroups([]);
     addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Communication error, restarting version query', rawHex: '' });
     sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
     versionRetryRef.current = setInterval(() => {
@@ -338,6 +340,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       setParsedFields(new Map());
       setParsedValues([]);
       setParsedProtocol(null);
+      setDataMemeryGroups([]);
     }
     return () => {
       stopAllTimers();
@@ -350,6 +353,31 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       startInitialPoll();
     }
   }, [protocolDb, connectionStatus, startInitialPoll]);
+
+  useEffect(() => {
+    const dmValues = parsedValues.filter(v => v.configType === 'Data Memery');
+    if (dmValues.length === 0) {
+      setDataMemeryGroups([]);
+      return;
+    }
+    const groupMap = new Map<string, FieldValue[]>();
+    for (const v of dmValues) {
+      const key = v.configNameEn || v.configNameZh || 'Unknown';
+      const list = groupMap.get(key) ?? [];
+      list.push(v);
+      groupMap.set(key, list);
+    }
+    const groups: DataMemeryGroup[] = [];
+    for (const [key, fields] of groupMap) {
+      const first = fields[0]!;
+      groups.push({
+        configNameEn: first.configNameEn || key,
+        configNameZh: first.configNameZh || key,
+        fields,
+      });
+    }
+    setDataMemeryGroups(groups);
+  }, [parsedValues]);
 
   const autoRead = useCallback(() => {
     if (protocolDb && connectionStatus === 'connected') {
@@ -370,11 +398,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     parsedFields,
     parsedValues,
     parsedProtocol,
+    dataMemeryGroups,
     logs,
     sendFrame,
     clearLogs,
     autoRead,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, logs, sendFrame, clearLogs, autoRead]);
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, logs, sendFrame, clearLogs, autoRead]);
 
   return (
     <BmsContext.Provider value={store}>
