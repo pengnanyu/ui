@@ -276,8 +276,8 @@ function leRegToValue(leReg: number): number {
 
 function leRegsToValue32(regs: number[]): number {
   if (regs.length < 2) return regs.length === 1 ? leRegToValue(regs[0]!) : 0;
-  const hiWord = leRegToValue(regs[0]!);
-  const loWord = leRegToValue(regs[1]!);
+  const loWord = leRegToValue(regs[0]!);
+  const hiWord = leRegToValue(regs[1]!);
   return ((hiWord & 0xFFFF) << 16) | (loWord & 0xFFFF);
 }
 
@@ -291,8 +291,8 @@ function toSigned32(val: number): number {
 
 function ieee754toFloat(regs: number[]): number {
   if (regs.length < 2) return 0;
-  const hiWord = leRegToValue(regs[0]!);
-  const loWord = leRegToValue(regs[1]!);
+  const loWord = leRegToValue(regs[0]!);
+  const hiWord = leRegToValue(regs[1]!);
   const combined = ((hiWord & 0xFFFF) << 16) | (loWord & 0xFFFF);
   const buf = new ArrayBuffer(4);
   const view = new DataView(buf);
