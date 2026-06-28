@@ -4,7 +4,7 @@ import type { BmsStore, LogEntry } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
-import { parseModbusResponse, appendCrc, bigEndianHex } from '@/utils/modbus';
+import { parseModbusResponse, appendCrc, bigEndianHex, parseNum, buildRegisterAddr, calcRegLen } from '@/utils/modbus';
 import i18n from '@/i18n';
 
 const PROTOCOL_API_URL = 'https://sql.hzxhhc.com/api/data/';
@@ -23,11 +23,13 @@ function isInstructionRow(row: Record<string, unknown>): boolean {
   return row['Code'] !== undefined && row['RegisterCode'] !== undefined && row['RegisterAddress'] !== undefined;
 }
 
+
 function parseInstructionRows(rows: Record<string, unknown>[]): Array<{
   slaveAddr: number;
   funcCode: number;
   startAddr: number;
   quantity: number;
+  length: number;
   rowIndex: number;
 }> {
   const instructions: Array<{
@@ -35,6 +37,7 @@ function parseInstructionRows(rows: Record<string, unknown>[]): Array<{
     funcCode: number;
     startAddr: number;
     quantity: number;
+    length: number;
     rowIndex: number;
   }> = [];
 
@@ -42,21 +45,16 @@ function parseInstructionRows(rows: Record<string, unknown>[]): Array<{
     const row = rows[i]!;
     if (!isInstructionRow(row)) continue;
 
-    const slaveAddr = typeof row['Code'] === 'number'
-      ? row['Code']
-      : parseInt(String(row['Code']), 16) || 0;
-    const funcCode = typeof row['RegisterCode'] === 'number'
-      ? row['RegisterCode']
-      : parseInt(String(row['RegisterCode']), 16) || 0;
-    const startAddr = typeof row['RegisterAddress'] === 'number'
-      ? row['RegisterAddress']
-      : parseInt(String(row['RegisterAddress']), 16) || 0;
-    const quantity = typeof row['Length'] === 'number'
-      ? row['Length']
-      : parseInt(String(row['Length']), 10) || 1;
+    const slaveAddr = parseNum(row['Code'], 16);
+    const registerCode = parseNum(row['RegisterCode'], 16);
+    const registerAddress = parseNum(row['RegisterAddress'], 16);
+    const funcCode = registerCode & 0x3F;
+    const length = parseNum(row['Length'], 10);
+    const startAddr = buildRegisterAddr(registerCode, registerAddress);
+    const quantity = calcRegLen(length, true);
 
     if (funcCode === 0x03 || funcCode === 0x04) {
-      instructions.push({ slaveAddr, funcCode, startAddr, quantity, rowIndex: i });
+      instructions.push({ slaveAddr, funcCode, startAddr, quantity, length, rowIndex: i });
     }
   }
 

@@ -1,4 +1,5 @@
 import type { ProtocolDatabase } from '@/types';
+import { buildRegisterAddr, calcRegLen, parseNum } from '@/utils/modbus';
 import styles from './DynamicTable.module.css';
 
 interface DynamicTableProps {
@@ -39,22 +40,33 @@ export function DynamicTable({ database, onFillCommand }: DynamicTableProps) {
               isHidden ? styles.rowHidden : '',
             ].filter(Boolean).join(' ');
 
+            const registerCode = parseNum(row['RegisterCode'], 16);
+            const registerAddress = parseNum(row['RegisterAddress'], 16);
+            const addr = isCmd ? buildRegisterAddr(registerCode, registerAddress) : 0;
+            const length = parseNum(row['Length'], 10);
+            const regLen = calcRegLen(length, isCmd);
+
             return (
               <tr key={i} className={rowClass || undefined}>
                 {allCols.map((col) => (
                   <td key={col}>
                     {col === 'Type' && (isCmd ? 'CMD' : 'DAT')}
-                    {col === 'Addr' && (isCmd ? String(row['RegisterAddress'] ?? '') : '')}
-                    {col === 'RegLen' && String(row['Length'] ?? '')}
+                    {col === 'Addr' && (isCmd ? `0x${addr.toString(16).toUpperCase().padStart(4, '0')}` : '')}
+                    {col === 'RegLen' && String(regLen)}
                     {col === 'Value' && (row['Value'] !== undefined ? String(row['Value']) : '')}
                     {col === 'Fill' && isCmd && (
                       <button className={styles.fillBtn} onClick={() => {
-                        const hex = [row['Code'], row['RegisterCode'], row['RegisterAddress'], row['Length']]
-                          .filter((v) => v !== undefined)
-                          .map((v) => {
-                            const n = typeof v === 'string' ? parseInt(v, 16) || 0 : 0;
-                            return n.toString(16).toUpperCase().padStart(2, '0');
-                          })
+                        const slaveAddr = parseNum(row['Code'], 16);
+                        const funcCode = registerCode & 0x3F;
+                        const hex = [
+                          slaveAddr,
+                          funcCode,
+                          (addr >> 8) & 0xFF,
+                          addr & 0xFF,
+                          (regLen >> 8) & 0xFF,
+                          regLen & 0xFF,
+                        ]
+                          .map((v) => v.toString(16).toUpperCase().padStart(2, '0'))
                           .join(' ');
                         onFillCommand(hex);
                       }}>

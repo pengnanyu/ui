@@ -70,6 +70,22 @@ export function buildModbusFrame(
   ]);
 }
 
+export function parseNum(val: unknown, radix: number = 10): number {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') return parseInt(val, radix) || 0;
+  return 0;
+}
+
+export function buildRegisterAddr(registerCode: number, registerAddress: number): number {
+  return ((registerCode & 0x3F) << 10) | (registerAddress & 0x3FF);
+}
+
+export function calcRegLen(length: number, isInstruction: boolean): number {
+  if (isInstruction) return length;
+  if (length <= 0) return 0;
+  return Math.ceil(length / 2);
+}
+
 export function swap16(value: number): number {
   return ((value & 0xFF) << 8) | ((value >> 8) & 0xFF);
 }
