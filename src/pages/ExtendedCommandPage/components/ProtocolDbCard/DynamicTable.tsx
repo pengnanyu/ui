@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { ProtocolDatabase } from '@/types';
-import { parseProtocolRows, isInstructionRow, parseNum, buildRegisterAddr } from '@/utils/modbus';
+import { parseProtocolRows, isInstructionRow } from '@/utils/modbus';
 import styles from './DynamicTable.module.css';
 
 interface DynamicTableProps {
