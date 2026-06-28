@@ -242,7 +242,7 @@ function parseBcdTime(registers: number[]): string {
   const byte3 = raw[3] ?? 0;
   const byte4 = raw[4] ?? 0;
   const byte5 = raw[5] ?? 0;
-  const byte6 = raw[6] ?? 0;
+
   const byte7 = raw[7] ?? 0;
 
   const second = byte0 & 0x7F;
@@ -250,6 +250,7 @@ function parseBcdTime(registers: number[]): string {
   const hour = byte2 & 0x3F;
   const day = byte3 & 0x3F;
   const month = byte4 & 0x1F;
+  const weekDay = byte5 & 0x07;
   const year = byte7;
 
   const yy = (2000 + bcdToDec(year)).toString().padStart(4, '0');
@@ -259,7 +260,7 @@ function parseBcdTime(registers: number[]): string {
   const mi = bcdToDec(minute).toString().padStart(2, '0');
   const ss = bcdToDec(second).toString().padStart(2, '0');
 
-  return `${yy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+  return `${yy}-${mm}-${dd} ${hh}:${mi}:${ss} W${bcdToDec(weekDay)}`;
 }
 
 function bcdToDec(bcd: number): number {
