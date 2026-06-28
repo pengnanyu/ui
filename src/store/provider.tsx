@@ -49,6 +49,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const [dataMemeryGroups, setDataMemeryGroups] = useState<DataMemeryGroup[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
+  const parsedValuesMapRef = useRef<Map<number, FieldValue>>(new Map());
+
   const sendMessageRef = useRef<((msg: BridgeMessage) => void) | null>(null);
   const versionRef = useRef<string | null>(null);
   const versionRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -66,7 +68,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const addLog = useCallback((entry: Omit<LogEntry, 'id'>) => {
     logIdRef.current += 1;
     const id = `${entry.direction}_${logIdRef.current}`;
-    console.log('[BmsStore]', entry.direction, entry.rawHex || entry.parsedInfo || '');
+
     setLogs(prev => [...prev.slice(-200), { ...entry, id }]);
   }, []);
 
@@ -94,6 +96,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setParsedValues([]);
     setParsedProtocol(null);
     setDataMemeryGroups([]);
+    parsedValuesMapRef.current = new Map();
     addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Communication error, restarting version query', rawHex: '' });
     sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
     versionRetryRef.current = setInterval(() => {
@@ -283,10 +286,33 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (protocol && instrIdx >= 0 && instrIdx < protocol.instructions.length) {
       const fieldValues = parseDataFields(parsed.registers, protocol.dataFields, instrIdx, protocol.instructions);
       if (fieldValues.length > 0) {
-        setParsedValues(prev => {
-          const updated = prev.filter(v => !fieldValues.some(fv => fv.rowIndex === v.rowIndex));
-          return [...updated, ...fieldValues];
-        });
+        const map = parsedValuesMapRef.current;
+        let dmChanged = false;
+        for (const fv of fieldValues) {
+          if (!dmChanged && fv.configType === 'Data Memery') dmChanged = true;
+          map.set(fv.rowIndex, fv);
+        }
+        setParsedValues(Array.from(map.values()));
+        if (dmChanged) {
+          const dmValues = Array.from(map.values()).filter(v => v.configType === 'Data Memery');
+          const groupMap = new Map<string, FieldValue[]>();
+          for (const v of dmValues) {
+            const key = v.configNameEn || v.configNameZh || 'Unknown';
+            const list = groupMap.get(key) ?? [];
+            list.push(v);
+            groupMap.set(key, list);
+          }
+          const groups: DataMemeryGroup[] = [];
+          for (const [key, fields] of groupMap) {
+            const first = fields[0]!;
+            groups.push({
+              configNameEn: first.configNameEn || key,
+              configNameZh: first.configNameZh || key,
+              fields,
+            });
+          }
+          setDataMemeryGroups(groups);
+        }
       }
     }
 
@@ -341,6 +367,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       setParsedValues([]);
       setParsedProtocol(null);
       setDataMemeryGroups([]);
+      parsedValuesMapRef.current = new Map();
     }
     return () => {
       stopAllTimers();
@@ -354,30 +381,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
   }, [protocolDb, connectionStatus, startInitialPoll]);
 
-  useEffect(() => {
-    const dmValues = parsedValues.filter(v => v.configType === 'Data Memery');
-    if (dmValues.length === 0) {
-      setDataMemeryGroups([]);
-      return;
-    }
-    const groupMap = new Map<string, FieldValue[]>();
-    for (const v of dmValues) {
-      const key = v.configNameEn || v.configNameZh || 'Unknown';
-      const list = groupMap.get(key) ?? [];
-      list.push(v);
-      groupMap.set(key, list);
-    }
-    const groups: DataMemeryGroup[] = [];
-    for (const [key, fields] of groupMap) {
-      const first = fields[0]!;
-      groups.push({
-        configNameEn: first.configNameEn || key,
-        configNameZh: first.configNameZh || key,
-        fields,
-      });
-    }
-    setDataMemeryGroups(groups);
-  }, [parsedValues]);
 
   const autoRead = useCallback(() => {
     if (protocolDb && connectionStatus === 'connected') {
