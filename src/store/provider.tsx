@@ -55,11 +55,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const versionRef = useRef<string | null>(null);
   const versionRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logIdRef = useRef(0);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollIdxRef = useRef(0);
   const waitingResponseRef = useRef(false);
   const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const parsedProtocolRef = useRef<ParsedProtocol | null>(null);
+  const allInstrIndicesRef = useRef<number[]>([]);
   const registerInstrIndicesRef = useRef<number[]>([]);
   const currentSentInstrIdxRef = useRef(-1);
   const initPhaseRef = useRef<'idle' | 'version' | 'protocol' | 'initial-poll' | 'periodic'>('idle');
@@ -81,7 +82,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const stopAllTimers = useCallback(() => {
     if (versionRetryRef.current) { clearInterval(versionRetryRef.current); versionRetryRef.current = null; }
-    if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
+    if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     waitingResponseRef.current = false;
     currentSentInstrIdxRef.current = -1;
@@ -181,21 +182,36 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     parsedProtocolRef.current = parsed;
     setParsedProtocol(parsed);
 
+    const allIndices: number[] = [];
     const regIndices: number[] = [];
     for (let i = 0; i < parsed.instructions.length; i++) {
-      if (parsed.instructions[i]!.configType !== 'Calendar') {
+      const ct = parsed.instructions[i]!.configType;
+      if (ct !== 'Calendar') {
+        allIndices.push(i);
+      }
+      if (ct === 'Register') {
         regIndices.push(i);
       }
     }
+    allInstrIndicesRef.current = allIndices;
     registerInstrIndicesRef.current = regIndices;
 
-    if (regIndices.length === 0) return;
+    if (allIndices.length === 0) return;
 
     initPhaseRef.current = 'initial-poll';
     pollIdxRef.current = 0;
-    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Initial poll: ${regIndices.length} instructions`, rawHex: '' });
-    sendInstructionFrame(regIndices[0]!);
+    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Initial poll: ${allIndices.length} instructions (all non-Calendar)`, rawHex: '' });
+    sendInstructionFrame(allIndices[0]!);
   }, [protocolDb, sendFrame, addLog]);
+
+  const sendNextPeriodic = useCallback(() => {
+    if (waitingResponseRef.current) return;
+    const regIndices = registerInstrIndicesRef.current;
+    if (regIndices.length === 0) return;
+    const idx = pollIdxRef.current % regIndices.length;
+    sendInstructionFrame(regIndices[idx]!);
+    pollIdxRef.current++;
+  }, [sendInstructionFrame]);
 
   const startPeriodicPoll = useCallback(() => {
     if (pollTimerRef.current) return;
@@ -204,15 +220,14 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     initPhaseRef.current = 'periodic';
     pollIdxRef.current = 0;
-    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Periodic poll: ${regIndices.length} instructions / ${POLL_INTERVAL}ms`, rawHex: '' });
+    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Periodic poll: ${regIndices.length} Register instructions / ${POLL_INTERVAL}ms`, rawHex: '' });
 
-    pollTimerRef.current = setInterval(() => {
-      if (waitingResponseRef.current) return;
-      const idx = pollIdxRef.current % regIndices.length;
-      sendInstructionFrame(regIndices[idx]!);
-      pollIdxRef.current++;
+    sendNextPeriodic();
+    pollTimerRef.current = setTimeout(function tick() {
+      sendNextPeriodic();
+      pollTimerRef.current = setTimeout(tick, POLL_INTERVAL);
     }, POLL_INTERVAL);
-  }, [sendFrame, addLog]);
+  }, [sendInstructionFrame, addLog]);
 
   const advancePoll = useCallback(() => {
     if (responseTimerRef.current) {
@@ -222,10 +237,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     waitingResponseRef.current = false;
 
     if (initPhaseRef.current === 'initial-poll') {
-      const regIndices = registerInstrIndicesRef.current;
+      const allIndices = allInstrIndicesRef.current;
       pollIdxRef.current++;
-      if (pollIdxRef.current < regIndices.length) {
-        sendInstructionFrame(regIndices[pollIdxRef.current]!);
+      if (pollIdxRef.current < allIndices.length) {
+        sendInstructionFrame(allIndices[pollIdxRef.current]!);
       } else {
         addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Initial poll complete', rawHex: '' });
         startPeriodicPoll();
