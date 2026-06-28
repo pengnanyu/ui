@@ -40,11 +40,7 @@ export function DynamicTable({ database, parsedValues, onFillCommand }: DynamicT
   }, [parsed.instructions]);
 
   const fixedCols = ['Type', 'Addr', 'RegLen', 'Value', 'Fill'];
-  const dynamicCols = columns.filter(
-    (c) => !fixedCols.includes(c) && !c.endsWith('_English') && !c.endsWith('_Chinase')
-  );
-
-  const allCols = [...dynamicCols, ...fixedCols];
+  const allCols = [...columns, ...fixedCols];
 
   return (
     <div className={styles.tableWrapper}>
@@ -72,17 +68,16 @@ export function DynamicTable({ database, parsedValues, onFillCommand }: DynamicT
 
             return (
               <tr key={i} className={rowClass || undefined}>
-                {allCols.map((col) => (
-                  <td key={col}>
-                    {col === 'Type' && (isCmd ? 'CMD' : 'DAT')}
-                    {col === 'Addr' && `0x${addr.toString(16).toUpperCase().padStart(4, '0')}`}
-                    {col === 'RegLen' && String(regLen)}
-                    {col === 'Value' && (() => {
-                      const fv = valueMap.get(i);
-                      if (fv) return `${fv.displayValue}${fv.unit ? ' ' + fv.unit : ''}`;
-                      return '';
-                    })()}
-                    {col === 'Fill' && isCmd && instInfo && (
+                {allCols.map((col) => {
+                  if (col === 'Type') return <td key={col}>{isCmd ? 'CMD' : 'DAT'}</td>;
+                  if (col === 'Addr') return <td key={col}>{`0x${addr.toString(16).toUpperCase().padStart(4, '0')}`}</td>;
+                  if (col === 'RegLen') return <td key={col}>{String(regLen)}</td>;
+                  if (col === 'Value') {
+                    const fv = valueMap.get(i);
+                    return <td key={col}>{fv ? `${fv.displayValue}${fv.unit ? ' ' + fv.unit : ''}` : ''}</td>;
+                  }
+                  if (col === 'Fill') {
+                    return <td key={col}>{isCmd && instInfo && (
                       <button className={styles.fillBtn} onClick={() => {
                         const hex = [
                           instInfo.slaveAddr,
@@ -98,10 +93,10 @@ export function DynamicTable({ database, parsedValues, onFillCommand }: DynamicT
                       }}>
                         Fill
                       </button>
-                    )}
-                    {!['Type', 'Addr', 'RegLen', 'Value', 'Fill'].includes(col) && String(row[col] ?? '')}
-                  </td>
-                ))}
+                    )}</td>;
+                  }
+                  return <td key={col}>{String(row[col] ?? '')}</td>;
+                })}
               </tr>
             );
           })}

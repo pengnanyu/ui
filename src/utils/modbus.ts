@@ -231,9 +231,9 @@ function applyOperation(rawValue: number, operation: string, ratio: number): num
 function parseBcdTime(registers: number[]): string {
   const raw = new Uint8Array(registers.length * 2);
   for (let i = 0; i < registers.length; i++) {
-    const reg = registers[i]!;
-    raw[i * 2] = (reg >> 8) & 0xFF;
-    raw[i * 2 + 1] = reg & 0xFF;
+    const leReg = registers[i]!;
+    raw[i * 2] = leReg & 0xFF;
+    raw[i * 2 + 1] = (leReg >> 8) & 0xFF;
   }
 
   const byte0 = raw[0] ?? 0;
@@ -267,10 +267,15 @@ function bcdToDec(bcd: number): number {
   return ((bcd >> 4) & 0x0F) * 10 + (bcd & 0x0F);
 }
 
-function combineLE16(regs: number[]): number {
-  if (regs.length === 0) return 0;
-  if (regs.length === 1) return regs[0]!;
-  return ((regs[1]! & 0xFFFF) << 16) | (regs[0]! & 0xFFFF);
+function leRegToValue(leReg: number): number {
+  return ((leReg & 0xFF) << 8) | ((leReg >> 8) & 0xFF);
+}
+
+function leRegsToValue32(regs: number[]): number {
+  if (regs.length < 2) return regs.length === 1 ? leRegToValue(regs[0]!) : 0;
+  const loWord = leRegToValue(regs[0]!);
+  const hiWord = leRegToValue(regs[1]!);
+  return ((hiWord & 0xFFFF) << 16) | (loWord & 0xFFFF);
 }
 
 function toSigned16(val: number): number {
@@ -282,7 +287,10 @@ function toSigned32(val: number): number {
 }
 
 function ieee754toFloat(regs: number[]): number {
-  const combined = combineLE16(regs);
+  if (regs.length < 2) return 0;
+  const loWord = leRegToValue(regs[0]!);
+  const hiWord = leRegToValue(regs[1]!);
+  const combined = ((hiWord & 0xFFFF) << 16) | (loWord & 0xFFFF);
   const buf = new ArrayBuffer(4);
   const view = new DataView(buf);
   view.setUint32(0, combined >>> 0, false);
@@ -319,9 +327,10 @@ export function parseDataFields(
       }
       case '2HEX': {
         const reg = fieldRegs[0] ?? 0;
-        displayValue = reg.toString(16).toUpperCase().padStart(4, '0');
-        rawValue = reg;
-        value = reg;
+        const val = leRegToValue(reg);
+        displayValue = val.toString(16).toUpperCase().padStart(4, '0');
+        rawValue = val;
+        value = val;
         break;
       }
       case 'HEX': {
@@ -334,16 +343,18 @@ export function parseDataFields(
           rawValue = byteVal;
           value = byteVal;
         } else {
-          displayValue = reg.toString(16).toUpperCase().padStart(4, '0');
-          rawValue = reg;
-          value = reg;
+          const val = leRegToValue(reg);
+          displayValue = val.toString(16).toUpperCase().padStart(4, '0');
+          rawValue = val;
+          value = val;
         }
         break;
       }
       case 'ID': {
         const hexParts: string[] = [];
         for (const r of fieldRegs) {
-          hexParts.push(r.toString(16).toUpperCase().padStart(4, '0'));
+          const val = leRegToValue(r);
+          hexParts.push(val.toString(16).toUpperCase().padStart(4, '0'));
         }
         displayValue = hexParts.join(' ');
         rawValue = 0;
@@ -351,26 +362,26 @@ export function parseDataFields(
         break;
       }
       case 'ushort Temper': {
-        const reg = fieldRegs[0] ?? 0;
-        const tempVal = reg / 10;
-        rawValue = reg;
+        const val = leRegToValue(fieldRegs[0] ?? 0);
+        const tempVal = val / 10;
+        rawValue = val;
         value = applyOperation(tempVal, field.operation, field.ratio);
         displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
         break;
       }
       case 'ushort':
       case 'uint16': {
-        const reg = fieldRegs[0] ?? 0;
-        rawValue = reg;
-        value = applyOperation(reg, field.operation, field.ratio);
+        const val = leRegToValue(fieldRegs[0] ?? 0);
+        rawValue = val;
+        value = applyOperation(val, field.operation, field.ratio);
         displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
         break;
       }
       case 'short':
       case 'int16': {
-        const reg = fieldRegs[0] ?? 0;
-        const signed = toSigned16(reg);
-        rawValue = reg;
+        const val = leRegToValue(fieldRegs[0] ?? 0);
+        const signed = toSigned16(val);
+        rawValue = val;
         value = applyOperation(signed, field.operation, field.ratio);
         displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
         break;
@@ -378,18 +389,18 @@ export function parseDataFields(
       case 'uint':
       case 'uint32':
       case 'ulong': {
-        const combined = combineLE16(fieldRegs);
-        rawValue = combined;
-        value = applyOperation(combined, field.operation, field.ratio);
+        const val = leRegsToValue32(fieldRegs);
+        rawValue = val;
+        value = applyOperation(val, field.operation, field.ratio);
         displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
         break;
       }
       case 'int':
       case 'int32':
       case 'long': {
-        const combined = combineLE16(fieldRegs);
-        const signed = toSigned32(combined);
-        rawValue = combined;
+        const val = leRegsToValue32(fieldRegs);
+        const signed = toSigned32(val);
+        rawValue = val;
         value = applyOperation(signed, field.operation, field.ratio);
         displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
         break;
@@ -411,13 +422,13 @@ export function parseDataFields(
           rawValue = byteVal;
           value = applyOperation(byteVal, field.operation, field.ratio);
         } else if (field.byteLen === 2 || fieldRegs.length === 1) {
-          const reg = fieldRegs[0] ?? 0;
-          rawValue = reg;
-          value = applyOperation(reg, field.operation, field.ratio);
+          const val = leRegToValue(fieldRegs[0] ?? 0);
+          rawValue = val;
+          value = applyOperation(val, field.operation, field.ratio);
         } else if (field.byteLen === 4 && fieldRegs.length >= 2) {
-          const combined = combineLE16(fieldRegs);
-          rawValue = combined;
-          value = applyOperation(combined, field.operation, field.ratio);
+          const val = leRegsToValue32(fieldRegs);
+          rawValue = val;
+          value = applyOperation(val, field.operation, field.ratio);
         } else {
           rawValue = 0;
           value = 0;
