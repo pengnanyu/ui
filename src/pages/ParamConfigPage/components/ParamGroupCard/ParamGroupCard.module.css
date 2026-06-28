@@ -3,8 +3,6 @@
   border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
-  break-inside: avoid;
-  margin-bottom: 16px;
 }
 
 .groupHeader {
@@ -12,22 +10,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  cursor: pointer;
   background: var(--color-muted);
   font-size: 13px;
   font-weight: 500;
   color: var(--color-foreground);
   -webkit-user-select: none;
   user-select: none;
-}
-
-.groupHeader:hover {
-  background: var(--color-border);
-}
-
-.toggle {
-  font-size: 12px;
-  color: var(--color-muted-foreground);
 }
 
 .groupContent {

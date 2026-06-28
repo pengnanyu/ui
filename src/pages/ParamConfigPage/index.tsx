@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBmsStore } from '@/store/context';
-import { ParamGroupCard } from './components/ParamGroupCard';
 import { ParamToolbar } from './components/ParamToolbar';
+import { ParamGroupCard } from './components/ParamGroupCard';
 import styles from './ParamConfigPage.module.css';
 
 export function ParamConfigPage() {
@@ -10,8 +10,7 @@ export function ParamConfigPage() {
   const { i18n } = useTranslation();
   const isZh = i18n.language === 'zh';
 
-  const handleValueChange = (_key: string, _newValue: string | number) => { };
-  const handleBlur = (_key: string) => { };
+  const [activeGroupIdx, setActiveGroupIdx] = useState(0);
 
   const paramGroups = useMemo(() => {
     return dataMemeryGroups.map(group => {
@@ -24,14 +23,19 @@ export function ParamConfigPage() {
         unit: field.unit,
         group: groupName,
         dataType: field.dataType,
-        readonly: true,
+        readonly: field.rwType === 'R' || field.rwType === 'r' || field.rwType === 'RO',
       }));
       return { groupName, params };
     });
   }, [dataMemeryGroups, isZh]);
 
+  const handleValueChange = (_key: string, _newValue: string | number) => { };
+  const handleBlur = (_key: string) => { };
+
+  const currentGroup = paramGroups[activeGroupIdx] ?? null;
+
   return (
-    <div>
+    <div className={styles.container}>
       <ParamToolbar
         onReadParams={() => { }}
         onBatchWrite={() => { }}
@@ -39,16 +43,31 @@ export function ParamConfigPage() {
         onExport={() => { }}
         onPreset={(_id: string) => { }}
       />
-      <div className={styles.masonry}>
-        {paramGroups.map(({ groupName, params }) => (
-          <ParamGroupCard
-            key={groupName}
-            groupName={groupName}
-            params={params}
-            onValueChange={handleValueChange}
-            onBlur={handleBlur}
-          />
-        ))}
+      <div className={styles.body}>
+        <nav className={styles.nav}>
+          {paramGroups.map((group, idx) => (
+            <button
+              key={group.groupName}
+              className={`${styles.navItem} ${idx === activeGroupIdx ? styles.navItemActive : ''}`}
+              onClick={() => setActiveGroupIdx(idx)}
+            >
+              {group.groupName}
+            </button>
+          ))}
+        </nav>
+        <div className={styles.content}>
+          {currentGroup ? (
+            <ParamGroupCard
+              groupName={currentGroup.groupName}
+              params={currentGroup.params}
+              onValueChange={handleValueChange}
+              onBlur={handleBlur}
+              defaultExpanded
+            />
+          ) : (
+            <div className={styles.empty}>暂无参数数据</div>
+          )}
+        </div>
       </div>
     </div>
   );

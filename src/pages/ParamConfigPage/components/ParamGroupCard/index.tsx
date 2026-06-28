@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { ParamItem } from '@/types';
 import { ParamRow } from './ParamRow';
 import styles from './ParamGroupCard.module.css';
@@ -11,28 +10,23 @@ interface ParamGroupCardProps {
   defaultExpanded?: boolean;
 }
 
-export function ParamGroupCard({ groupName, params, onValueChange, onBlur, defaultExpanded = true }: ParamGroupCardProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-
+export function ParamGroupCard({ groupName, params, onValueChange, onBlur }: ParamGroupCardProps) {
   return (
     <div className={styles.group}>
-      <div className={styles.groupHeader} onClick={() => setExpanded(!expanded)}>
+      <div className={styles.groupHeader}>
         <span>{groupName}</span>
-        <span className={styles.toggle}>{expanded ? '▼' : '▶'}</span>
       </div>
-      {expanded && (
-        <div className={styles.groupContent}>
-          <div className={styles.rowHeader}>
-            <span>名称</span>
-            <span>当前值</span>
-            <span>设定值</span>
-            <span>单位</span>
-          </div>
-          {params.map((param) => (
-            <ParamRow key={param.key} param={param} onValueChange={onValueChange} onBlur={onBlur} />
-          ))}
+      <div className={styles.groupContent}>
+        <div className={styles.rowHeader}>
+          <span>名称</span>
+          <span>当前值</span>
+          <span>设定值</span>
+          <span>单位</span>
         </div>
-      )}
+        {params.map((param) => (
+          <ParamRow key={param.key} param={param} onValueChange={onValueChange} onBlur={onBlur} />
+        ))}
+      </div>
     </div>
   );
 }

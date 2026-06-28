@@ -111,6 +111,7 @@ export interface ParsedDataField {
   name: string;
   nameZh: string;
   unit: string;
+  rwType: string;
 }
 
 export interface ParsedProtocol {
@@ -166,6 +167,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
       const name = String(row['Name_English'] ?? row['Name_Chinase'] ?? row['Name'] ?? row['ParameterName'] ?? '');
       const nameZh = String(row['Name_Chinase'] ?? row['Name_English'] ?? row['Name'] ?? row['ParameterName'] ?? '');
       const unit = String(row['Unit'] ?? '');
+      const rwType = String(row['Type'] ?? '');
 
       dataFields.push({
         rowIndex: i,
@@ -181,6 +183,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
         name,
         nameZh,
         unit,
+        rwType,
       });
 
       accumulatedBytes += byteLen;
@@ -235,6 +238,7 @@ export interface FieldValue {
   configType: string;
   configNameEn: string;
   configNameZh: string;
+  rwType: string;
   rowIndex: number;
 }
 
@@ -485,6 +489,7 @@ export function parseDataFields(
       configType,
       configNameEn: instrIdx >= 0 && instrIdx < instructions.length ? instructions[instrIdx]!.configNameEn : '',
       configNameZh: instrIdx >= 0 && instrIdx < instructions.length ? instructions[instrIdx]!.configNameZh : '',
+      rwType: field.rwType,
       rowIndex: field.rowIndex,
     });
   }

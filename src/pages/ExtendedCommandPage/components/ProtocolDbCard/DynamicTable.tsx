@@ -39,7 +39,7 @@ export function DynamicTable({ database, parsedValues, onFillCommand }: DynamicT
     return map;
   }, [parsed.instructions]);
 
-  const fixedCols = ['Type', 'Addr', 'RegLen', 'Value', 'Fill'];
+  const fixedCols = ['Kind', 'Addr', 'RegLen', 'Value', 'Fill'];
   const allCols = [...columns.filter(c => !fixedCols.includes(c)), ...fixedCols];
 
   return (
@@ -69,7 +69,7 @@ export function DynamicTable({ database, parsedValues, onFillCommand }: DynamicT
             return (
               <tr key={i} className={rowClass || undefined}>
                 {allCols.map((col) => {
-                  if (col === 'Type') return <td key={col}>{isCmd ? 'CMD' : 'DAT'}</td>;
+                  if (col === 'Kind') return <td key={col}>{isCmd ? 'CMD' : 'DAT'}</td>;
                   if (col === 'Addr') return <td key={col}>{`0x${addr.toString(16).toUpperCase().padStart(4, '0')}`}</td>;
                   if (col === 'RegLen') return <td key={col}>{String(regLen)}</td>;
                   if (col === 'Value') {
