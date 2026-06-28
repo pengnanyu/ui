@@ -253,6 +253,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (parsed.funcCode & 0x80) {
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Modbus exception: FC=0x${parsed.funcCode.toString(16).toUpperCase()}`, rawHex: hex });
+      advancePoll();
+      return;
+    }
+
     if (!versionRef.current && parsed.registers.length > 0) {
       const verHex = registerToVersionHex(parsed.registers[0]!);
       versionRef.current = verHex;
@@ -274,15 +280,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const instrIdx = currentSentInstrIdxRef.current;
     const protocol = parsedProtocolRef.current;
     if (protocol && instrIdx >= 0 && instrIdx < protocol.instructions.length) {
-      const inst = protocol.instructions[instrIdx]!;
-      if (inst.funcCode === parsed.funcCode) {
-        const fieldValues = parseDataFields(parsed.registers, protocol.dataFields, instrIdx, protocol.instructions);
-        if (fieldValues.length > 0) {
-          setParsedValues(prev => {
-            const updated = prev.filter(v => !fieldValues.some(fv => fv.rowIndex === v.rowIndex));
-            return [...updated, ...fieldValues];
-          });
-        }
+      const fieldValues = parseDataFields(parsed.registers, protocol.dataFields, instrIdx, protocol.instructions);
+      if (fieldValues.length > 0) {
+        setParsedValues(prev => {
+          const updated = prev.filter(v => !fieldValues.some(fv => fv.rowIndex === v.rowIndex));
+          return [...updated, ...fieldValues];
+        });
       }
     }
 
