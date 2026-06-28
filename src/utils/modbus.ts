@@ -267,6 +267,28 @@ function bcdToDec(bcd: number): number {
   return ((bcd >> 4) & 0x0F) * 10 + (bcd & 0x0F);
 }
 
+function combineLE16(regs: number[]): number {
+  if (regs.length === 0) return 0;
+  if (regs.length === 1) return regs[0]!;
+  return ((regs[1]! & 0xFFFF) << 16) | (regs[0]! & 0xFFFF);
+}
+
+function toSigned16(val: number): number {
+  return val > 0x7FFF ? val - 0x10000 : val;
+}
+
+function toSigned32(val: number): number {
+  return val > 0x7FFFFFFF ? val - 0x100000000 : val;
+}
+
+function ieee754toFloat(regs: number[]): number {
+  const combined = combineLE16(regs);
+  const buf = new ArrayBuffer(4);
+  const view = new DataView(buf);
+  view.setUint32(0, combined >>> 0, false);
+  return view.getFloat32(0);
+}
+
 export function parseDataFields(
   registers: number[],
   fields: ParsedDataField[],
@@ -328,24 +350,56 @@ export function parseDataFields(
         value = 0;
         break;
       }
-      case 'ushort Temper':
-      case 'ushort': {
+      case 'ushort Temper': {
         const reg = fieldRegs[0] ?? 0;
-        let tempVal = reg;
-        if (field.dataType === 'ushort Temper') {
-          tempVal = tempVal / 10;
-        }
+        const tempVal = reg / 10;
         rawValue = reg;
         value = applyOperation(tempVal, field.operation, field.ratio);
         displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
         break;
       }
-      case 'short': {
+      case 'ushort':
+      case 'uint16': {
         const reg = fieldRegs[0] ?? 0;
-        const signed = reg > 0x7FFF ? reg - 0x10000 : reg;
+        rawValue = reg;
+        value = applyOperation(reg, field.operation, field.ratio);
+        displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
+        break;
+      }
+      case 'short':
+      case 'int16': {
+        const reg = fieldRegs[0] ?? 0;
+        const signed = toSigned16(reg);
         rawValue = reg;
         value = applyOperation(signed, field.operation, field.ratio);
         displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
+        break;
+      }
+      case 'uint':
+      case 'uint32':
+      case 'ulong': {
+        const combined = combineLE16(fieldRegs);
+        rawValue = combined;
+        value = applyOperation(combined, field.operation, field.ratio);
+        displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
+        break;
+      }
+      case 'int':
+      case 'int32':
+      case 'long': {
+        const combined = combineLE16(fieldRegs);
+        const signed = toSigned32(combined);
+        rawValue = combined;
+        value = applyOperation(signed, field.operation, field.ratio);
+        displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
+        break;
+      }
+      case 'float':
+      case 'float32': {
+        const fVal = ieee754toFloat(fieldRegs);
+        rawValue = 0;
+        value = applyOperation(fVal, field.operation, field.ratio);
+        displayValue = value.toFixed(2);
         break;
       }
       default: {
@@ -360,6 +414,10 @@ export function parseDataFields(
           const reg = fieldRegs[0] ?? 0;
           rawValue = reg;
           value = applyOperation(reg, field.operation, field.ratio);
+        } else if (field.byteLen === 4 && fieldRegs.length >= 2) {
+          const combined = combineLE16(fieldRegs);
+          rawValue = combined;
+          value = applyOperation(combined, field.operation, field.ratio);
         } else {
           rawValue = 0;
           value = 0;
