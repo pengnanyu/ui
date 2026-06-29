@@ -240,6 +240,13 @@ export interface FieldValue {
   configNameZh: string;
   rwType: string;
   rowIndex: number;
+  absAddr: number;
+  byteOffset: number;
+  regLen: number;
+  byteLen: number;
+  operation: string;
+  ratio: number;
+  parentInstructionIndex: number;
 }
 
 function applyOperation(rawValue: number, operation: string, ratio: number): number {
@@ -499,8 +506,148 @@ export function parseDataFields(
       configNameZh: instrIdx >= 0 && instrIdx < instructions.length ? instructions[instrIdx]!.configNameZh : '',
       rwType: field.rwType,
       rowIndex: field.rowIndex,
+      absAddr: field.absAddr,
+      byteOffset: field.byteOffset,
+      regLen: field.regLen,
+      byteLen: field.byteLen,
+      operation: field.operation,
+      ratio: field.ratio,
+      parentInstructionIndex: field.parentInstructionIndex,
     });
   }
 
   return results;
+}
+
+function reverseOperation(value: number, operation: string, ratio: number): number {
+  if (!operation || ratio === 0) return value;
+  switch (operation) {
+    case '+': return value - ratio;
+    case '-': return value + ratio;
+    case '*': return ratio !== 0 ? value / ratio : value;
+    case '/': return value * ratio;
+    default: return value;
+  }
+}
+
+function valueToBigEndianRegs(value: number, dataType: string, byteLen: number): number[] {
+  const regs: number[] = [];
+
+  switch (dataType) {
+    case 'uchar':
+    case 'unsigned char': {
+      regs.push(value & 0xFFFF);
+      break;
+    }
+    case 'ushort':
+    case 'uint16':
+    case 'unsigned short':
+    case 'short':
+    case 'int16':
+    case 'signed short': {
+      regs.push(value & 0xFFFF);
+      break;
+    }
+    case 'uint':
+    case 'uint32':
+    case 'ulong':
+    case 'unsigned long':
+    case 'unsigned int':
+    case 'int':
+    case 'int32':
+    case 'long':
+    case 'signed long':
+    case 'signed int': {
+      regs.push(value & 0xFFFF);
+      regs.push((value >> 16) & 0xFFFF);
+      break;
+    }
+    case 'float':
+    case 'float32': {
+      const buf = new ArrayBuffer(4);
+      const view = new DataView(buf);
+      view.setFloat32(0, value, false);
+      const hi = view.getUint16(0, false);
+      const lo = view.getUint16(2, false);
+      regs.push(hi);
+      regs.push(lo);
+      break;
+    }
+    case 'ushort Temper': {
+      const rawVal = Math.round(value * 10);
+      regs.push(rawVal & 0xFFFF);
+      break;
+    }
+    default: {
+      if (byteLen <= 2) {
+        regs.push(value & 0xFFFF);
+      } else {
+        regs.push(value & 0xFFFF);
+        regs.push((value >> 16) & 0xFFFF);
+      }
+      break;
+    }
+  }
+
+  return regs;
+}
+
+export function buildWriteFrame(
+  slaveAddr: number,
+  startAddr: number,
+  bigEndianRegs: number[]
+): number[] {
+  const quantity = bigEndianRegs.length;
+  const byteCount = quantity * 2;
+  const dataBytes: number[] = [];
+  for (const reg of bigEndianRegs) {
+    dataBytes.push((reg >> 8) & 0xFF);
+    dataBytes.push(reg & 0xFF);
+  }
+  return appendCrc([
+    slaveAddr,
+    0x10,
+    (startAddr >> 8) & 0xFF,
+    startAddr & 0xFF,
+    (quantity >> 8) & 0xFF,
+    quantity & 0xFF,
+    byteCount,
+    ...dataBytes,
+  ]);
+}
+
+export function buildFieldWriteFrame(
+  field: FieldValue,
+  newValue: number,
+  siblingFields: FieldValue[]
+): number[] | null {
+  if (field.rwType === 'R' || field.rwType === 'r' || field.rwType === 'RO') return null;
+
+  const rawValue = reverseOperation(newValue, field.operation, field.ratio);
+
+  if (field.byteLen === 1) {
+    const byteVal = Math.round(rawValue) & 0xFF;
+    const sibling = siblingFields.find(
+      f => f.absAddr === field.absAddr && f.rowIndex !== field.rowIndex && f.byteLen === 1
+    );
+    let regVal: number;
+    if (sibling) {
+      const sibRaw = sibling.rawValue & 0xFF;
+      if (field.byteOffset === 0) {
+        regVal = (byteVal << 8) | sibRaw;
+      } else {
+        regVal = (sibRaw << 8) | byteVal;
+      }
+    } else {
+      if (field.byteOffset === 0) {
+        regVal = byteVal << 8;
+      } else {
+        regVal = byteVal;
+      }
+    }
+    return buildWriteFrame(0x00, field.absAddr, [regVal]);
+  }
+
+  const bigEndianRegs = valueToBigEndianRegs(rawValue, field.dataType, field.byteLen);
+  return buildWriteFrame(0x00, field.absAddr, bigEndianRegs);
 }

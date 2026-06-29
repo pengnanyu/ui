@@ -20,7 +20,7 @@ function useIsNarrow(breakpoint: number): boolean {
 }
 
 export function ParamConfigPage() {
-  const { dataMemeryGroups } = useBmsStore();
+  const { dataMemeryGroups, writeField } = useBmsStore();
   const { i18n } = useTranslation();
   const isZh = i18n.language === 'zh';
   const isNarrow = useIsNarrow(NARROW_BREAKPOINT);
@@ -45,8 +45,15 @@ export function ParamConfigPage() {
     });
   }, [dataMemeryGroups, isZh]);
 
-  const handleValueChange = (_key: string, _newValue: string | number) => { };
-  const handleBlur = (_key: string) => { };
+  const handleValueChange = useCallback((key: string, newValue: string | number) => {
+    const rowIndex = parseInt(key, 10);
+    if (isNaN(rowIndex)) return;
+    const numVal = typeof newValue === 'string' ? Number(newValue) : newValue;
+    if (isNaN(numVal)) return;
+    writeField(rowIndex, numVal);
+  }, [writeField]);
+
+  const handleBlur = useCallback((_key: string) => { }, []);
 
   const currentGroup = paramGroups[activeGroupIdx] ?? null;
 

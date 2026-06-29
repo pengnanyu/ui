@@ -33,6 +33,7 @@ export interface BmsActions {
   sendFrame: (frame: number[]) => void;
   clearLogs: () => void;
   autoRead: () => void;
+  writeField: (fieldRowIndex: number, newValue: number) => void;
 }
 
 export type BmsStore = BmsState & BmsActions;

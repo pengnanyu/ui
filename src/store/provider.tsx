@@ -4,7 +4,7 @@ import type { BmsStore, LogEntry, DataMemeryGroup } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
-import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields } from '@/utils/modbus';
+import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame } from '@/utils/modbus';
 import type { ParsedProtocol, FieldValue } from '@/utils/modbus';
 import i18n from '@/i18n';
 
@@ -415,6 +415,20 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
 
 
+  const writeField = useCallback((fieldRowIndex: number, newValue: number) => {
+    const fv = parsedValuesMapRef.current.get(fieldRowIndex);
+    if (!fv) return;
+    const protocol = parsedProtocolRef.current;
+    if (!protocol) return;
+    const allFields = parsedValuesMapRef.current;
+    const siblingFields = Array.from(allFields.values());
+    const frame = buildFieldWriteFrame(fv, newValue, siblingFields);
+    if (frame) {
+      sendFrame(frame);
+      addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Write field "${fv.name}": ${newValue}`, rawHex: frame.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ') });
+    }
+  }, [sendFrame, addLog]);
+
   const autoRead = useCallback(() => {
     if (protocolDb && connectionStatus === 'connected') {
       stopAllTimers();
@@ -439,7 +453,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     sendFrame,
     clearLogs,
     autoRead,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, logs, sendFrame, clearLogs, autoRead]);
+    writeField,
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, logs, sendFrame, clearLogs, autoRead, writeField]);
 
   return (
     <BmsContext.Provider value={store}>
