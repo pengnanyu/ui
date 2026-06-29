@@ -2,7 +2,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 8px 0;
   align-items: center;
 }
 
@@ -19,23 +19,6 @@
 
 .btn:hover {
   background: var(--color-muted);
-}
-
-.btnPrimary {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  border-color: var(--color-primary);
-}
-
-.btnPrimary:hover {
-  opacity: 0.9;
-  background: var(--color-primary);
-}
-
-.btnDanger {
-  background: var(--color-destructive);
-  color: var(--color-destructive-foreground);
-  border-color: var(--color-destructive);
 }
 
 .spacer {

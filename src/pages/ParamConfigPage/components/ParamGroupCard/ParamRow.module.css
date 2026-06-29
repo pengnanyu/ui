@@ -1,6 +1,6 @@
 .row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 60px;
+  grid-template-columns: 2fr 1fr 60px;
   gap: 8px;
   align-items: center;
   padding: 6px 0;

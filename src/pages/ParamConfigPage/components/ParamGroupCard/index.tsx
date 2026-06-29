@@ -6,12 +6,10 @@ import styles from './ParamGroupCard.module.css';
 interface ParamGroupCardProps {
   groupName: string;
   params: ParamItem[];
-  onValueChange: (key: string, newValue: string | number) => void;
-  onBlur: (key: string) => void;
   onBack?: () => void;
 }
 
-export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBack }: ParamGroupCardProps) {
+export function ParamGroupCard({ groupName, params, onBack }: ParamGroupCardProps) {
   const { t } = useTranslation();
 
   return (
@@ -28,12 +26,11 @@ export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBac
         <div className={styles.rowHeader}>
           <span>{t('param.name')}</span>
           <span>{t('param.currentValue')}</span>
-          <span>{t('param.setValue')}</span>
           <span>{t('param.unit')}</span>
         </div>
         <div className={styles.rowList}>
           {params.map((param) => (
-            <ParamRow key={param.key} param={param} onValueChange={onValueChange} onBlur={onBlur} />
+            <ParamRow key={param.key} param={param} />
           ))}
         </div>
       </div>

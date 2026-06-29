@@ -45,9 +45,6 @@ export function ParamConfigPage() {
     });
   }, [dataMemeryGroups, isZh]);
 
-  const handleValueChange = (_key: string, _newValue: string | number) => { };
-  const handleBlur = (_key: string) => { };
-
   const currentGroup = paramGroups[activeGroupIdx] ?? null;
 
   const handleNavClick = useCallback((idx: number) => {
@@ -86,7 +83,6 @@ export function ParamConfigPage() {
     }
   }, [mobileView, paramGroups.length]);
 
-
   const showNav = !isNarrow || mobileView === 'nav';
   const showContent = !isNarrow || mobileView === 'detail';
 
@@ -97,7 +93,6 @@ export function ParamConfigPage() {
       onTouchEnd={handleTouchEnd}
     >
       <ParamToolbar
-
         onImport={() => { }}
         onExport={() => { }}
         onPreset={(_id: string) => { }}
@@ -122,8 +117,6 @@ export function ParamConfigPage() {
               <ParamGroupCard
                 groupName={currentGroup.groupName}
                 params={currentGroup.params}
-                onValueChange={handleValueChange}
-                onBlur={handleBlur}
                 onBack={isNarrow ? handleBack : undefined}
               />
             ) : (

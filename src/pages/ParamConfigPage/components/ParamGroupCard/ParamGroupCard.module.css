@@ -62,7 +62,7 @@
 
 .rowHeader {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 60px;
+  grid-template-columns: 2fr 1fr 60px;
   gap: 8px;
   padding: 4px 16px 6px;
   font-size: 11px;
@@ -80,5 +80,5 @@
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 16px;
+  padding: 0 16px 8px;
 }
