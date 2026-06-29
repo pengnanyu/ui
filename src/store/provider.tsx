@@ -69,6 +69,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const registerInstrIndicesRef = useRef<number[]>([]);
   const currentSentInstrIdxRef = useRef(-1);
   const initPhaseRef = useRef<'idle' | 'version' | 'protocol' | 'initial-poll' | 'periodic'>('idle');
+  const isWritingRef = useRef(false);
 
   const startVersionRetryRef = useRef<() => void>(() => { });
   const stopVersionRetryRef = useRef<() => void>(() => { });
@@ -299,16 +300,33 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const p = payload as { data: number[] };
     if (!p.data || p.data.length === 0) return;
 
+    const rawHex = p.data.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+
+    if (isWritingRef.current) {
+      isWritingRef.current = false;
+      if (responseTimerRef.current) {
+        clearTimeout(responseTimerRef.current);
+        responseTimerRef.current = null;
+      }
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Write response`, rawHex });
+      const regIndices = registerInstrIndicesRef.current;
+      if (regIndices.length > 0) {
+        pollIdxRef.current = 0;
+        sendInstructionFrame(regIndices[0]!);
+      }
+      return;
+    }
+
     const parsed = parseModbusResponse(p.data);
 
     if (!parsed) {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Invalid response, resetting', rawHex: '' });
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Invalid response, resetting`, rawHex });
       resetToVersionQuery();
       return;
     }
 
     if (parsed.funcCode & 0x80) {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Modbus exception: FC=0x${parsed.funcCode.toString(16).toUpperCase()}, device may have changed`, rawHex: '' });
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Modbus exception: FC=0x${parsed.funcCode.toString(16).toUpperCase()}`, rawHex });
       resetToVersionQuery();
       return;
     }
@@ -424,10 +442,26 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const siblingFields = Array.from(allFields.values());
     const frame = buildFieldWriteFrame(fv, newValue, siblingFields);
     if (frame) {
+      if (responseTimerRef.current) {
+        clearTimeout(responseTimerRef.current);
+        responseTimerRef.current = null;
+      }
+      waitingResponseRef.current = false;
+      isWritingRef.current = true;
       sendFrame(frame);
       addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Write field "${fv.name}": ${newValue}`, rawHex: frame.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ') });
+      responseTimerRef.current = setTimeout(() => {
+        if (!isWritingRef.current) return;
+        isWritingRef.current = false;
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Write timeout', rawHex: '' });
+        const regIndices = registerInstrIndicesRef.current;
+        if (regIndices.length > 0) {
+          pollIdxRef.current = 0;
+          sendInstructionFrame(regIndices[0]!);
+        }
+      }, RESPONSE_TIMEOUT);
     }
-  }, [sendFrame, addLog]);
+  }, [sendFrame, addLog, sendInstructionFrame]);
 
   const autoRead = useCallback(() => {
     if (protocolDb && connectionStatus === 'connected') {
