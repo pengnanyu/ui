@@ -198,9 +198,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     responseTimerRef.current = setTimeout(() => {
       if (!waitingResponseRef.current) return;
+      if (isVerifyReadRef.current) {
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read timeout`, rawHex: '' });
+      }
       resetToVersionQuery();
     }, RESPONSE_TIMEOUT);
-  }, [sendFrame, resetToVersionQuery]);
+  }, [sendFrame, addLog, resetToVersionQuery]);
 
   const startInitialPoll = useCallback(() => {
     const db = protocolDb;
@@ -374,6 +377,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     if (data.length >= 5 && verifyCrc(data) && (data[1]! & 0x80)) {
+      if (isVerifyReadRef.current) {
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read exception func=0x${(data[1]!).toString(16).padStart(2, '0')}`, rawHex });
+      }
       advancePoll();
       return;
     }
@@ -381,11 +387,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const parsed = parseModbusResponse(data);
 
     if (!parsed) {
+      if (isVerifyReadRef.current) {
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read invalid response`, rawHex });
+      }
       resetToVersionQuery();
       return;
     }
 
     if (parsed.funcCode & 0x80) {
+      if (isVerifyReadRef.current) {
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read exception func=0x${parsed.funcCode.toString(16).padStart(2, '0')}`, rawHex });
+      }
       advancePoll();
       return;
     }
