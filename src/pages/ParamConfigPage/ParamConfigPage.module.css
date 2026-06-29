@@ -25,6 +25,7 @@
   overflow-y: auto;
   flex-shrink: 0;
   overscroll-behavior: contain;
+  min-height: 0;
 }
 
 .navItem {
@@ -80,8 +81,13 @@
 }
 
 @media (max-width: 639px) {
+  .container {
+    padding: 8px;
+  }
+
   .body {
     flex-direction: column;
+    gap: 8px;
   }
 
   .nav {
@@ -89,10 +95,12 @@
     max-width: none;
     min-width: 0;
     flex-shrink: 1;
+    max-height: 35vh;
   }
 
   .content {
     width: 100%;
     flex: 1;
+    min-height: 0;
   }
 }
