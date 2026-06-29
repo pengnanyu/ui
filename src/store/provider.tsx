@@ -53,7 +53,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const pendingFieldsUpdateRef = useRef<Map<string, number> | null>(null);
   const pendingValuesUpdateRef = useRef(false);
   const pendingDmUpdateRef = useRef(false);
-  const frameBufferRef = useRef<number[]>([]);
+
 
 
   const sendMessageRef = useRef<((msg: BridgeMessage) => void) | null>(null);
@@ -107,7 +107,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setParsedProtocol(null);
     setDataMemeryGroups([]);
     parsedValuesMapRef.current = new Map();
-    frameBufferRef.current = [];
+
     addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Communication error, restarting version query', rawHex: '' });
     sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
     versionRetryRef.current = setInterval(() => {
@@ -295,8 +295,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, [sendInstructionFrame, addLog, startPeriodicPoll, flushUpdates]);
 
 
-  const processFrame = useCallback((frameData: number[]) => {
-    const parsed = parseModbusResponse(frameData);
+  const handleRawData = useCallback((payload: unknown) => {
+    const p = payload as { data: number[] };
+    if (!p.data || p.data.length === 0) return;
+
+    const parsed = parseModbusResponse(p.data);
 
     if (!parsed) {
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Invalid response, resetting', rawHex: '' });
@@ -346,23 +349,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     advancePoll();
   }, [parsedFields, addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery]);
 
-  const handleRawData = useCallback((payload: unknown) => {
-    const p = payload as { data: number[] };
-    if (!p.data || p.data.length === 0) return;
-
-    const buf = frameBufferRef.current;
-    for (let i = 0; i < p.data.length; i++) {
-      buf.push(p.data[i]!);
-    }
-
-    while (buf.length >= 5) {
-      const byteCount = buf[2]!;
-      const frameLen = 3 + byteCount + 2;
-      if (buf.length < frameLen) break;
-      const frame = buf.splice(0, frameLen);
-      processFrame(frame);
-    }
-  }, [processFrame]);
 
   const handleConnectionStatus = useCallback((payload: unknown) => {
     const p = payload as { status: ConnectionStatus };
@@ -413,7 +399,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       setParsedProtocol(null);
       setDataMemeryGroups([]);
       parsedValuesMapRef.current = new Map();
-      frameBufferRef.current = [];
+
     }
     return () => {
       stopAllTimersRef.current();
@@ -427,32 +413,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
   }, [protocolDb, connectionStatus, startInitialPoll]);
 
-  useEffect(() => {
-    const onResume = () => {
-      if (document.visibilityState !== 'visible') return;
-      if (connectionStatus !== 'connected') return;
-      if (!protocolDb) return;
-      if (initPhaseRef.current === 'idle' || initPhaseRef.current === 'version') {
-        stopAllTimersRef.current();
-        startVersionRetryRef.current();
-        return;
-      }
-      if (waitingResponseRef.current) {
-        stopAllTimersRef.current();
-        if (initPhaseRef.current === 'initial-poll') {
-          const allIndices = allInstrIndicesRef.current;
-          const idx = Math.min(pollIdxRef.current, allIndices.length - 1);
-          if (idx >= 0) sendInstructionFrame(allIndices[idx]!);
-        } else if (initPhaseRef.current === 'periodic') {
-          const regIndices = registerInstrIndicesRef.current;
-          const idx = Math.min(pollIdxRef.current, regIndices.length - 1);
-          if (idx >= 0) sendInstructionFrame(regIndices[idx]!);
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', onResume);
-    return () => document.removeEventListener('visibilitychange', onResume);
-  }, [connectionStatus, protocolDb, sendInstructionFrame]);
 
 
   const autoRead = useCallback(() => {
