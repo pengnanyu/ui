@@ -525,6 +525,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       isWritingRef.current = false;
       isVerifyReadRef.current = false;
       pendingWriteRef.current = null;
+      rawBufRef.current = [];
       setDeviceVersion(null);
       setProtocolDb(null);
       setParsedFields(new Map());
