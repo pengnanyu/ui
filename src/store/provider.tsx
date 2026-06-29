@@ -74,6 +74,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const writeVerifyAddrRef = useRef(-1);
   const writeVerifyQtyRef = useRef(0);
   const pendingWriteRef = useRef<{ fieldRowIndex: number; newValue: number } | null>(null);
+  const isVerifyReadRef = useRef(false);
 
   const startVersionRetryRef = useRef<() => void>(() => { });
   const stopVersionRetryRef = useRef<() => void>(() => { });
@@ -277,6 +278,13 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
     waitingResponseRef.current = false;
 
+    if (isVerifyReadRef.current) {
+      isVerifyReadRef.current = false;
+      flushUpdates();
+      executePendingWriteOrPollRef.current();
+      return;
+    }
+
     if (pendingWriteRef.current) {
       const pw = pendingWriteRef.current;
       pendingWriteRef.current = null;
@@ -336,6 +344,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Write OK`, rawHex });
       const writeInstrIdx = writeInstrIdxRef.current;
       if (writeInstrIdx >= 0) {
+        isVerifyReadRef.current = true;
         addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Verify read after write`, rawHex: '' });
         sendInstructionFrame(writeInstrIdx);
       } else {
@@ -479,17 +488,16 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (!protocol) return;
     const allFields = parsedValuesMapRef.current;
     const siblingFields = Array.from(allFields.values());
-    const getRegisterValue = (absAddr: number): number => {
+    const getLeRegisterValue = (absAddr: number): number => {
       const instrIdx = fv.parentInstructionIndex;
-      const protocol = parsedProtocolRef.current;
-      if (!protocol || instrIdx >= protocol.instructions.length) return 0;
-      const inst = protocol.instructions[instrIdx]!;
+      const p = parsedProtocolRef.current;
+      if (!p || instrIdx >= p.instructions.length) return 0;
+      const inst = p.instructions[instrIdx]!;
       const offsetInInstr = absAddr - inst.startAddr;
       const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
-      const leVal = parsedFields.get(key) ?? 0;
-      return ((leVal & 0xFF) << 8) | ((leVal >> 8) & 0xFF);
+      return parsedFields.get(key) ?? 0;
     };
-    const frame = buildFieldWriteFrame(fv, newValue, siblingFields, getRegisterValue);
+    const frame = buildFieldWriteFrame(fv, newValue, siblingFields, getLeRegisterValue);
     if (frame) {
       if (responseTimerRef.current) {
         clearTimeout(responseTimerRef.current);

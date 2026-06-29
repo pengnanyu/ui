@@ -375,8 +375,8 @@ export function parseDataFields(
         const reg = fieldRegs[0] ?? 0;
         if (field.byteLen === 1) {
           const byteVal = field.byteOffset === 0
-            ? (reg >> 8) & 0xFF
-            : reg & 0xFF;
+            ? reg & 0xFF
+            : (reg >> 8) & 0xFF;
           displayValue = byteVal.toString(16).toUpperCase().padStart(2, '0');
           rawValue = byteVal;
           value = byteVal;
@@ -411,8 +411,8 @@ export function parseDataFields(
       case 'unsigned char': {
         const reg = fieldRegs[0] ?? 0;
         const byteVal = field.byteOffset === 0
-          ? (reg >> 8) & 0xFF
-          : reg & 0xFF;
+          ? reg & 0xFF
+          : (reg >> 8) & 0xFF;
         rawValue = byteVal;
         value = applyOperation(byteVal, field.operation, field.ratio);
         displayValue = formatValue(value);
@@ -472,8 +472,8 @@ export function parseDataFields(
         if (field.byteLen === 1) {
           const reg = fieldRegs[0] ?? 0;
           const byteVal = field.byteOffset === 0
-            ? (reg >> 8) & 0xFF
-            : reg & 0xFF;
+            ? reg & 0xFF
+            : (reg >> 8) & 0xFF;
           rawValue = byteVal;
           value = applyOperation(byteVal, field.operation, field.ratio);
         } else if (field.byteLen === 2 || fieldRegs.length === 1) {
@@ -530,15 +530,12 @@ function reverseOperation(value: number, operation: string, ratio: number): numb
   }
 }
 
-function valueToBigEndianRegs(value: number, dataType: string, byteLen: number): number[] {
+function valueToLittleEndianRegs(value: number, dataType: string, byteLen: number): number[] {
   const regs: number[] = [];
 
   switch (dataType) {
     case 'uchar':
-    case 'unsigned char': {
-      regs.push(value & 0xFFFF);
-      break;
-    }
+    case 'unsigned char':
     case 'ushort':
     case 'uint16':
     case 'unsigned short':
@@ -546,6 +543,11 @@ function valueToBigEndianRegs(value: number, dataType: string, byteLen: number):
     case 'int16':
     case 'signed short': {
       regs.push(value & 0xFFFF);
+      break;
+    }
+    case 'ushort Temper': {
+      const rawVal = Math.round(value * 10);
+      regs.push(rawVal & 0xFFFF);
       break;
     }
     case 'uint':
@@ -569,13 +571,8 @@ function valueToBigEndianRegs(value: number, dataType: string, byteLen: number):
       view.setFloat32(0, value, false);
       const hi = view.getUint16(0, false);
       const lo = view.getUint16(2, false);
-      regs.push(hi);
       regs.push(lo);
-      break;
-    }
-    case 'ushort Temper': {
-      const rawVal = Math.round(value * 10);
-      regs.push(rawVal & 0xFFFF);
+      regs.push(hi);
       break;
     }
     default: {
@@ -592,17 +589,22 @@ function valueToBigEndianRegs(value: number, dataType: string, byteLen: number):
   return regs;
 }
 
+function leRegsToBigEndianBytes(leRegs: number[]): number[] {
+  const bytes: number[] = [];
+  for (const leReg of leRegs) {
+    bytes.push(leReg & 0xFF);
+    bytes.push((leReg >> 8) & 0xFF);
+  }
+  return bytes;
+}
+
 export function buildWriteFrame(
   slaveAddr: number,
   startAddr: number,
-  bigEndianRegs: number[]
+  leRegs: number[]
 ): number[] {
-  const quantity = bigEndianRegs.length;
-  const dataBytes: number[] = [];
-  for (const reg of bigEndianRegs) {
-    dataBytes.push((reg >> 8) & 0xFF);
-    dataBytes.push(reg & 0xFF);
-  }
+  const quantity = leRegs.length;
+  const bigEndianBytes = leRegsToBigEndianBytes(leRegs);
   return appendCrc([
     slaveAddr,
     0x10,
@@ -610,7 +612,7 @@ export function buildWriteFrame(
     startAddr & 0xFF,
     (quantity >> 8) & 0xFF,
     quantity & 0xFF,
-    ...dataBytes,
+    ...bigEndianBytes,
   ]);
 }
 
@@ -618,7 +620,7 @@ export function buildFieldWriteFrame(
   field: FieldValue,
   newValue: number,
   siblingFields: FieldValue[],
-  getRegisterValue: (absAddr: number) => number
+  getLeRegisterValue: (absAddr: number) => number
 ): number[] | null {
   if (field.rwType === 'R' || field.rwType === 'r' || field.rwType === 'RO') return null;
 
@@ -629,25 +631,25 @@ export function buildFieldWriteFrame(
     const sibling = siblingFields.find(
       f => f.absAddr === field.absAddr && f.rowIndex !== field.rowIndex && f.byteLen === 1
     );
-    let regVal: number;
+    let leRegVal: number;
     if (sibling) {
       const sibRaw = sibling.rawValue & 0xFF;
       if (field.byteOffset === 0) {
-        regVal = (byteVal << 8) | sibRaw;
+        leRegVal = (sibRaw << 8) | byteVal;
       } else {
-        regVal = (sibRaw << 8) | byteVal;
+        leRegVal = (byteVal << 8) | sibRaw;
       }
     } else {
-      const curBigEndian = getRegisterValue(field.absAddr);
+      const curLeReg = getLeRegisterValue(field.absAddr);
       if (field.byteOffset === 0) {
-        regVal = (byteVal << 8) | (curBigEndian & 0xFF);
+        leRegVal = (curLeReg & 0xFF00) | byteVal;
       } else {
-        regVal = (curBigEndian & 0xFF00) | byteVal;
+        leRegVal = (byteVal << 8) | (curLeReg & 0xFF);
       }
     }
-    return buildWriteFrame(0x00, field.absAddr, [regVal]);
+    return buildWriteFrame(0x00, field.absAddr, [leRegVal]);
   }
 
-  const bigEndianRegs = valueToBigEndianRegs(rawValue, field.dataType, field.byteLen);
-  return buildWriteFrame(0x00, field.absAddr, bigEndianRegs);
+  const leRegs = valueToLittleEndianRegs(rawValue, field.dataType, field.byteLen);
+  return buildWriteFrame(0x00, field.absAddr, leRegs);
 }
