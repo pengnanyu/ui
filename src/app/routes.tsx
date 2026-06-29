@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { HashRouter, Routes, Route, Navigate } from 'react-router';
 import { BatteryInfoPage } from '@/pages/BatteryInfoPage';
 import { ParamConfigPage } from '@/pages/ParamConfigPage';
 import { FaultRecordPage } from '@/pages/FaultRecordPage';
@@ -17,5 +17,5 @@ export function AppRoutes() {
 }
 
 export function AppRouter({ children }: { children: React.ReactNode }) {
-  return <BrowserRouter>{children}</BrowserRouter>;
+  return <HashRouter>{children}</HashRouter>;
 }
