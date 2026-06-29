@@ -71,6 +71,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const initPhaseRef = useRef<'idle' | 'version' | 'protocol' | 'initial-poll' | 'periodic'>('idle');
   const isWritingRef = useRef(false);
   const writeInstrIdxRef = useRef(-1);
+  const writeVerifyAddrRef = useRef(-1);
+  const writeVerifyQtyRef = useRef(0);
 
   const startVersionRetryRef = useRef<() => void>(() => { });
   const stopVersionRetryRef = useRef<() => void>(() => { });
@@ -330,22 +332,31 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         return;
       }
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Write OK`, rawHex });
-      const writeInstrIdx = writeInstrIdxRef.current;
-      if (writeInstrIdx >= 0) {
-        const protocol = parsedProtocolRef.current;
-        if (protocol && writeInstrIdx < protocol.instructions.length) {
-          const inst = protocol.instructions[writeInstrIdx]!;
-          const readFrame = appendCrc([
-            inst.slaveAddr,
-            inst.funcCode,
-            (inst.startAddr >> 8) & 0xFF,
-            inst.startAddr & 0xFF,
-            (inst.quantity >> 8) & 0xFF,
-            inst.quantity & 0xFF,
-          ]);
-          addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Verify read after write`, rawHex: readFrame.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ') });
-        }
-        sendInstructionFrame(writeInstrIdx);
+      const verifyAddr = writeVerifyAddrRef.current;
+      const verifyQty = writeVerifyQtyRef.current;
+      if (verifyAddr >= 0 && verifyQty > 0) {
+        const readFrame = appendCrc([
+          0x00,
+          0x03,
+          (verifyAddr >> 8) & 0xFF,
+          verifyAddr & 0xFF,
+          (verifyQty >> 8) & 0xFF,
+          verifyQty & 0xFF,
+        ]);
+        addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Verify read after write`, rawHex: readFrame.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ') });
+        currentSentInstrIdxRef.current = writeInstrIdxRef.current;
+        waitingResponseRef.current = true;
+        sendFrame(readFrame);
+        responseTimerRef.current = setTimeout(() => {
+          if (!waitingResponseRef.current) return;
+          waitingResponseRef.current = false;
+          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Verify read timeout', rawHex: '' });
+          const regIndices = registerInstrIndicesRef.current;
+          if (regIndices.length > 0) {
+            pollIdxRef.current = 0;
+            sendInstructionFrame(regIndices[0]!);
+          }
+        }, RESPONSE_TIMEOUT);
       } else {
         const regIndices = registerInstrIndicesRef.current;
         if (regIndices.length > 0) {
@@ -496,6 +507,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       waitingResponseRef.current = false;
       isWritingRef.current = true;
       writeInstrIdxRef.current = fv.parentInstructionIndex;
+      writeVerifyAddrRef.current = fv.absAddr;
+      writeVerifyQtyRef.current = fv.regLen;
       sendFrame(frame);
       addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Write field "${fv.name}": ${newValue}`, rawHex: frame.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ') });
       responseTimerRef.current = setTimeout(() => {
