@@ -14,7 +14,7 @@ function AppContent() {
 
   return (
     <>
-      <main className="flex flex-col min-h-0" style={{ height: '100vh', paddingBottom: '72px', overflow: 'hidden' }}>
+      <main style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: '72px', overflow: 'hidden', minHeight: 0 }}>
         <AppRoutes />
       </main>
       <Nav
