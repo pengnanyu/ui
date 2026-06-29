@@ -410,6 +410,33 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
   }, [protocolDb, connectionStatus, startInitialPoll]);
 
+  useEffect(() => {
+    const onResume = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (connectionStatus !== 'connected') return;
+      if (!protocolDb) return;
+      if (initPhaseRef.current === 'idle' || initPhaseRef.current === 'version') {
+        stopAllTimersRef.current();
+        startVersionRetryRef.current();
+        return;
+      }
+      if (waitingResponseRef.current) {
+        stopAllTimersRef.current();
+        if (initPhaseRef.current === 'initial-poll') {
+          const allIndices = allInstrIndicesRef.current;
+          const idx = Math.min(pollIdxRef.current, allIndices.length - 1);
+          if (idx >= 0) sendInstructionFrame(allIndices[idx]!);
+        } else if (initPhaseRef.current === 'periodic') {
+          const regIndices = registerInstrIndicesRef.current;
+          const idx = Math.min(pollIdxRef.current, regIndices.length - 1);
+          if (idx >= 0) sendInstructionFrame(regIndices[idx]!);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onResume);
+    return () => document.removeEventListener('visibilitychange', onResume);
+  }, [connectionStatus, protocolDb, sendInstructionFrame]);
+
 
   const autoRead = useCallback(() => {
     if (protocolDb && connectionStatus === 'connected') {
