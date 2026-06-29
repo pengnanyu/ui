@@ -53,90 +53,72 @@ function isTimeType(dt: string): boolean {
   return TIME_TYPES.has(dt);
 }
 
-function formatDisplayValue(value: number, dt: string): string {
-  if (isFloatType(dt)) {
-    const rounded = Math.round(value * 100) / 100;
-    const s = rounded.toString();
-    return s;
+function sanitize(raw: string, dt: string): string {
+  if (isHexType(dt) || isIdType(dt)) {
+    return raw.replace(/[^0-9a-fA-F ]/g, '');
+  }
+  if (isTimeType(dt)) {
+    return raw.replace(/[^0-9\-: /AMPW]/g, '');
   }
   if (isIntegerType(dt)) {
-    return Math.round(value).toString();
+    let s = raw.replace(/[^0-9\-]/g, '');
+    if (s.length > 1 && s.startsWith('--')) {
+      s = '-' + s.slice(2);
+    }
+    return s;
   }
-  return value.toString();
+  if (isFloatType(dt)) {
+    let s = raw.replace(/[^0-9.\-]/g, '');
+    const firstDot = s.indexOf('.');
+    if (firstDot >= 0) {
+      s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+    }
+    if (s.length > 1 && s.startsWith('--')) {
+      s = '-' + s.slice(2);
+    }
+    if (dt === 'ushort Temper') {
+      const dotIdx = s.indexOf('.');
+      if (dotIdx >= 0 && s.length - dotIdx - 1 > 2) {
+        s = s.slice(0, dotIdx + 3);
+      }
+    }
+    return s;
+  }
+  return raw;
 }
 
 export function ParamInput({ param, onValueChange, onBlur }: ParamInputProps) {
   const dt = param.dataType ?? '';
-  const [localValue, setLocalValue] = useState(() =>
-    formatDisplayValue(Number(param.value), dt)
-  );
+  const [localValue, setLocalValue] = useState(() => param.displayValue ?? String(param.value));
   const inputRef = useRef<HTMLInputElement>(null);
   const paramKeyRef = useRef(param.key);
   paramKeyRef.current = param.key;
 
   useEffect(() => {
     if (inputRef.current !== document.activeElement) {
-      setLocalValue(formatDisplayValue(Number(param.value), dt));
+      setLocalValue(param.displayValue ?? String(param.value));
     }
-  }, [param.value, dt]);
-
-  const validateAndSanitize = useCallback((raw: string): string => {
-    if (isHexType(dt)) {
-      return raw.replace(/[^0-9a-fA-F ]/g, '');
-    }
-    if (isIdType(dt)) {
-      return raw.replace(/[^0-9a-fA-F ]/g, '');
-    }
-    if (isTimeType(dt)) {
-      return raw.replace(/[^0-9\-: /AMPW]/g, '');
-    }
-    if (isIntegerType(dt)) {
-      let s = raw.replace(/[^0-9\-]/g, '');
-      if (s.length > 1 && s.startsWith('--')) {
-        s = '-' + s.slice(2);
-      }
-      return s;
-    }
-    if (isFloatType(dt)) {
-      let s = raw.replace(/[^0-9.\-]/g, '');
-      const firstDot = s.indexOf('.');
-      if (firstDot >= 0) {
-        s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
-      }
-      if (s.length > 1 && s.startsWith('--')) {
-        s = '-' + s.slice(2);
-      }
-      if (dt === 'ushort Temper') {
-        const dotIdx = s.indexOf('.');
-        if (dotIdx >= 0 && s.length - dotIdx - 1 > 2) {
-          s = s.slice(0, dotIdx + 3);
-        }
-      }
-      return s;
-    }
-    return raw;
-  }, [dt]);
+  }, [param.displayValue, param.value]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const sanitized = validateAndSanitize(e.target.value);
-    setLocalValue(sanitized);
-  }, [validateAndSanitize]);
+    setLocalValue(sanitize(e.target.value, dt));
+  }, [dt]);
 
   const handleBlurInner = useCallback(() => {
-    const sanitized = validateAndSanitize(localValue);
+    const cleaned = sanitize(localValue, dt);
     let finalValue: string | number;
     if (isIntegerType(dt) || isFloatType(dt)) {
-      const num = Number(sanitized);
+      const num = Number(cleaned);
       finalValue = isNaN(num) ? 0 : num;
-      setLocalValue(formatDisplayValue(finalValue, dt));
+      setLocalValue(String(finalValue));
       onValueChange(paramKeyRef.current, finalValue);
     } else {
-      finalValue = sanitized;
-      setLocalValue(sanitized);
+      finalValue = cleaned;
+      setLocalValue(cleaned);
       onValueChange(paramKeyRef.current, finalValue);
     }
     onBlur(paramKeyRef.current);
-  }, [localValue, dt, validateAndSanitize, onValueChange, onBlur]);
+  }, [localValue, dt, onValueChange, onBlur]);
 
   if (param.readonly) {
     return <span className={styles.dash}>—</span>;
