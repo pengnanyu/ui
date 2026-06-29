@@ -1,7 +1,8 @@
 .container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 72px - 32px);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   padding: 12px;
 }
@@ -78,10 +79,6 @@
 }
 
 @media (max-width: 639px) {
-  .container {
-    height: calc(100vh - 72px - 32px);
-  }
-
   .body {
     flex-direction: column;
   }
@@ -91,7 +88,6 @@
     max-width: none;
     min-width: 0;
     flex-shrink: 1;
-
   }
 
   .content {

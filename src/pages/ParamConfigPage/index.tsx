@@ -45,6 +45,9 @@ export function ParamConfigPage() {
     });
   }, [dataMemeryGroups, isZh]);
 
+  const handleValueChange = (_key: string, _newValue: string | number) => { };
+  const handleBlur = (_key: string) => { };
+
   const currentGroup = paramGroups[activeGroupIdx] ?? null;
 
   const handleNavClick = useCallback((idx: number) => {
@@ -117,6 +120,8 @@ export function ParamConfigPage() {
               <ParamGroupCard
                 groupName={currentGroup.groupName}
                 params={currentGroup.params}
+                onValueChange={handleValueChange}
+                onBlur={handleBlur}
                 onBack={isNarrow ? handleBack : undefined}
               />
             ) : (
