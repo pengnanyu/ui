@@ -17,6 +17,12 @@ export interface DataMemeryGroup {
   fields: FieldValue[];
 }
 
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error';
+}
+
 export interface BmsState {
   connectionStatus: ConnectionStatus;
   protocolDb: ProtocolDatabase | null;
@@ -27,6 +33,7 @@ export interface BmsState {
   parsedProtocol: ParsedProtocol | null;
   dataMemeryGroups: DataMemeryGroup[];
   logs: LogEntry[];
+  toasts: Toast[];
 }
 
 export interface BmsActions {

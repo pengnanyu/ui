@@ -20,7 +20,7 @@ function useIsNarrow(breakpoint: number): boolean {
 }
 
 export function ParamConfigPage() {
-  const { dataMemeryGroups, parsedValues, logs, writeField } = useBmsStore();
+  const { dataMemeryGroups, parsedValues, toasts, writeField } = useBmsStore();
   const { i18n } = useTranslation();
   const isZh = i18n.language === 'zh';
   const isNarrow = useIsNarrow(NARROW_BREAKPOINT);
@@ -45,10 +45,6 @@ export function ParamConfigPage() {
     });
   }, [dataMemeryGroups, isZh]);
 
-  const recentLogs = useMemo(() => {
-    const writeLogs = logs.filter(l => l.parsedInfo && (l.parsedInfo.startsWith('write') || l.parsedInfo.startsWith('1B write') || l.parsedInfo.startsWith('verify') || l.parsedInfo === 'write OK' || l.parsedInfo.includes('FAILED') || l.parsedInfo.includes('timeout') || l.parsedInfo.includes('CRC error')));
-    return writeLogs.slice(-5);
-  }, [logs]);
 
   const handleValueChange = useCallback((key: string, newValue: string | number) => {
     const rowIndex = parseInt(key, 10);
@@ -114,16 +110,13 @@ export function ParamConfigPage() {
         onExport={() => { }}
         onPreset={(_id: string) => { }}
       />
-      {recentLogs.length > 0 && (
-        <div className={styles.logBar}>
-          {recentLogs.map(l => {
-            const time = new Date(l.timestamp);
-            const ts = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`;
-            const isSuccess = l.parsedInfo === 'write OK';
-            const isError = (l.parsedInfo ?? '').includes('FAILED') || (l.parsedInfo ?? '').includes('timeout') || (l.parsedInfo ?? '').includes('CRC error');
-            const cls = isSuccess ? styles.logSuccess : isError ? styles.logError : styles.logInfo;
-            return <span key={l.id} className={`${styles.logItem} ${cls}`}>{ts} {l.parsedInfo}</span>;
-          })}
+      {toasts.length > 0 && (
+        <div className={styles.toastBar}>
+          {toasts.map(t => (
+            <span key={t.id} className={`${styles.toastItem} ${t.type === 'success' ? styles.toastSuccess : styles.toastError}`}>
+              {t.message}
+            </span>
+          ))}
         </div>
       )}
       <div className={styles.body}>

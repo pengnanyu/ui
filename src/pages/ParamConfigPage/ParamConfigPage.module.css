@@ -8,35 +8,42 @@
   gap: 8px;
 }
 
-.logBar {
+.toastBar {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
-  font-size: 11px;
-  font-family: monospace;
-  padding: 4px 8px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  gap: 6px;
+  padding: 0;
   min-height: 0;
-  max-height: 48px;
-  overflow-y: auto;
 }
 
-.logItem {
-  white-space: nowrap;
+.toastItem {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  animation: toastIn 0.2s ease-out;
 }
 
-.logSuccess {
-  color: oklch(0.65 0.18 145);
+.toastSuccess {
+  background: oklch(0.92 0.08 145);
+  color: oklch(0.3 0.12 145);
 }
 
-.logError {
-  color: oklch(0.6 0.18 25);
+.toastError {
+  background: oklch(0.92 0.06 25);
+  color: oklch(0.35 0.15 25);
 }
 
-.logInfo {
-  color: var(--color-muted-foreground);
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .body {

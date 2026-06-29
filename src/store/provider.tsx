@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import type { ConnectionStatus, ProtocolDatabase, BridgeMessage } from '@/types';
-import type { BmsStore, LogEntry, DataMemeryGroup } from './context';
+import type { BmsStore, LogEntry, DataMemeryGroup, Toast } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
@@ -51,6 +51,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const [parsedProtocol, setParsedProtocol] = useState<ParsedProtocol | null>(null);
   const [dataMemeryGroups, setDataMemeryGroups] = useState<DataMemeryGroup[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   const parsedValuesMapRef = useRef<Map<number, FieldValue>>(new Map());
   const pendingFieldsUpdateRef = useRef<Map<string, number> | null>(null);
@@ -63,6 +64,15 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const versionRef = useRef<string | null>(null);
   const versionRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logIdRef = useRef(0);
+  const toastIdRef = useRef(0);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    const id = `t${toastIdRef.current++}`;
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  }, []);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollIdxRef = useRef(0);
   const waitingResponseRef = useRef(false);
@@ -74,6 +84,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const initPhaseRef = useRef<'idle' | 'version' | 'protocol' | 'initial-poll' | 'periodic'>('idle');
   const isWritingRef = useRef(false);
   const writeInstrIdxRef = useRef(-1);
+  const writeFieldNameRef = useRef('');
   const writeVerifyAddrRef = useRef(-1);
   const writeVerifyQtyRef = useRef(0);
   const pendingWriteRef = useRef<{ fieldRowIndex: number; newValue: number } | null>(null);
@@ -291,6 +302,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (isVerifyReadRef.current) {
       isVerifyReadRef.current = false;
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write OK`, rawHex: '' });
+      showToast(`${writeFieldNameRef.current} write OK`, 'success');
       flushUpdates();
       executePendingWriteOrPollRef.current();
       return;
@@ -402,6 +414,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const addr = (data[0] ?? 0).toString(16).padStart(2, '0');
       if (fc & 0x80) {
         addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response addr=${addr} func=${fc.toString(16).padStart(2, '0')} FAILED`, rawHex });
+        showToast(`${writeFieldNameRef.current} write failed`, 'error');
         executePendingWriteOrPollRef.current();
         return;
       }
@@ -598,6 +611,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (frame) {
       isWritingRef.current = true;
       writeInstrIdxRef.current = fv.parentInstructionIndex;
+      writeFieldNameRef.current = fv.name;
       writeVerifyAddrRef.current = fv.absAddr;
       writeVerifyQtyRef.current = fv.regLen;
       sendFrame(frame);
@@ -623,6 +637,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         if (!isWritingRef.current) return;
         isWritingRef.current = false;
         addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'write-response timeout', rawHex: '' });
+        showToast(`${writeFieldNameRef.current} write timeout`, 'error');
         executePendingWriteOrPollRef.current();
       }, RESPONSE_TIMEOUT);
     }
@@ -665,11 +680,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     parsedProtocol,
     dataMemeryGroups,
     logs,
+    toasts,
     sendFrame,
     clearLogs,
     autoRead,
     writeField,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, logs, sendFrame, clearLogs, autoRead, writeField]);
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, logs, toasts, sendFrame, clearLogs, autoRead, writeField]);
 
   return (
     <BmsContext.Provider value={store}>
