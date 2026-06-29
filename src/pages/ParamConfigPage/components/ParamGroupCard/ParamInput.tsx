@@ -91,6 +91,13 @@ export function ParamInput({ param, onValueChange, onBlur }: ParamInputProps) {
     setLocalValue(sanitize(e.target.value, dt));
   }, [dt]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      (e.target as HTMLInputElement).blur();
+    }
+  }, []);
+
   const handleBlurInner = useCallback(() => {
     const cleaned = sanitize(localValue, dt);
     let finalValue: string | number;
@@ -141,6 +148,7 @@ export function ParamInput({ param, onValueChange, onBlur }: ParamInputProps) {
       value={localValue}
       onChange={handleChange}
       onBlur={handleBlurInner}
+      onKeyDown={handleKeyDown}
     />
   );
 }
