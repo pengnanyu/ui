@@ -120,20 +120,18 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setDataMemeryGroups([]);
     parsedValuesMapRef.current = new Map();
 
-    addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'communication-error, restarting version query', rawHex: '' });
     sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
     versionRetryRef.current = setInterval(() => {
       if (!versionRef.current) {
         sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
       }
     }, VERSION_QUERY_INTERVAL);
-  }, [stopAllTimers, sendFrame, addLog]);
+  }, [stopAllTimers, sendFrame]);
 
   const sendVersionQuery = useCallback(() => {
     const frame = appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]);
     sendFrame(frame);
-    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: 'read-request addr=00 func=03 start=0x0000 regs=1 (version-query)', rawHex: fmtHex(frame) });
-  }, [sendFrame, addLog]);
+  }, [sendFrame]);
 
   const startVersionRetry = useCallback(() => {
     if (versionRetryRef.current) return;
@@ -170,7 +168,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           rows: data.rows,
           loadedAt: Date.now(),
         });
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db loaded: v${version} (${data.rows.length} rows)`, rawHex: '' });
+
       }
     } catch (_e) {
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db failed: ${_e}`, rawHex: '' });
@@ -195,14 +193,16 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     waitingResponseRef.current = true;
     sendFrame(frame);
 
-    const addr = inst.slaveAddr.toString(16).padStart(2, '0');
-    const fc = inst.funcCode.toString(16).padStart(2, '0');
-    const start = '0x' + inst.startAddr.toString(16).padStart(4, '0');
-    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `read-request addr=${addr} func=${fc} start=${start} regs=${inst.quantity}`, rawHex: fmtHex(frame) });
+    if (inst.configType === 'Data Memery') {
+      const addr = inst.slaveAddr.toString(16).padStart(2, '0');
+      const fc = inst.funcCode.toString(16).padStart(2, '0');
+      const start = '0x' + inst.startAddr.toString(16).padStart(4, '0');
+      addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `read-request addr=${addr} func=${fc} start=${start} regs=${inst.quantity}`, rawHex: fmtHex(frame) });
+    }
 
     responseTimerRef.current = setTimeout(() => {
       if (!waitingResponseRef.current) return;
-      addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Timeout on instruction #${instrIdx + 1}`, rawHex: '' });
+
       resetToVersionQuery();
     }, RESPONSE_TIMEOUT);
   }, [sendFrame, addLog, resetToVersionQuery]);
@@ -374,10 +374,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     if (data.length >= 5 && verifyCrc(data) && (data[1]! & 0x80)) {
-      const fc = data[1]!;
-      const errCode = data[2]!;
-      const addr = (data[0] ?? 0).toString(16).padStart(2, '0');
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `exception addr=${addr} func=${fc.toString(16).padStart(2, '0')} err=0x${errCode.toString(16).padStart(2, '0')}`, rawHex });
       advancePoll();
       return;
     }
@@ -385,14 +381,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const parsed = parseModbusResponse(data);
 
     if (!parsed) {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `invalid-response, resetting`, rawHex });
       resetToVersionQuery();
       return;
     }
 
     if (parsed.funcCode & 0x80) {
-      const addr = parsed.slaveAddr.toString(16).padStart(2, '0');
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `exception addr=${addr} func=${parsed.funcCode.toString(16).padStart(2, '0')}`, rawHex });
       advancePoll();
       return;
     }
@@ -402,29 +395,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       versionRef.current = verHex;
       setDeviceVersion(verHex);
       stopVersionRetry();
-      const addr = parsed.slaveAddr.toString(16).padStart(2, '0');
-      const fc = parsed.funcCode.toString(16).padStart(2, '0');
-      const dataHex = parsed.registers.map(r => {
-        const hi = (r >> 8) & 0xFF;
-        const lo = r & 0xFF;
-        return hi.toString(16).padStart(2, '0') + ' ' + lo.toString(16).padStart(2, '0');
-      }).join(' ');
-      const crcOk = verifyCrc(data) ? 'OK' : 'ERR';
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `read-response addr=${addr} func=${fc} data=[${dataHex}] crc=${crcOk} version=${verHex}`, rawHex });
       loadProtocolDb(verHex);
       return;
-    }
-
-    {
-      const addr = parsed.slaveAddr.toString(16).padStart(2, '0');
-      const fc = parsed.funcCode.toString(16).padStart(2, '0');
-      const dataHex = parsed.registers.map(r => {
-        const hi = (r >> 8) & 0xFF;
-        const lo = r & 0xFF;
-        return hi.toString(16).padStart(2, '0') + ' ' + lo.toString(16).padStart(2, '0');
-      }).join(' ');
-      const crcOk = verifyCrc(data) ? 'OK' : 'ERR';
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `read-response addr=${addr} func=${fc} data=[${dataHex}] crc=${crcOk}`, rawHex });
     }
 
     if (!pendingFieldsUpdateRef.current) {
@@ -437,6 +409,21 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const instrIdx = currentSentInstrIdxRef.current;
     const protocol = parsedProtocolRef.current;
     if (protocol && instrIdx >= 0 && instrIdx < protocol.instructions.length) {
+      const inst = protocol.instructions[instrIdx]!;
+      const isDm = inst.configType === 'Data Memery';
+
+      if (isDm) {
+        const addr = parsed.slaveAddr.toString(16).padStart(2, '0');
+        const fc = parsed.funcCode.toString(16).padStart(2, '0');
+        const dataHex = parsed.registers.map(r => {
+          const hi = (r >> 8) & 0xFF;
+          const lo = r & 0xFF;
+          return hi.toString(16).padStart(2, '0') + ' ' + lo.toString(16).padStart(2, '0');
+        }).join(' ');
+        const crcOk = verifyCrc(data) ? 'OK' : 'ERR';
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `read-response addr=${addr} func=${fc} data=[${dataHex}] crc=${crcOk}`, rawHex });
+      }
+
       const fieldValues = parseDataFields(parsed.registers, protocol.dataFields, instrIdx, protocol.instructions);
       if (fieldValues.length > 0) {
         const map = parsedValuesMapRef.current;
@@ -445,6 +432,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
             pendingDmUpdateRef.current = true;
           }
           map.set(fv.rowIndex, fv);
+
+          if (isDm && fv.byteLen === 1) {
+            const reg = parsed.registers[fv.absAddr - inst.startAddr] ?? 0;
+            const lo = (reg >> 8) & 0xFF;
+            const hi = reg & 0xFF;
+            addLog({
+              timestamp: Date.now(), direction: 'RX', parsedInfo:
+                `1B parse: ${fv.name} byteOff=${fv.byteOffset} reg=0x${reg.toString(16).padStart(4, '0')} lo=0x${lo.toString(16).padStart(2, '0')} hi=0x${hi.toString(16).padStart(2, '0')} rawVal=${fv.rawValue} val=${fv.value} op=${fv.operation} ratio=${fv.ratio}`,
+              rawHex: ''
+            });
+          }
         }
         pendingValuesUpdateRef.current = true;
       }
@@ -456,9 +454,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const handleConnectionStatus = useCallback((payload: unknown) => {
     const p = payload as { status: ConnectionStatus };
-    addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `connection: ${p.status}`, rawHex: '' });
     setConnectionStatus(p.status);
-  }, [addLog]);
+  }, []);
 
   const handleThemeChange = useCallback((payload: unknown) => {
     const p = payload as { theme: 'light' | 'dark' };
