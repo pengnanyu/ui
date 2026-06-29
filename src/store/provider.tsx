@@ -345,11 +345,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         const bc = lastFrame[2] ?? 0;
         return lastFrame.length >= 3 + bc + 2;
       }
-      if (fc === 0x10) {
-        if (lastFrame.length < 6) return false;
-        const qty = ((lastFrame[4]! << 8) | lastFrame[5]!) >>> 0;
-        return lastFrame.length >= 6 + qty * 2 + 2;
-      }
+      if (fc === 0x10) return lastFrame.length >= 5;
       return true;
     })();
 

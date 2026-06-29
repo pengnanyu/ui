@@ -658,19 +658,8 @@ export function splitModbusFrames(data: number[]): number[][] {
     }
 
     if (fc === 0x10) {
-      if (remaining < 6) {
-        frames.push(data.slice(pos));
-        break;
-      }
-      const qty = ((data[pos + 4]! << 8) | data[pos + 5]!) >>> 0;
-      const len = 6 + qty * 2 + 2;
-      if (remaining >= len) {
-        frames.push(data.slice(pos, pos + len));
-        pos += len;
-      } else {
-        frames.push(data.slice(pos));
-        break;
-      }
+      frames.push(data.slice(pos, pos + 5));
+      pos += 5;
       continue;
     }
 
