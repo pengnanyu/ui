@@ -617,7 +617,8 @@ export function buildWriteFrame(
 export function buildFieldWriteFrame(
   field: FieldValue,
   newValue: number,
-  siblingFields: FieldValue[]
+  siblingFields: FieldValue[],
+  getRegisterValue: (absAddr: number) => number
 ): number[] | null {
   if (field.rwType === 'R' || field.rwType === 'r' || field.rwType === 'RO') return null;
 
@@ -637,10 +638,11 @@ export function buildFieldWriteFrame(
         regVal = (sibRaw << 8) | byteVal;
       }
     } else {
+      const curBigEndian = getRegisterValue(field.absAddr);
       if (field.byteOffset === 0) {
-        regVal = byteVal << 8;
+        regVal = (byteVal << 8) | (curBigEndian & 0xFF);
       } else {
-        regVal = byteVal;
+        regVal = (curBigEndian & 0xFF00) | byteVal;
       }
     }
     return buildWriteFrame(0x00, field.absAddr, [regVal]);

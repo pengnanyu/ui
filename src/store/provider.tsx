@@ -334,27 +334,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         return;
       }
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Write OK`, rawHex });
-      const verifyAddr = writeVerifyAddrRef.current;
-      const verifyQty = writeVerifyQtyRef.current;
-      if (verifyAddr >= 0 && verifyQty > 0) {
-        const readFrame = appendCrc([
-          0x00,
-          0x03,
-          (verifyAddr >> 8) & 0xFF,
-          verifyAddr & 0xFF,
-          (verifyQty >> 8) & 0xFF,
-          verifyQty & 0xFF,
-        ]);
-        addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Verify read after write`, rawHex: readFrame.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ') });
-        currentSentInstrIdxRef.current = writeInstrIdxRef.current;
-        waitingResponseRef.current = true;
-        sendFrame(readFrame);
-        responseTimerRef.current = setTimeout(() => {
-          if (!waitingResponseRef.current) return;
-          waitingResponseRef.current = false;
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Verify read timeout', rawHex: '' });
-          executePendingWriteOrPollRef.current();
-        }, RESPONSE_TIMEOUT);
+      const writeInstrIdx = writeInstrIdxRef.current;
+      if (writeInstrIdx >= 0) {
+        addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Verify read after write`, rawHex: '' });
+        sendInstructionFrame(writeInstrIdx);
       } else {
         executePendingWriteOrPollRef.current();
       }
@@ -496,7 +479,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (!protocol) return;
     const allFields = parsedValuesMapRef.current;
     const siblingFields = Array.from(allFields.values());
-    const frame = buildFieldWriteFrame(fv, newValue, siblingFields);
+    const getRegisterValue = (absAddr: number): number => {
+      const instrIdx = fv.parentInstructionIndex;
+      const protocol = parsedProtocolRef.current;
+      if (!protocol || instrIdx >= protocol.instructions.length) return 0;
+      const inst = protocol.instructions[instrIdx]!;
+      const offsetInInstr = absAddr - inst.startAddr;
+      const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
+      const leVal = parsedFields.get(key) ?? 0;
+      return ((leVal & 0xFF) << 8) | ((leVal >> 8) & 0xFF);
+    };
+    const frame = buildFieldWriteFrame(fv, newValue, siblingFields, getRegisterValue);
     if (frame) {
       if (responseTimerRef.current) {
         clearTimeout(responseTimerRef.current);
