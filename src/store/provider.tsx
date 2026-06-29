@@ -290,7 +290,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     if (isVerifyReadRef.current) {
       isVerifyReadRef.current = false;
-
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write OK`, rawHex: '' });
       flushUpdates();
       executePendingWriteOrPollRef.current();
       return;
