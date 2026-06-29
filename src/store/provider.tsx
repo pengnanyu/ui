@@ -53,6 +53,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const pendingFieldsUpdateRef = useRef<Map<string, number> | null>(null);
   const pendingValuesUpdateRef = useRef(false);
   const pendingDmUpdateRef = useRef(false);
+  const frameBufferRef = useRef<number[]>([]);
 
 
   const sendMessageRef = useRef<((msg: BridgeMessage) => void) | null>(null);
@@ -106,7 +107,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setParsedProtocol(null);
     setDataMemeryGroups([]);
     parsedValuesMapRef.current = new Map();
-
+    frameBufferRef.current = [];
     addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Communication error, restarting version query', rawHex: '' });
     sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
     versionRetryRef.current = setInterval(() => {
@@ -294,11 +295,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, [sendInstructionFrame, addLog, startPeriodicPoll, flushUpdates]);
 
 
-  const handleRawData = useCallback((payload: unknown) => {
-    const p = payload as { data: number[] };
-    if (!p.data || p.data.length === 0) return;
-
-    const parsed = parseModbusResponse(p.data);
+  const processFrame = useCallback((frameData: number[]) => {
+    const parsed = parseModbusResponse(frameData);
 
     if (!parsed) {
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'Invalid response, resetting', rawHex: '' });
@@ -347,6 +345,24 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     advancePoll();
   }, [parsedFields, addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery]);
+
+  const handleRawData = useCallback((payload: unknown) => {
+    const p = payload as { data: number[] };
+    if (!p.data || p.data.length === 0) return;
+
+    const buf = frameBufferRef.current;
+    for (let i = 0; i < p.data.length; i++) {
+      buf.push(p.data[i]!);
+    }
+
+    while (buf.length >= 5) {
+      const byteCount = buf[2]!;
+      const frameLen = 3 + byteCount + 2;
+      if (buf.length < frameLen) break;
+      const frame = buf.splice(0, frameLen);
+      processFrame(frame);
+    }
+  }, [processFrame]);
 
   const handleConnectionStatus = useCallback((payload: unknown) => {
     const p = payload as { status: ConnectionStatus };
@@ -397,6 +413,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       setParsedProtocol(null);
       setDataMemeryGroups([]);
       parsedValuesMapRef.current = new Map();
+      frameBufferRef.current = [];
     }
     return () => {
       stopAllTimersRef.current();
