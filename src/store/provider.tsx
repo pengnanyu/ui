@@ -4,7 +4,7 @@ import type { BmsStore, LogEntry, DataMemeryGroup } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
-import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, verifyCrc, splitModbusFrames, reverseOperation } from '@/utils/modbus';
+import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, verifyCrc, reverseOperation } from '@/utils/modbus';
 import type { ParsedProtocol, FieldValue } from '@/utils/modbus';
 import i18n from '@/i18n';
 
@@ -334,34 +334,49 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     for (const b of p.data) rawBufRef.current.push(b);
 
-    const frames = splitModbusFrames(rawBufRef.current);
-    if (frames.length === 0) return;
+    let loopGuard = 0;
+    while (rawBufRef.current.length > 0 && loopGuard++ < 20) {
+      const buf = rawBufRef.current;
+      if (buf.length < 5) break;
 
-    const lastFrame = frames[frames.length - 1]!;
-    const lastIsComplete = (() => {
-      if (lastFrame.length < 5) return false;
-      const fc = lastFrame[1]!;
-      if (fc & 0x80) return lastFrame.length >= 5;
+      const fc = buf[1]!;
+
+      if (fc & 0x80) {
+        processFrame(buf.slice(0, 5));
+        rawBufRef.current = buf.slice(5);
+        continue;
+      }
+
       if (fc === 0x03 || fc === 0x04 || fc === 0x11) {
-        const bc = lastFrame[2] ?? 0;
-        return lastFrame.length >= 3 + bc + 2;
+        const bc = buf[2] ?? 0;
+        const frameLen = 3 + bc + 2;
+        if (buf.length >= frameLen) {
+          const frame = buf.slice(0, frameLen);
+          if (verifyCrc(frame)) {
+            processFrame(frame);
+            rawBufRef.current = buf.slice(frameLen);
+            continue;
+          }
+        }
+        if (buf.length < frameLen) break;
+        rawBufRef.current = buf.slice(1);
+        continue;
       }
-      if (fc === 0x10) return lastFrame.length >= 5;
-      return true;
-    })();
 
-    if (lastIsComplete) {
-      rawBufRef.current = [];
-    } else {
-      const consumed = rawBufRef.current.length - lastFrame.length;
-      rawBufRef.current = rawBufRef.current.slice(consumed > 0 ? consumed : 0);
-      frames.pop();
-    }
-
-    for (const frame of frames) {
-      if (frame.length >= 5) {
-        processFrame(frame);
+      if (fc === 0x10) {
+        if (buf.length >= 5) {
+          const frame = buf.slice(0, 5);
+          if (verifyCrc(frame)) {
+            processFrame(frame);
+            rawBufRef.current = buf.slice(5);
+            continue;
+          }
+        }
+        rawBufRef.current = buf.slice(1);
+        continue;
       }
+
+      rawBufRef.current = buf.slice(1);
     }
   }, [parsedFields, addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery, sendFrame]);
 
