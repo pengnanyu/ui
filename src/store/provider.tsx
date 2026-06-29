@@ -349,15 +349,23 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         return;
       }
       const fc = data[1]!;
+      const addr = (data[0] ?? 0).toString(16).padStart(2, '0');
+      const crcOk = verifyCrc(data) ? 'OK' : 'ERR';
       if (fc & 0x80) {
-        const addr = (data[0] ?? 0).toString(16).padStart(2, '0');
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response addr=${addr} func=${fc.toString(16).padStart(2, '0')} FAILED`, rawHex });
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response addr=${addr} func=${fc.toString(16).padStart(2, '0')} FAILED crc=${crcOk}`, rawHex });
         executePendingWriteOrPollRef.current();
         return;
       }
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response addr=${addr} func=10 crc=${crcOk}`, rawHex });
       const writeInstrIdx = writeInstrIdxRef.current;
       if (writeInstrIdx >= 0) {
         isVerifyReadRef.current = true;
+        const protocol = parsedProtocolRef.current;
+        if (protocol && writeInstrIdx < protocol.instructions.length) {
+          const inst = protocol.instructions[writeInstrIdx]!;
+          const start = '0x' + inst.startAddr.toString(16).padStart(4, '0');
+          addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `verify-read addr=00 func=${inst.funcCode.toString(16).padStart(2, '0')} start=${start} regs=${inst.quantity}`, rawHex: '' });
+        }
         sendInstructionFrame(writeInstrIdx);
       } else {
         executePendingWriteOrPollRef.current();
@@ -414,6 +422,18 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         }
         pendingValuesUpdateRef.current = true;
       }
+    }
+
+    if (isVerifyReadRef.current) {
+      const addr = parsed.slaveAddr.toString(16).padStart(2, '0');
+      const fc = parsed.funcCode.toString(16).padStart(2, '0');
+      const dataHex = parsed.registers.map(r => {
+        const hi = (r >> 8) & 0xFF;
+        const lo = r & 0xFF;
+        return hi.toString(16).padStart(2, '0') + ' ' + lo.toString(16).padStart(2, '0');
+      }).join(' ');
+      const crcOk = verifyCrc(data) ? 'OK' : 'ERR';
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read-response addr=${addr} func=${fc} data=[${dataHex}] crc=${crcOk}`, rawHex });
     }
 
     advancePoll();
