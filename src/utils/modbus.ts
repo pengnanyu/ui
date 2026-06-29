@@ -374,7 +374,9 @@ export function parseDataFields(
       case 'HEX': {
         const reg = fieldRegs[0] ?? 0;
         if (field.byteLen === 1) {
-          const byteVal = reg & 0xFF;
+          const byteVal = field.byteOffset === 0
+            ? reg & 0xFF
+            : (reg >> 8) & 0xFF;
           displayValue = byteVal.toString(16).toUpperCase().padStart(2, '0');
           rawValue = byteVal;
           value = byteVal;
@@ -408,7 +410,9 @@ export function parseDataFields(
       case 'uchar':
       case 'unsigned char': {
         const reg = fieldRegs[0] ?? 0;
-        const byteVal = reg & 0xFF;
+        const byteVal = field.byteOffset === 0
+          ? reg & 0xFF
+          : (reg >> 8) & 0xFF;
         rawValue = byteVal;
         value = applyOperation(byteVal, field.operation, field.ratio);
         displayValue = formatValue(value);
@@ -467,7 +471,9 @@ export function parseDataFields(
       default: {
         if (field.byteLen === 1) {
           const reg = fieldRegs[0] ?? 0;
-          const byteVal = reg & 0xFF;
+          const byteVal = field.byteOffset === 0
+            ? reg & 0xFF
+            : (reg >> 8) & 0xFF;
           rawValue = byteVal;
           value = applyOperation(byteVal, field.operation, field.ratio);
         } else if (field.byteLen === 2 || fieldRegs.length === 1) {
