@@ -332,6 +332,19 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `Write OK`, rawHex });
       const writeInstrIdx = writeInstrIdxRef.current;
       if (writeInstrIdx >= 0) {
+        const protocol = parsedProtocolRef.current;
+        if (protocol && writeInstrIdx < protocol.instructions.length) {
+          const inst = protocol.instructions[writeInstrIdx]!;
+          const readFrame = appendCrc([
+            inst.slaveAddr,
+            inst.funcCode,
+            (inst.startAddr >> 8) & 0xFF,
+            inst.startAddr & 0xFF,
+            (inst.quantity >> 8) & 0xFF,
+            inst.quantity & 0xFF,
+          ]);
+          addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `Verify read after write`, rawHex: readFrame.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ') });
+        }
         sendInstructionFrame(writeInstrIdx);
       } else {
         const regIndices = registerInstrIndicesRef.current;
