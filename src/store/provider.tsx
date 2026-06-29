@@ -351,29 +351,15 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       if (fc === 0x03 || fc === 0x04 || fc === 0x11) {
         const bc = buf[2] ?? 0;
         const frameLen = 3 + bc + 2;
-        if (buf.length >= frameLen) {
-          const frame = buf.slice(0, frameLen);
-          if (verifyCrc(frame)) {
-            processFrame(frame);
-            rawBufRef.current = buf.slice(frameLen);
-            continue;
-          }
-        }
         if (buf.length < frameLen) break;
-        rawBufRef.current = buf.slice(1);
+        processFrame(buf.slice(0, frameLen));
+        rawBufRef.current = buf.slice(frameLen);
         continue;
       }
 
       if (fc === 0x10) {
-        if (buf.length >= 5) {
-          const frame = buf.slice(0, 5);
-          if (verifyCrc(frame)) {
-            processFrame(frame);
-            rawBufRef.current = buf.slice(5);
-            continue;
-          }
-        }
-        rawBufRef.current = buf.slice(1);
+        processFrame(buf.slice(0, 5));
+        rawBufRef.current = buf.slice(5);
         continue;
       }
 
