@@ -112,6 +112,7 @@ export interface ParsedDataField {
   nameZh: string;
   unit: string;
   rwType: string;
+  bitTag: boolean;
 }
 
 export interface ParsedProtocol {
@@ -168,6 +169,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
       const nameZh = String(row['Name_Chinase'] ?? row['Name_English'] ?? row['Name'] ?? row['ParameterName'] ?? '');
       const unit = String(row['Unit'] ?? '');
       const rwType = String(row['Type'] ?? '');
+      const bitTag = String(row['BitTag'] ?? '').toLowerCase() === 'true';
 
       dataFields.push({
         rowIndex: i,
@@ -184,6 +186,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
         nameZh,
         unit,
         rwType,
+        bitTag,
       });
 
       accumulatedBytes += byteLen;
@@ -191,6 +194,149 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
   }
 
   return { instructions, dataFields };
+}
+
+export interface CalendarField {
+  name: string;
+  nameZh: string;
+  byteLen: number;
+  byteOffset: number;
+  dataType: string;
+  operation: string;
+  ratio: number;
+  unit: string;
+  bitTag: boolean;
+}
+
+export interface CalendarGroup {
+  configNameEn: string;
+  configNameZh: string;
+  instrIdx: number;
+  startAddr: number;
+  funcCode: number;
+  recordCount: number;
+  recordLen: number;
+  fields: CalendarField[];
+}
+
+export function parseCalendarGroups(parsed: ParsedProtocol): CalendarGroup[] {
+  const groups: CalendarGroup[] = [];
+  for (let i = 0; i < parsed.instructions.length; i++) {
+    const inst = parsed.instructions[i]!;
+    if (inst.configType !== 'Calendar') continue;
+
+    const fields = parsed.dataFields
+      .filter(f => f.parentInstructionIndex === i)
+      .map(f => ({
+        name: f.name,
+        nameZh: f.nameZh,
+        byteLen: f.byteLen,
+        byteOffset: f.byteOffset,
+        dataType: f.dataType,
+        operation: f.operation,
+        ratio: f.ratio,
+        unit: f.unit,
+        bitTag: f.bitTag,
+      }));
+
+    const recordCount = fields.length > 0 ? fields[0]!.ratio : 0;
+    const recordLen = fields.length > 0 ? fields[0]!.byteLen : 0;
+
+    groups.push({
+      configNameEn: inst.configNameEn,
+      configNameZh: inst.configNameZh,
+      instrIdx: i,
+      startAddr: inst.startAddr,
+      funcCode: inst.funcCode,
+      recordCount,
+      recordLen: Math.ceil(recordLen / 2),
+      fields,
+    });
+  }
+  return groups;
+}
+
+export interface CalendarRecord {
+  groupIdx: number;
+  recordIdx: number;
+  values: { name: string; nameZh: string; displayValue: string; unit: string; bitTag: boolean; bitLabels?: string[] }[];
+  isEmpty: boolean;
+}
+
+export function parseCalendarRecord(
+  registers: number[],
+  group: CalendarGroup,
+  recordIdx: number
+): CalendarRecord {
+  const values: CalendarRecord['values'] = [];
+  let allFF = true;
+
+  for (const field of group.fields) {
+    const startReg = Math.floor(field.byteOffset / 2);
+    const endReg = startReg + Math.ceil(field.byteLen / 2);
+    const fieldRegs = registers.slice(startReg, Math.min(endReg, registers.length));
+
+    if (fieldRegs.length === 0) continue;
+
+    for (const r of fieldRegs) {
+      if (leRegToValue(r) !== 0xFFFF) allFF = false;
+    }
+
+    if (field.bitTag) {
+      const val = fieldRegs.length === 1 ? leRegToValue(fieldRegs[0]!) : 0;
+      const bitLabels: string[] = [];
+      for (let b = 0; b < 16; b++) {
+        if (val & (1 << b)) {
+          bitLabels.push(`B${b}`);
+        }
+      }
+      values.push({
+        name: field.name,
+        nameZh: field.nameZh,
+        displayValue: '',
+        unit: field.unit,
+        bitTag: true,
+        bitLabels,
+      });
+    } else {
+      let displayValue = '';
+      switch (field.dataType) {
+        case 'Time': {
+          displayValue = parseBcdTime(fieldRegs);
+          break;
+        }
+        case '2HEX': {
+          const val = leRegToValue(fieldRegs[0] ?? 0);
+          displayValue = val.toString(16).toUpperCase().padStart(4, '0');
+          break;
+        }
+        case 'HEX': {
+          const val = leRegToValue(fieldRegs[0] ?? 0);
+          displayValue = val.toString(16).toUpperCase().padStart(4, '0');
+          break;
+        }
+        case 'ushort Temper': {
+          const val = leRegToValue(fieldRegs[0] ?? 0) / 10;
+          displayValue = formatValue(applyOperation(val, field.operation, field.ratio));
+          break;
+        }
+        default: {
+          const val = leRegToValue(fieldRegs[0] ?? 0);
+          displayValue = formatValue(applyOperation(val, field.operation, field.ratio));
+          break;
+        }
+      }
+      values.push({
+        name: field.name,
+        nameZh: field.nameZh,
+        displayValue,
+        unit: field.unit,
+        bitTag: false,
+      });
+    }
+  }
+
+  return { groupIdx: 0, recordIdx, values, isEmpty: allFF };
 }
 
 export function swap16(value: number): number {

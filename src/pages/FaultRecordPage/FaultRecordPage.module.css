@@ -1,18 +1,125 @@
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
+.container {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-@media (min-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.toolbar {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-@media (min-width: 1024px) {
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  transition: background-color 0.15s;
+}
+
+.btn:hover {
+  background: var(--color-muted);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+}
+
+.group {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.groupHeader {
+  padding: 10px 16px;
+  background: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-foreground);
+  flex-shrink: 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  overscroll-behavior: contain;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.thIdx {
+  width: 36px;
+  min-width: 36px;
+}
+
+.th {
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.tr {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tr:last-child {
+  border-bottom: none;
+}
+
+.tdIdx {
+  padding: 6px 10px;
+  color: var(--color-muted-foreground);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.td {
+  padding: 6px 10px;
+  color: var(--color-foreground);
+  white-space: nowrap;
+}
+
+.bitWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bitTag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  background: oklch(0.95 0.08 25 / 0.5);
+  color: oklch(0.55 0.2 25);
+  border: 1px solid oklch(0.7 0.15 25 / 0.5);
 }

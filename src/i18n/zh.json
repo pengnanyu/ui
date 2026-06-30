@@ -52,7 +52,9 @@
     "emptyState": "暂无异常记录",
     "warning": "警告",
     "error": "错误",
-    "critical": "严重"
+    "critical": "严重",
+    "readRecords": "读取记录",
+    "exportRecords": "导出记录"
   },
   "command": {
     "sendFrame": "发送帧",

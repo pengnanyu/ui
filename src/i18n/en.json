@@ -52,7 +52,9 @@
     "emptyState": "No fault records",
     "warning": "Warning",
     "error": "Error",
-    "critical": "Critical"
+    "critical": "Critical",
+    "readRecords": "Read Records",
+    "exportRecords": "Export Records"
   },
   "command": {
     "sendFrame": "Send Frame",

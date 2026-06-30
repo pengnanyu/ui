@@ -4,8 +4,8 @@ import type { BmsStore, LogEntry, DataMemeryGroup, Toast } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
-import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, verifyCrc, reverseOperation } from '@/utils/modbus';
-import type { ParsedProtocol, FieldValue } from '@/utils/modbus';
+import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, verifyCrc, reverseOperation, parseCalendarGroups, parseCalendarRecord } from '@/utils/modbus';
+import type { ParsedProtocol, FieldValue, CalendarGroup, CalendarRecord } from '@/utils/modbus';
 import i18n from '@/i18n';
 
 const PROTOCOL_API_URL = 'https://sql.hzxhhc.com/api/data/';
@@ -50,10 +50,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const [parsedValues, setParsedValues] = useState<FieldValue[]>([]);
   const [parsedProtocol, setParsedProtocol] = useState<ParsedProtocol | null>(null);
   const [dataMemeryGroups, setDataMemeryGroups] = useState<DataMemeryGroup[]>([]);
+  const [calendarGroups, setCalendarGroups] = useState<CalendarGroup[]>([]);
+  const [calendarRecords, setCalendarRecords] = useState<CalendarRecord[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const parsedValuesMapRef = useRef<Map<number, FieldValue>>(new Map());
+  const calendarGroupsRef = useRef<CalendarGroup[]>([]);
+  const calendarRecordsRef = useRef<CalendarRecord[]>([]);
+  const calendarPollGroupIdxRef = useRef(0);
+  const calendarPollRecordIdxRef = useRef(0);
+  const calendarPollingRef = useRef(false);
   const pendingFieldsUpdateRef = useRef<Map<string, number> | null>(null);
   const pendingValuesUpdateRef = useRef(false);
   const pendingDmUpdateRef = useRef(false);
@@ -155,6 +162,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     isWritingRef.current = false;
     isVerifyReadRef.current = false;
     pendingWriteRef.current = [];
+    calendarPollingRef.current = false;
 
     rawBufRef.current = [];
     addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `communication-error, resetting to version query`, rawHex: '' });
@@ -164,6 +172,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setParsedValues([]);
     setParsedProtocol(null);
     setDataMemeryGroups([]);
+    setCalendarGroups([]);
+    setCalendarRecords([]);
     parsedValuesMapRef.current = new Map();
 
     sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
@@ -269,13 +279,100 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     allInstrIndicesRef.current = allIndices;
     registerInstrIndicesRef.current = regIndices;
 
-    if (allIndices.length === 0) return;
+    const calGroups = parseCalendarGroups(parsed);
+    calendarGroupsRef.current = calGroups;
+    setCalendarGroups(calGroups);
+
+    if (allIndices.length === 0) {
+      startPeriodicPoll();
+      return;
+    }
 
     initPhaseRef.current = 'initial-poll';
     pollIdxRef.current = 0;
 
     sendInstructionFrame(allIndices[0]!);
   }, [protocolDb, sendFrame, addLog]);
+
+  const sendCalendarRecordFrame = useCallback((groupIdx: number, recordIdx: number) => {
+    const groups = calendarGroupsRef.current;
+    if (groupIdx >= groups.length) return;
+    const group = groups[groupIdx]!;
+    const startAddr = group.startAddr + recordIdx * group.recordLen;
+    const frame = appendCrc([
+      0x00,
+      group.funcCode,
+      (startAddr >> 8) & 0xFF,
+      startAddr & 0xFF,
+      (group.recordLen >> 8) & 0xFF,
+      group.recordLen & 0xFF,
+    ]);
+    sendFrame(frame);
+    addLog({
+      timestamp: Date.now(),
+      direction: 'TX',
+      parsedInfo: `calendar-read group="${group.configNameEn}" record=${recordIdx + 1}/${group.recordCount} addr=0x${startAddr.toString(16)} regs=${group.recordLen}`,
+      rawHex: fmtHex(frame),
+    });
+  }, [sendFrame, addLog]);
+
+  const startCalendarPoll = useCallback(() => {
+    const groups = calendarGroupsRef.current;
+    if (groups.length === 0) return;
+    stopAllTimers();
+    waitingResponseRef.current = false;
+    calendarPollGroupIdxRef.current = 0;
+    calendarPollRecordIdxRef.current = 0;
+    calendarPollingRef.current = true;
+    calendarRecordsRef.current = [];
+    setCalendarRecords([]);
+    sendCalendarRecordFrame(0, 0);
+  }, [sendCalendarRecordFrame, stopAllTimers]);
+
+  const readCalendar = useCallback(() => {
+    startCalendarPoll();
+  }, [startCalendarPoll]);
+
+  const advanceCalendarPoll = useCallback((registers: number[]) => {
+    const groups = calendarGroupsRef.current;
+    const gIdx = calendarPollGroupIdxRef.current;
+    const rIdx = calendarPollRecordIdxRef.current;
+    if (gIdx >= groups.length) {
+      calendarPollingRef.current = false;
+      startPeriodicPoll();
+      return;
+    }
+
+    const group = groups[gIdx]!;
+    const record = parseCalendarRecord(registers, group, rIdx);
+    record.groupIdx = gIdx;
+    calendarRecordsRef.current = [...calendarRecordsRef.current, record];
+    setCalendarRecords([...calendarRecordsRef.current]);
+
+    if (record.isEmpty) {
+      if (gIdx + 1 < groups.length) {
+        calendarPollGroupIdxRef.current = gIdx + 1;
+        calendarPollRecordIdxRef.current = 0;
+        sendCalendarRecordFrame(gIdx + 1, 0);
+      } else {
+        calendarPollingRef.current = false;
+        startPeriodicPoll();
+      }
+      return;
+    }
+
+    if (rIdx + 1 < group.recordCount) {
+      calendarPollRecordIdxRef.current = rIdx + 1;
+      sendCalendarRecordFrame(gIdx, rIdx + 1);
+    } else if (gIdx + 1 < groups.length) {
+      calendarPollGroupIdxRef.current = gIdx + 1;
+      calendarPollRecordIdxRef.current = 0;
+      sendCalendarRecordFrame(gIdx + 1, 0);
+    } else {
+      calendarPollingRef.current = false;
+      startPeriodicPoll();
+    }
+  }, [sendCalendarRecordFrame, startPeriodicPoll]);
 
   const startPeriodicPoll = useCallback(() => {
     initPhaseRef.current = 'periodic';
@@ -495,6 +592,15 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (calendarPollingRef.current) {
+      if (responseTimerRef.current) {
+        clearTimeout(responseTimerRef.current);
+        responseTimerRef.current = null;
+      }
+      advanceCalendarPoll(parsed.registers);
+      return;
+    }
+
     if (!pendingFieldsUpdateRef.current) {
       pendingFieldsUpdateRef.current = new Map(parsedFields);
     }
@@ -704,6 +810,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     parsedValues,
     parsedProtocol,
     dataMemeryGroups,
+    calendarGroups,
+    calendarRecords,
     logs,
     toasts,
     sendFrame,
@@ -712,7 +820,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     writeField,
     showToast,
     startBatchWrite,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, logs, toasts, sendFrame, clearLogs, autoRead, writeField, showToast, startBatchWrite]);
+    readCalendar,
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, logs, toasts, sendFrame, clearLogs, autoRead, writeField, showToast, startBatchWrite, readCalendar]);
 
   return (
     <BmsContext.Provider value={store}>
