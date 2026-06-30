@@ -27,7 +27,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
   const [activeTab, setActiveTab] = useState<TabKey>('safety');
 
   const { safetyFlags, statusFlags, safetyActiveCount } = useMemo(() => {
-    interface BitEntry { configNameEn: string; bitDesc: string; byteLen: number; rawValue: number; }
+    interface BitEntry { configNameEn: string; nameEn: string; bitDesc: string; byteLen: number; rawValue: number; }
     const entries: BitEntry[] = [];
 
     if (protocolDb) {
@@ -57,7 +57,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
             }
           }
 
-          entries.push({ configNameEn, bitDesc, byteLen, rawValue });
+          entries.push({ configNameEn, nameEn: String(row['Name_English'] ?? ''), bitDesc, byteLen, rawValue });
         }
       }
     }
@@ -74,6 +74,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
         const val = valueMap.get(f.absAddr);
         entries.push({
           configNameEn: inst?.configNameEn || 'Status',
+          nameEn: f.name,
           bitDesc: f.bitDesc,
           byteLen: f.byteLen,
           rawValue: val?.rawValue ?? 0,
@@ -92,7 +93,12 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
 
     const allFlags: { label: string; active: boolean; type: StatusGroupType }[] = [];
     for (const [name, fields] of groupMap) {
-      const isSafety = name.toLowerCase().includes('safety') || name.toLowerCase().includes('alarm');
+      const nameLc = name.toLowerCase();
+      const hasAlarmName = fields.some(f => {
+        const n = f.nameEn.toLowerCase();
+        return n.includes('alarm') || n.includes('safety');
+      });
+      const isSafety = nameLc.includes('safety') || nameLc.includes('alarm') || hasAlarmName;
       const type: StatusGroupType = isSafety ? 'safety' : 'status';
       for (const f of fields) {
         const labels = splitBitDesc(f.bitDesc, f.byteLen);
