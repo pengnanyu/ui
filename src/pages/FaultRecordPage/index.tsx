@@ -103,7 +103,7 @@ export function FaultRecordPage() {
                         let left = 0;
                         if (isSticky && fi > 0) {
                           for (let k = 0; k < fi; k++) {
-                            left += group.fields[k]!.dataType === 'Time' ? 200 : 80;
+                            left += group.fields[k]!.dataType === 'Time' ? 100 : 80;
                           }
                         }
                         return (
@@ -138,14 +138,19 @@ function FaultRow({ record, freezeIdx, fields }: { record: CalendarRecord; freez
     <tr className={styles.tr}>
       {record.values.map((v, vi) => {
         const isSticky = freezeIdx >= 0 && vi <= freezeIdx;
+        const isTime = v.dataType === 'Time';
         let left = 0;
         if (isSticky && vi > 0) {
           for (let k = 0; k < vi; k++) {
-            left += fields[k]!.dataType === 'Time' ? 200 : 80;
+            left += fields[k]!.dataType === 'Time' ? 100 : 80;
           }
         }
         return (
-          <td key={vi} className={`${styles.td} ${isSticky ? styles.tdSticky : ''}`} style={isSticky ? { left } : undefined}>
+          <td
+            key={vi}
+            className={`${styles.td} ${isSticky ? styles.tdSticky : ''} ${isTime ? styles.tdTime : ''}`}
+            style={isSticky ? { left } : undefined}
+          >
             {v.bitTag && v.bitLabels ? (
               <div className={styles.bitWrap}>
                 {v.bitLabels.map((bl) => (
