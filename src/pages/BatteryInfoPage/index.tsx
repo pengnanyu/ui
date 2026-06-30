@@ -133,7 +133,7 @@ export function BatteryInfoPage() {
     <div className={styles.grid}>
       <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} />
       <DeviceInfoCard bmsId={deviceVersion ?? undefined} extraFields={extraFields} />
-      <StatusCard allFields={parsedValues} />
+      <StatusCard parsedProtocol={parsedProtocol} parsedValues={parsedValues} />
       <VoltageCurrentChart dataPoints={chartDataPoints} voltageValue={graphVoltage?.value} currentValue={graphCurrent?.value} voltageUnit={graphVoltage?.unit} currentUnit={graphCurrent?.unit} />
       <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} />
       <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />

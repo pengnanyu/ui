@@ -1,23 +1,44 @@
 import { useState, useMemo } from 'react';
-import type { FieldValue } from '@/utils/modbus';
+import type { FieldValue, ParsedProtocol } from '@/utils/modbus';
 import { CardShell } from '@/components/shared/CardShell';
 import type { StatusGroupType } from '@/types';
 import styles from './StatusCard.module.css';
 
 interface StatusCardProps {
-  allFields: FieldValue[];
+  parsedProtocol: ParsedProtocol | null;
+  parsedValues: FieldValue[];
 }
 
 type TabKey = 'safety' | 'status';
 
-export function StatusCard({ allFields }: StatusCardProps) {
+function parseBitLabels(bitDesc: string, byteLen: number): string[] {
+  const parts = bitDesc.split('|');
+  const maxBits = byteLen === 1 ? 8 : 16;
+  const labels: string[] = [];
+  for (let b = 0; b < maxBits; b++) {
+    labels.push(parts[b]?.trim() || `B${b}`);
+  }
+  return labels;
+}
+
+export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('safety');
 
   const { safetyFlags, statusFlags, safetyActiveCount } = useMemo(() => {
-    const bitTagFields = allFields.filter(f => f.bitTag);
-    const groupMap = new Map<string, FieldValue[]>();
-    for (const f of bitTagFields) {
-      const key = f.configNameEn || 'Status';
+    if (!parsedProtocol) return { safetyFlags: [], statusFlags: [], safetyActiveCount: 0 };
+
+    const bitTagDefs = parsedProtocol.dataFields.filter(f => f.bitTag);
+    if (bitTagDefs.length === 0) return { safetyFlags: [], statusFlags: [], safetyActiveCount: 0 };
+
+    const valueMap = new Map<number, FieldValue>();
+    for (const v of parsedValues) {
+      valueMap.set(v.absAddr, v);
+    }
+
+    const groupMap = new Map<string, typeof bitTagDefs>();
+    for (const f of bitTagDefs) {
+      const inst = parsedProtocol.instructions[f.parentInstructionIndex];
+      const key = inst?.configNameEn || 'Status';
       const list = groupMap.get(key) ?? [];
       list.push(f);
       groupMap.set(key, list);
@@ -27,12 +48,11 @@ export function StatusCard({ allFields }: StatusCardProps) {
     for (const [name, fields] of groupMap) {
       const type: StatusGroupType = name.toLowerCase().includes('safety') || name.toLowerCase().includes('alarm') ? 'safety' : 'status';
       for (const f of fields) {
-        if (f.bitLabels) {
-          for (let i = 0; i < f.bitLabels.length; i++) {
-            allFlags.push({ label: f.bitLabels[i]!, active: ((f.value >> i) & 1) === 1, type });
-          }
-        } else {
-          allFlags.push({ label: f.name, active: f.value !== 0, type });
+        const val = valueMap.get(f.absAddr);
+        const rawValue = val?.rawValue ?? 0;
+        const bitLabels = parseBitLabels(f.bitDesc, f.byteLen);
+        for (let i = 0; i < bitLabels.length; i++) {
+          allFlags.push({ label: bitLabels[i]!, active: ((rawValue >> i) & 1) === 1, type });
         }
       }
     }
@@ -45,7 +65,7 @@ export function StatusCard({ allFields }: StatusCardProps) {
       statusFlags: status,
       safetyActiveCount: safety.filter(f => f.active).length,
     };
-  }, [allFields]);
+  }, [parsedProtocol, parsedValues]);
 
   if (safetyFlags.length === 0 && statusFlags.length === 0) {
     return (
