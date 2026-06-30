@@ -200,6 +200,7 @@ export interface CalendarField {
   name: string;
   nameZh: string;
   byteLen: number;
+  offsetAddr: number;
   byteOffset: number;
   dataType: string;
   operation: string;
@@ -232,6 +233,7 @@ export function parseCalendarGroups(parsed: ParsedProtocol): CalendarGroup[] {
         name: f.name,
         nameZh: f.nameZh,
         byteLen: f.byteLen,
+        offsetAddr: f.offsetAddr,
         byteOffset: f.byteOffset,
         dataType: f.dataType,
         operation: f.operation,
@@ -274,7 +276,7 @@ export function parseCalendarRecord(
   let allFF = true;
 
   for (const field of group.fields) {
-    const startReg = Math.floor(field.byteOffset / 2);
+    const startReg = field.offsetAddr;
     const endReg = startReg + Math.ceil(field.byteLen / 2);
     const fieldRegs = registers.slice(startReg, Math.min(endReg, registers.length));
 
@@ -313,8 +315,25 @@ export function parseCalendarRecord(
           break;
         }
         case 'HEX': {
-          const val = leRegToValue(fieldRegs[0] ?? 0);
-          displayValue = val.toString(16).toUpperCase().padStart(4, '0');
+          if (field.byteLen === 1) {
+            const beVal = leRegToValue(fieldRegs[0] ?? 0);
+            const byteVal = field.byteOffset === 0
+              ? beVal & 0xFF
+              : (beVal >> 8) & 0xFF;
+            displayValue = byteVal.toString(16).toUpperCase().padStart(2, '0');
+          } else {
+            const val = leRegToValue(fieldRegs[0] ?? 0);
+            displayValue = val.toString(16).toUpperCase().padStart(4, '0');
+          }
+          break;
+        }
+        case 'ID': {
+          const hexParts: string[] = [];
+          for (const r of fieldRegs) {
+            const val = leRegToValue(r);
+            hexParts.push(val.toString(16).toUpperCase().padStart(4, '0'));
+          }
+          displayValue = hexParts.join(' ');
           break;
         }
         case 'ushort Temper': {
@@ -322,9 +341,65 @@ export function parseCalendarRecord(
           displayValue = formatValue(applyOperation(val, field.operation, field.ratio));
           break;
         }
-        default: {
+        case 'uchar':
+        case 'unsigned char': {
+          const beVal = leRegToValue(fieldRegs[0] ?? 0);
+          const byteVal = field.byteOffset === 0
+            ? beVal & 0xFF
+            : (beVal >> 8) & 0xFF;
+          displayValue = formatValue(applyOperation(byteVal, field.operation, field.ratio));
+          break;
+        }
+        case 'ushort':
+        case 'uint16':
+        case 'unsigned short': {
           const val = leRegToValue(fieldRegs[0] ?? 0);
           displayValue = formatValue(applyOperation(val, field.operation, field.ratio));
+          break;
+        }
+        case 'short':
+        case 'int16':
+        case 'signed short': {
+          const val = leRegToValue(fieldRegs[0] ?? 0);
+          const signed = toSigned16(val);
+          displayValue = formatValue(applyOperation(signed, field.operation, field.ratio));
+          break;
+        }
+        case 'uint':
+        case 'uint32':
+        case 'ulong':
+        case 'unsigned long':
+        case 'unsigned int': {
+          const val = leRegsToValue32(fieldRegs);
+          displayValue = formatValue(applyOperation(val, field.operation, field.ratio));
+          break;
+        }
+        case 'int':
+        case 'int32':
+        case 'long':
+        case 'signed long':
+        case 'signed int': {
+          const val = leRegsToValue32(fieldRegs);
+          const signed = toSigned32(val);
+          displayValue = formatValue(applyOperation(signed, field.operation, field.ratio));
+          break;
+        }
+        default: {
+          if (field.byteLen === 1) {
+            const beVal = leRegToValue(fieldRegs[0] ?? 0);
+            const byteVal = field.byteOffset === 0
+              ? beVal & 0xFF
+              : (beVal >> 8) & 0xFF;
+            displayValue = formatValue(applyOperation(byteVal, field.operation, field.ratio));
+          } else if (field.byteLen === 2 || fieldRegs.length === 1) {
+            const val = leRegToValue(fieldRegs[0] ?? 0);
+            displayValue = formatValue(applyOperation(val, field.operation, field.ratio));
+          } else if (field.byteLen === 4 && fieldRegs.length >= 2) {
+            const val = leRegsToValue32(fieldRegs);
+            displayValue = formatValue(applyOperation(val, field.operation, field.ratio));
+          } else {
+            displayValue = '';
+          }
           break;
         }
       }
