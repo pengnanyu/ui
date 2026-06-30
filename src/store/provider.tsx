@@ -525,7 +525,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         continue;
       }
 
-      if (fc === 0x03 || fc === 0x04 || fc === 0x11) {
+      if (fc !== 0x10) {
         const bc = buf[2] ?? 0;
         const frameLen = 3 + bc + 2;
         if (buf.length < frameLen) break;
