@@ -86,24 +86,6 @@
   min-width: 70px;
 }
 
-.dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dotInactive {
-  background: var(--color-muted);
-}
-
-.dotSafetyActive {
-  background: oklch(0.55 0.22 25);
-}
-
-.dotStatusActive {
-  background: oklch(0.55 0.17 145);
-}
 
 .flagSafetyActive {
   color: oklch(0.5 0.2 25);

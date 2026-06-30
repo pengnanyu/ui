@@ -8,11 +8,19 @@ interface TemperatureCardProps {
   mosTemperature?: TempData;
   temperMax?: number;
   temperMin?: number;
+  voltageMax?: number;
+  voltageMin?: number;
 }
 
-export function TemperatureCard({ temperatures, mosTemperature, temperMax, temperMin }: TemperatureCardProps) {
-  const titleExtra = (temperMax !== undefined || temperMin !== undefined) ? (
+export function TemperatureCard({ temperatures, mosTemperature, temperMax, temperMin, voltageMax, voltageMin }: TemperatureCardProps) {
+  const titleExtra = (temperMax !== undefined || temperMin !== undefined || voltageMax !== undefined || voltageMin !== undefined) ? (
     <div className={styles.headerInfo}>
+      {voltageMax !== undefined && (
+        <span className={styles.headerItem}>V↑ {voltageMax.toFixed(3)}V</span>
+      )}
+      {voltageMin !== undefined && (
+        <span className={styles.headerItem}>V↓ {voltageMin.toFixed(3)}V</span>
+      )}
       {temperMax !== undefined && (
         <span className={styles.headerItem}>↑ {temperMax.toFixed(1)}℃</span>
       )}

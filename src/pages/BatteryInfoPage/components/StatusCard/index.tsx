@@ -148,7 +148,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
                   key={i}
                   className={`${styles.flag} ${item.active ? (isSafety ? styles.flagSafetyActive : styles.flagStatusActive) : (isSafety ? styles.flagSafetyInactive : styles.flagStatusInactive)}`}
                 >
-                  {isSafety && <span className={`${styles.dot} ${item.active ? styles.dotSafetyActive : styles.dotInactive}`} />}
+
                   {item.label}
                 </span>
               ))}

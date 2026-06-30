@@ -119,6 +119,7 @@ export function BatteryInfoPage() {
         if (f.graph) return false;
         if (f.bitTag) return false;
         if (f.name === 'SOC' || f.name === 'SOH' || f.name === 'Total_Voltage' || f.name === 'Total_Current' || f.name === 'Power') return false;
+        if (/bms.*time/i.test(f.name)) return false;
         return true;
       })
       .map(f => ({ label: isZh ? f.nameZh : f.name, value: f.displayValue, unit: f.unit }));
@@ -137,7 +138,7 @@ export function BatteryInfoPage() {
   }, [parsedValues]);
 
   const bmsTime = useMemo(() => {
-    const tf = findField(infoFields, 'BMS_Time');
+    const tf = infoFields.find(f => /bms.*time/i.test(f.name));
     return tf?.displayValue;
   }, [infoFields]);
 
@@ -148,7 +149,7 @@ export function BatteryInfoPage() {
       <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} />
       <VoltageCurrentChart dataPoints={chartDataPoints} voltageValue={graphVoltage?.value} currentValue={graphCurrent?.value} voltageUnit={graphVoltage?.unit} currentUnit={graphCurrent?.unit} />
       <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} />
-      <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />
+      <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} voltageMax={voltageMax} voltageMin={voltageMin} />
     </div>
   );
 }
