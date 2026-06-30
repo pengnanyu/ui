@@ -24,7 +24,7 @@ function AppContent() {
     <>
       <main style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: '72px', overflow: 'hidden', minHeight: 0 }}>
         {pages.map(({ path, element: Page }) => (
-          <div key={path} style={{ display: path === activePath ? 'contents' : 'none', flex: 1, minHeight: 0 }}>
+          <div key={path} style={{ display: path === activePath ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column', overflow: 'hidden' }}>
             <Page />
           </div>
         ))}
