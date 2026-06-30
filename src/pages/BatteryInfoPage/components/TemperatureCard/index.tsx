@@ -8,22 +8,30 @@ interface TemperatureCardProps {
   mosTemperature?: TempData;
   temperMax?: number;
   temperMin?: number;
+  voltageMax?: number;
+  voltageMin?: number;
 }
 
-export function TemperatureCard({ temperatures, mosTemperature, temperMax, temperMin }: TemperatureCardProps) {
-  const titleExtra = (temperMax !== undefined || temperMin !== undefined) ? (
+export function TemperatureCard({ temperatures, mosTemperature, temperMax, temperMin, voltageMax, voltageMin }: TemperatureCardProps) {
+  const titleExtra = (temperMax !== undefined || temperMin !== undefined || voltageMax !== undefined || voltageMin !== undefined) ? (
     <div className={styles.headerInfo}>
+      {voltageMax !== undefined && (
+        <span className={styles.headerItem}>V↑ {voltageMax}mV</span>
+      )}
+      {voltageMin !== undefined && (
+        <span className={styles.headerItem}>V↓ {voltageMin}mV</span>
+      )}
       {temperMax !== undefined && (
-        <span className={styles.headerItem}>↑ {temperMax.toFixed(1)}℃</span>
+        <span className={styles.headerItem}>T↑ {temperMax.toFixed(1)}℃</span>
       )}
       {temperMin !== undefined && (
-        <span className={styles.headerItem}>↓ {temperMin.toFixed(1)}℃</span>
+        <span className={styles.headerItem}>T↓ {temperMin.toFixed(1)}℃</span>
       )}
     </div>
   ) : undefined;
 
   return (
-    <CardShell title="温度" titleExtra={titleExtra} accentColor="#06b6d4">
+    <CardShell title="温度" titleExtra={titleExtra}>
       <div className={styles.tempList}>
         {temperatures.length > 0 ? (
           <>

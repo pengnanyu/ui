@@ -129,7 +129,7 @@ export function BatteryInfoPage() {
       <StatusCard infoFields={infoFields} />
       <VoltageCurrentChart dataPoints={chartDataPoints} />
       <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} />
-      <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />
+      <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} voltageMax={voltageMax} voltageMin={voltageMin} />
     </div>
   );
 }

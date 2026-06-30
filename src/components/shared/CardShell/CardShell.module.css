@@ -4,19 +4,6 @@
   border-radius: 8px;
   padding: 16px;
   transition: background-color 0.2s, border-color 0.2s;
-  position: relative;
-  overflow: hidden;
-}
-
-.shell::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--card-accent, var(--color-primary));
-  border-radius: 8px 0 0 8px;
 }
 
 .title {

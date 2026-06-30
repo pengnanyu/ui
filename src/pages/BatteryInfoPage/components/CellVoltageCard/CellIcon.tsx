@@ -23,7 +23,7 @@ export function CellIcon({ index, voltage, soc, isBalancing }: CellIconProps) {
         <span className={styles.cellVoltage}>{voltage}mV</span>
       </div>
       {isBalancing && <span className={styles.balancing}>⚡</span>}
-      <span className={styles.positive}>+</span>
+
     </div>
   );
 }

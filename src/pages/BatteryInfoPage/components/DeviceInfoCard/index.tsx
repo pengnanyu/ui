@@ -12,7 +12,7 @@ export function DeviceInfoCard({ bmsId, extraFields }: DeviceInfoCardProps) {
     <CardShell
       title="设备信息"
       titleExtra={bmsId ? <span>{bmsId}</span> : undefined}
-      accentColor="#8b5cf6"
+
     >
       <div className={styles.fieldList}>
         {extraFields.length > 0 ? extraFields.map((field, i) => (

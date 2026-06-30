@@ -34,7 +34,7 @@ export function CellVoltageCard({
   ) : undefined;
 
   return (
-    <CardShell title="单体电压" titleExtra={titleExtra} accentColor="#22c55e">
+    <CardShell title="单体电压" titleExtra={titleExtra}>
       <div className={styles.grid}>
         {cellVoltages.length > 0 ? cellVoltages.map((cell) => (
           <CellIcon

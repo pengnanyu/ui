@@ -18,7 +18,7 @@ export function SocPackCard({ soc, pack, chargeVoltage, bmsTime }: SocPackCardPr
     <CardShell
       title="SOC Pack"
       titleExtra={bmsTime ? <span>{bmsTime}</span> : undefined}
-      accentColor="#f59e0b"
+
     >
       <div className={styles.gauges}>
         <div className={styles.currentGauge}>

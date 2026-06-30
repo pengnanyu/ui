@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import * as echarts from 'echarts';
 import type { VoltageCurrentDataPoint } from '@/types';
 import { CardShell } from '@/components/shared/CardShell';
@@ -14,26 +14,45 @@ export function VoltageCurrentChart({ dataPoints }: VoltageCurrentChartProps) {
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const option = useChartOption(dataPoints);
 
-  useEffect(() => {
-    if (!chartRef.current) return;
+  const ensureInstance = useCallback(() => {
+    if (!chartRef.current) return null;
     if (!instanceRef.current) {
       instanceRef.current = echarts.init(chartRef.current);
     }
-    instanceRef.current.setOption(option);
-  }, [option]);
+    return instanceRef.current;
+  }, []);
 
   useEffect(() => {
-    const handleResize = () => instanceRef.current?.resize();
-    window.addEventListener('resize', handleResize);
+    const chart = ensureInstance();
+    if (chart) chart.setOption(option, true);
+  }, [option, ensureInstance]);
+
+  useEffect(() => {
+    const el = chartRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
+      instanceRef.current?.resize();
+    });
+    ro.observe(el);
+
     return () => {
-      window.removeEventListener('resize', handleResize);
+      ro.disconnect();
       instanceRef.current?.dispose();
       instanceRef.current = null;
     };
   }, []);
 
+  if (dataPoints.length === 0) {
+    return (
+      <CardShell title="电压电流曲线">
+        <div className={styles.empty}>--</div>
+      </CardShell>
+    );
+  }
+
   return (
-    <CardShell title="电压电流曲线" accentColor="#6366f1">
+    <CardShell title="电压电流曲线">
       <div ref={chartRef} className={styles.chartContainer} />
     </CardShell>
   );

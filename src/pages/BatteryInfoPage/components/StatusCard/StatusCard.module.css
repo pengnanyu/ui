@@ -1,0 +1,104 @@
+.tabBar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.tab {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab:hover {
+  background: var(--color-background);
+}
+
+.tabSafety.tabActive {
+  background: oklch(0.95 0.04 25);
+  border-color: oklch(0.7 0.15 25);
+  color: oklch(0.5 0.2 25);
+}
+
+.tabStatus.tabActive {
+  background: oklch(0.95 0.04 145);
+  border-color: oklch(0.7 0.12 145);
+  color: oklch(0.45 0.15 145);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  background: oklch(0.55 0.22 25);
+  color: white;
+  padding: 0 4px;
+}
+
+.flagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotInactive {
+  background: var(--color-muted);
+}
+
+.dotSafetyActive {
+  background: oklch(0.55 0.22 25);
+}
+
+.dotStatusActive {
+  background: oklch(0.55 0.17 145);
+}
+
+.flagSafetyActive {
+  color: oklch(0.5 0.2 25);
+  background: oklch(0.95 0.04 25);
+  font-weight: 600;
+}
+
+.flagSafetyInactive {
+  color: var(--color-muted-foreground);
+}
+
+.flagStatusActive {
+  color: oklch(0.4 0.15 145);
+  background: oklch(0.95 0.04 145);
+  font-weight: 600;
+}
+
+.flagStatusInactive {
+  color: var(--color-muted-foreground);
+}
