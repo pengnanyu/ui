@@ -96,20 +96,26 @@ export function FaultRecordPage() {
               <div className={styles.groupHeader}>{groupName}</div>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
+                  <colgroup>
+                    {group.fields.map((f, fi) => (
+                      <col key={fi} style={f.dataType === 'Time' ? { width: '120px' } : undefined} />
+                    ))}
+                  </colgroup>
                   <thead>
                     <tr>
                       {group.fields.map((f, fi) => {
                         const isSticky = freezeIdx >= 0 && fi <= freezeIdx;
+                        const isLastSticky = freezeIdx >= 0 && fi === freezeIdx;
                         let left = 0;
                         if (isSticky && fi > 0) {
                           for (let k = 0; k < fi; k++) {
-                            left += group.fields[k]!.dataType === 'Time' ? 100 : 80;
+                            left += group.fields[k]!.dataType === 'Time' ? 120 : 80;
                           }
                         }
                         return (
                           <th
                             key={fi}
-                            className={`${styles.th} ${isSticky ? styles.thSticky : ''}`}
+                            className={`${styles.th} ${isSticky ? styles.thSticky : ''} ${isLastSticky ? styles.thStickyLast : ''}`}
                             style={isSticky ? { left } : undefined}
                           >
                             {isZh ? f.nameZh : f.name}{f.unit ? `(${f.unit})` : ''}
@@ -138,17 +144,18 @@ function FaultRow({ record, freezeIdx, fields }: { record: CalendarRecord; freez
     <tr className={styles.tr}>
       {record.values.map((v, vi) => {
         const isSticky = freezeIdx >= 0 && vi <= freezeIdx;
+        const isLastSticky = freezeIdx >= 0 && vi === freezeIdx;
         const isTime = v.dataType === 'Time';
         let left = 0;
         if (isSticky && vi > 0) {
           for (let k = 0; k < vi; k++) {
-            left += fields[k]!.dataType === 'Time' ? 100 : 80;
+            left += fields[k]!.dataType === 'Time' ? 120 : 80;
           }
         }
         return (
           <td
             key={vi}
-            className={`${styles.td} ${isSticky ? styles.tdSticky : ''} ${isTime ? styles.tdTime : ''}`}
+            className={`${styles.td} ${isSticky ? styles.tdSticky : ''} ${isLastSticky ? styles.tdStickyLast : ''} ${isTime ? styles.tdTime : ''}`}
             style={isSticky ? { left } : undefined}
           >
             {v.bitTag && v.bitLabels ? (

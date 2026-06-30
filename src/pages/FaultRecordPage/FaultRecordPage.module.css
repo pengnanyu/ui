@@ -88,14 +88,20 @@
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
   background: var(--color-card);
-  z-index: 2;
+  position: sticky;
+  top: 0;
+  z-index: 4;
 }
 
 .thSticky {
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 5;
   background: var(--color-card);
+}
+
+.thStickyLast {
+  border-right: 2px solid var(--color-border);
 }
 
 .tr {
@@ -120,15 +126,8 @@
   background: var(--color-card);
 }
 
-.tdSticky::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: -6px;
-  bottom: 0;
-  width: 6px;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);
-  pointer-events: none;
+.tdStickyLast {
+  border-right: 2px solid var(--color-border);
 }
 
 .tdTime {
