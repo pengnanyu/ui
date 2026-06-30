@@ -94,6 +94,7 @@ export interface ParsedInstruction {
   configType: string;
   configNameEn: string;
   configNameZh: string;
+  ratio: number;
   rowIndex: number;
 }
 
@@ -139,6 +140,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
       const configType = String(row['ConfigType'] ?? '');
       const configNameEn = String(row['ConfigName_English'] ?? '');
       const configNameZh = String(row['ConfigName_Chinase'] ?? '');
+      const ratio = parseNum(row['Ratio'], 10);
 
       currentInstrIdx = instructions.length;
       currentStartAddr = startAddr;
@@ -152,6 +154,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
         configType,
         configNameEn,
         configNameZh,
+        ratio,
         rowIndex: i,
       });
     } else {
@@ -242,7 +245,7 @@ export function parseCalendarGroups(parsed: ParsedProtocol): CalendarGroup[] {
         bitTag: f.bitTag,
       }));
 
-    const recordCount = fields.length > 0 ? fields[0]!.ratio : 0;
+    const recordCount = inst.ratio;
 
     groups.push({
       configNameEn: inst.configNameEn,

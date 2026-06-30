@@ -25,7 +25,10 @@ export function FaultRecordPage() {
       const groupName = isZh ? group.configNameZh : group.configNameEn;
       csv += groupName + '\n';
 
-      const headers = ['#', ...group.fields.map(f => isZh ? f.nameZh : f.name)];
+      const headers = ['#', ...group.fields.map(f => {
+        const name = isZh ? f.nameZh : f.name;
+        return f.unit ? `${name}(${f.unit})` : name;
+      })];
       csv += headers.map(h => `"${h}"`).join(',') + '\n';
 
       for (const rec of groupRecords) {
@@ -34,7 +37,7 @@ export function FaultRecordPage() {
           if (v.bitTag && v.bitLabels) {
             cells.push(`"${v.bitLabels.join(' ')}"`);
           } else {
-            cells.push(`"${v.displayValue}${v.unit ? ' ' + v.unit : ''}"`);
+            cells.push(`"${v.displayValue}"`);
           }
         }
         csv += cells.join(',') + '\n';
@@ -96,7 +99,7 @@ export function FaultRecordPage() {
                     <tr>
                       <th className={styles.thIdx}>#</th>
                       {group.fields.map((f, fi) => (
-                        <th key={fi} className={styles.th}>{isZh ? f.nameZh : f.name}</th>
+                        <th key={fi} className={styles.th}>{isZh ? f.nameZh : f.name}{f.unit ? `(${f.unit})` : ''}</th>
                       ))}
                     </tr>
                   </thead>
@@ -128,7 +131,7 @@ function FaultRow({ record }: { record: CalendarRecord }) {
               ))}
             </div>
           ) : (
-            <span>{v.displayValue}{v.unit ? ` ${v.unit}` : ''}</span>
+            <span>{v.displayValue}</span>
           )}
         </td>
       ))}
