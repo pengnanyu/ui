@@ -310,6 +310,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       (group.recordLen >> 8) & 0xFF,
       group.recordLen & 0xFF,
     ]);
+    waitingResponseRef.current = true;
     sendFrame(frame);
     addLog({
       timestamp: Date.now(),
@@ -317,6 +318,13 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       parsedInfo: `calendar-read group="${group.configNameEn}" record=${recordIdx + 1}/${group.recordCount} addr=0x${startAddr.toString(16)} regs=${group.recordLen}`,
       rawHex: fmtHex(frame),
     });
+    responseTimerRef.current = setTimeout(() => {
+      if (!calendarPollingRef.current) return;
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `calendar-read timeout`, rawHex: '' });
+      calendarPollingRef.current = false;
+      pendingCalendarReadRef.current = false;
+      startPeriodicPollRef.current();
+    }, RESPONSE_TIMEOUT);
   }, [sendFrame, addLog]);
 
   const startCalendarPoll = useCallback(() => {
@@ -632,6 +640,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         parsedInfo: `calendar-response group="${gName}" record=${rIdx + 1} data=[${dataHex}]`,
         rawHex,
       });
+      waitingResponseRef.current = false;
       advanceCalendarPoll(parsed.registers);
       return;
     }
