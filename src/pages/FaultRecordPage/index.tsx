@@ -133,7 +133,7 @@ function FaultGroupCard({ groupName, group, groupRecords, isZh, onRead, onExport
         </div>
       </div>
       {!hasData ? (
-        <div className={styles.empty}>{t('fault.emptyState')}</div>
+        <div className={styles.empty}>{t('fault.noFaults')}</div>
       ) : (
         <div className={styles.tableWrap}>
           <table className={styles.table} ref={tableRef}>

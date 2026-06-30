@@ -50,6 +50,7 @@
   "fault": {
     "title": "异常记录",
     "emptyState": "暂无异常记录",
+    "noFaults": "暂无异常",
     "warning": "警告",
     "error": "错误",
     "critical": "严重",

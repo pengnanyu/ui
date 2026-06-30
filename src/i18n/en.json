@@ -50,6 +50,7 @@
   "fault": {
     "title": "Fault Records",
     "emptyState": "No fault records",
+    "noFaults": "No faults",
     "warning": "Warning",
     "error": "Error",
     "critical": "Critical",
