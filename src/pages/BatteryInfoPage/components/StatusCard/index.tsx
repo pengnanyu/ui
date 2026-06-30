@@ -21,38 +21,68 @@ function parseBitLabels(bitDesc: string, byteLen: number): string[] {
   return labels;
 }
 
+interface BitTagEntry {
+  configNameEn: string;
+  absAddr: number;
+  bitDesc: string;
+  byteLen: number;
+  rawValue: number;
+}
+
 export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('safety');
 
   const { safetyFlags, statusFlags, safetyActiveCount } = useMemo(() => {
-    if (!parsedProtocol) return { safetyFlags: [], statusFlags: [], safetyActiveCount: 0 };
+    const entries: BitTagEntry[] = [];
 
-    const bitTagDefs = parsedProtocol.dataFields.filter(f => f.bitTag);
-    if (bitTagDefs.length === 0) return { safetyFlags: [], statusFlags: [], safetyActiveCount: 0 };
-
-    const valueMap = new Map<number, FieldValue>();
-    for (const v of parsedValues) {
-      valueMap.set(v.absAddr, v);
+    if (parsedProtocol) {
+      const bitTagDefs = parsedProtocol.dataFields.filter(f => f.bitTag);
+      const valueMap = new Map<number, FieldValue>();
+      for (const v of parsedValues) {
+        valueMap.set(v.absAddr, v);
+      }
+      for (const f of bitTagDefs) {
+        const inst = parsedProtocol.instructions[f.parentInstructionIndex];
+        const val = valueMap.get(f.absAddr);
+        entries.push({
+          configNameEn: inst?.configNameEn || 'Status',
+          absAddr: f.absAddr,
+          bitDesc: f.bitDesc,
+          byteLen: f.byteLen,
+          rawValue: val?.rawValue ?? 0,
+        });
+      }
     }
 
-    const groupMap = new Map<string, typeof bitTagDefs>();
-    for (const f of bitTagDefs) {
-      const inst = parsedProtocol.instructions[f.parentInstructionIndex];
-      const key = inst?.configNameEn || 'Status';
-      const list = groupMap.get(key) ?? [];
-      list.push(f);
-      groupMap.set(key, list);
+    if (entries.length === 0) {
+      const bitTagVals = parsedValues.filter(f => f.bitTag);
+      for (const f of bitTagVals) {
+        entries.push({
+          configNameEn: f.configNameEn || 'Status',
+          absAddr: f.absAddr,
+          bitDesc: f.bitDesc,
+          byteLen: f.byteLen,
+          rawValue: f.rawValue,
+        });
+      }
+    }
+
+    if (entries.length === 0) return { safetyFlags: [], statusFlags: [], safetyActiveCount: 0 };
+
+    const groupMap = new Map<string, BitTagEntry[]>();
+    for (const e of entries) {
+      const list = groupMap.get(e.configNameEn) ?? [];
+      list.push(e);
+      groupMap.set(e.configNameEn, list);
     }
 
     const allFlags: { label: string; active: boolean; type: StatusGroupType }[] = [];
     for (const [name, fields] of groupMap) {
       const type: StatusGroupType = name.toLowerCase().includes('safety') || name.toLowerCase().includes('alarm') ? 'safety' : 'status';
       for (const f of fields) {
-        const val = valueMap.get(f.absAddr);
-        const rawValue = val?.rawValue ?? 0;
         const bitLabels = parseBitLabels(f.bitDesc, f.byteLen);
         for (let i = 0; i < bitLabels.length; i++) {
-          allFlags.push({ label: bitLabels[i]!, active: ((rawValue >> i) & 1) === 1, type });
+          allFlags.push({ label: bitLabels[i]!, active: ((f.rawValue >> i) & 1) === 1, type });
         }
       }
     }
