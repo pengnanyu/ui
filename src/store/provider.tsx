@@ -254,6 +254,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     ]);
     currentSentInstrIdxRef.current = instrIdx;
     waitingResponseRef.current = true;
+    errorCountRef.current = 0;
     sendFrame(frame);
 
     responseTimerRef.current = setTimeout(() => {
@@ -817,6 +818,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const frame = buildFieldWriteFrame(fv, newValue, siblingFields, getLeRegisterValue);
     if (frame) {
       isWritingRef.current = true;
+      errorCountRef.current = 0;
       writeInstrIdxRef.current = fv.parentInstructionIndex;
       writeFieldNameRef.current = fv.name;
       writeVerifyAddrRef.current = fv.absAddr;
