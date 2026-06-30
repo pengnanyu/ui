@@ -116,7 +116,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const writeFieldNameRef = useRef('');
   const writeVerifyAddrRef = useRef(-1);
   const writeVerifyQtyRef = useRef(0);
-  const pendingWriteRef = useRef<{ fieldRowIndex: number; newValue: number } | null>(null);
+  const pendingWriteRef = useRef<{ fieldRowIndex: number; newValue: number }[]>([]);
   const isVerifyReadRef = useRef(false);
 
   const startVersionRetryRef = useRef<() => void>(() => { });
@@ -154,7 +154,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     initPhaseRef.current = 'version';
     isWritingRef.current = false;
     isVerifyReadRef.current = false;
-    pendingWriteRef.current = null;
+    pendingWriteRef.current = [];
 
     rawBufRef.current = [];
     addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `communication-error, resetting to version query`, rawHex: '' });
@@ -337,9 +337,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (pendingWriteRef.current) {
-      const pw = pendingWriteRef.current;
-      pendingWriteRef.current = null;
+    if (pendingWriteRef.current.length > 0) {
+      const pw = pendingWriteRef.current.shift()!;
       writeFieldRef.current(pw.fieldRowIndex, pw.newValue);
       return;
     }
@@ -360,18 +359,16 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         sendInstructionFrame(regIndices[pollIdxRef.current]!);
       } else {
         flushUpdates();
-        if (pendingWriteRef.current) {
-          const pw: { fieldRowIndex: number; newValue: number } = pendingWriteRef.current;
-          pendingWriteRef.current = null;
+        if (pendingWriteRef.current.length > 0) {
+          const pw = pendingWriteRef.current.shift()!;
           writeFieldRef.current(pw.fieldRowIndex, pw.newValue);
           return;
         }
         pollTimerRef.current = setTimeout(() => {
           pollTimerRef.current = null;
           pollIdxRef.current = 0;
-          if (pendingWriteRef.current) {
-            const pw: { fieldRowIndex: number; newValue: number } = pendingWriteRef.current;
-            pendingWriteRef.current = null;
+          if (pendingWriteRef.current.length > 0) {
+            const pw = pendingWriteRef.current.shift()!;
             writeFieldRef.current(pw.fieldRowIndex, pw.newValue);
             return;
           }
@@ -582,7 +579,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       initPhaseRef.current = 'idle';
       isWritingRef.current = false;
       isVerifyReadRef.current = false;
-      pendingWriteRef.current = null;
+      pendingWriteRef.current = [];
 
       rawBufRef.current = [];
       setDeviceVersion(null);
@@ -610,7 +607,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const writeField = useCallback((fieldRowIndex: number, newValue: number) => {
     if (isWritingRef.current) {
-      pendingWriteRef.current = { fieldRowIndex, newValue };
+      pendingWriteRef.current.push({ fieldRowIndex, newValue });
       return;
     }
     const fv = parsedValuesMapRef.current.get(fieldRowIndex);
@@ -619,7 +616,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (!protocol) return;
 
     if (waitingResponseRef.current) {
-      pendingWriteRef.current = { fieldRowIndex, newValue };
+      pendingWriteRef.current.push({ fieldRowIndex, newValue });
       return;
     }
 
@@ -686,9 +683,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   executePendingWriteOrPollRef.current = () => {
-    if (pendingWriteRef.current) {
-      const pw = pendingWriteRef.current;
-      pendingWriteRef.current = null;
+    if (pendingWriteRef.current.length > 0) {
+      const pw = pendingWriteRef.current.shift()!;
       writeField(pw.fieldRowIndex, pw.newValue);
       return;
     }
