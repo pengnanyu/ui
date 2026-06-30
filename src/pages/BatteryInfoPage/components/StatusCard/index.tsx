@@ -11,7 +11,7 @@ interface StatusCardProps {
 
 type TabKey = 'safety' | 'status';
 
-function parseBitLabels(bitDesc: string, byteLen: number): string[] {
+function splitBitDesc(bitDesc: string, byteLen: number): string[] {
   const parts = bitDesc.split('|');
   const maxBits = byteLen === 1 ? 8 : 16;
   const labels: string[] = [];
@@ -21,32 +21,25 @@ function parseBitLabels(bitDesc: string, byteLen: number): string[] {
   return labels;
 }
 
-interface BitTagEntry {
-  configNameEn: string;
-  absAddr: number;
-  bitDesc: string;
-  byteLen: number;
-  rawValue: number;
-}
-
 export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('safety');
 
   const { safetyFlags, statusFlags, safetyActiveCount } = useMemo(() => {
-    const entries: BitTagEntry[] = [];
+    interface Entry { configNameEn: string; bitDesc: string; byteLen: number; rawValue: number; }
+    const entries: Entry[] = [];
+
+    const valueMap = new Map<number, FieldValue>();
+    for (const v of parsedValues) {
+      valueMap.set(v.absAddr, v);
+    }
 
     if (parsedProtocol) {
-      const bitTagDefs = parsedProtocol.dataFields.filter(f => f.bitTag);
-      const valueMap = new Map<number, FieldValue>();
-      for (const v of parsedValues) {
-        valueMap.set(v.absAddr, v);
-      }
-      for (const f of bitTagDefs) {
+      for (const f of parsedProtocol.dataFields) {
+        if (!f.bitDesc) continue;
         const inst = parsedProtocol.instructions[f.parentInstructionIndex];
         const val = valueMap.get(f.absAddr);
         entries.push({
           configNameEn: inst?.configNameEn || 'Status',
-          absAddr: f.absAddr,
           bitDesc: f.bitDesc,
           byteLen: f.byteLen,
           rawValue: val?.rawValue ?? 0,
@@ -55,21 +48,20 @@ export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
     }
 
     if (entries.length === 0) {
-      const bitTagVals = parsedValues.filter(f => f.bitTag);
-      for (const f of bitTagVals) {
+      for (const v of parsedValues) {
+        if (!v.bitDesc) continue;
         entries.push({
-          configNameEn: f.configNameEn || 'Status',
-          absAddr: f.absAddr,
-          bitDesc: f.bitDesc,
-          byteLen: f.byteLen,
-          rawValue: f.rawValue,
+          configNameEn: v.configNameEn || 'Status',
+          bitDesc: v.bitDesc,
+          byteLen: v.byteLen,
+          rawValue: v.rawValue,
         });
       }
     }
 
     if (entries.length === 0) return { safetyFlags: [], statusFlags: [], safetyActiveCount: 0 };
 
-    const groupMap = new Map<string, BitTagEntry[]>();
+    const groupMap = new Map<string, Entry[]>();
     for (const e of entries) {
       const list = groupMap.get(e.configNameEn) ?? [];
       list.push(e);
@@ -78,11 +70,12 @@ export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
 
     const allFlags: { label: string; active: boolean; type: StatusGroupType }[] = [];
     for (const [name, fields] of groupMap) {
-      const type: StatusGroupType = name.toLowerCase().includes('safety') || name.toLowerCase().includes('alarm') ? 'safety' : 'status';
+      const isSafety = name.toLowerCase().includes('safety') || name.toLowerCase().includes('alarm');
+      const type: StatusGroupType = isSafety ? 'safety' : 'status';
       for (const f of fields) {
-        const bitLabels = parseBitLabels(f.bitDesc, f.byteLen);
-        for (let i = 0; i < bitLabels.length; i++) {
-          allFlags.push({ label: bitLabels[i]!, active: ((f.rawValue >> i) & 1) === 1, type });
+        const labels = splitBitDesc(f.bitDesc, f.byteLen);
+        for (let i = 0; i < labels.length; i++) {
+          allFlags.push({ label: labels[i]!, active: ((f.rawValue >> i) & 1) === 1, type });
         }
       }
     }
@@ -106,12 +99,8 @@ export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
   }
 
   const tabs: { key: TabKey; label: string; badge?: number }[] = [];
-  if (safetyFlags.length > 0) {
-    tabs.push({ key: 'safety', label: '安全', badge: safetyActiveCount });
-  }
-  if (statusFlags.length > 0) {
-    tabs.push({ key: 'status', label: '状态' });
-  }
+  if (safetyFlags.length > 0) tabs.push({ key: 'safety', label: '安全', badge: safetyActiveCount });
+  if (statusFlags.length > 0) tabs.push({ key: 'status', label: '状态' });
 
   const currentFlags = activeTab === 'safety' ? safetyFlags : statusFlags;
 
@@ -126,9 +115,7 @@ export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
               onClick={() => setActiveTab(tab.key)}
             >
               {tab.label}
-              {tab.badge !== undefined && tab.badge > 0 && (
-                <span className={styles.badge}>{tab.badge}</span>
-              )}
+              {tab.badge !== undefined && tab.badge > 0 && <span className={styles.badge}>{tab.badge}</span>}
             </button>
           ))}
         </div>
