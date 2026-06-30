@@ -114,6 +114,7 @@ export interface ParsedDataField {
   unit: string;
   rwType: string;
   bitTag: boolean;
+  bitDesc: string;
 }
 
 export interface ParsedProtocol {
@@ -173,6 +174,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
       const unit = String(row['Unit'] ?? '');
       const rwType = String(row['Type'] ?? '');
       const bitTag = String(row['BitTag'] ?? '').toLowerCase() === 'true';
+      const bitDesc = String(row['BitDesc'] ?? '');
 
       dataFields.push({
         rowIndex: i,
@@ -190,6 +192,7 @@ export function parseProtocolRows(rows: Record<string, unknown>[]): ParsedProtoc
         unit,
         rwType,
         bitTag,
+        bitDesc,
       });
 
       accumulatedBytes += byteLen;
@@ -210,6 +213,7 @@ export interface CalendarField {
   ratio: number;
   unit: string;
   bitTag: boolean;
+  bitDesc: string;
 }
 
 export interface CalendarGroup {
@@ -243,6 +247,7 @@ export function parseCalendarGroups(parsed: ParsedProtocol): CalendarGroup[] {
         ratio: f.ratio,
         unit: f.unit,
         bitTag: f.bitTag,
+        bitDesc: f.bitDesc,
       }));
 
     const recordCount = inst.ratio;
@@ -290,10 +295,12 @@ export function parseCalendarRecord(
 
     if (field.bitTag) {
       const val = fieldRegs.length === 1 ? leRegToValue(fieldRegs[0]!) : 0;
+      const maxBit = field.byteLen === 1 ? 8 : 16;
+      const descParts = field.bitDesc ? field.bitDesc.split('|') : [];
       const bitLabels: string[] = [];
-      for (let b = 0; b < 16; b++) {
+      for (let b = 0; b < maxBit; b++) {
         if (val & (1 << b)) {
-          bitLabels.push(`B${b}`);
+          bitLabels.push(descParts[b]?.trim() || `B${b}`);
         }
       }
       values.push({
