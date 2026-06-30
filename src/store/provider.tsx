@@ -127,6 +127,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const writeVerifyQtyRef = useRef(0);
   const pendingWriteRef = useRef<{ fieldRowIndex: number; newValue: number }[]>([]);
   const isVerifyReadRef = useRef(false);
+  const errorCountRef = useRef(0);
+  const calendarErrorCountRef = useRef(0);
 
   const startVersionRetryRef = useRef<() => void>(() => { });
   const stopVersionRetryRef = useRef<() => void>(() => { });
@@ -166,6 +168,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     pendingWriteRef.current = [];
     calendarPollingRef.current = false;
     pendingCalendarReadRef.current = false;
+    errorCountRef.current = 0;
+    calendarErrorCountRef.current = 0;
 
     rawBufRef.current = [];
     addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `communication-error, resetting to version query`, rawHex: '' });
@@ -254,10 +258,21 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     responseTimerRef.current = setTimeout(() => {
       if (!waitingResponseRef.current) return;
-      if (isVerifyReadRef.current) {
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read timeout`, rawHex: '' });
+      errorCountRef.current++;
+      if (errorCountRef.current < 3) {
+        if (isVerifyReadRef.current) {
+          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read timeout, retry ${errorCountRef.current}/3`, rawHex: '' });
+        } else {
+          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `response timeout, retry ${errorCountRef.current}/3`, rawHex: '' });
+        }
+        waitingResponseRef.current = false;
+        sendInstructionFrame(instrIdx);
+      } else {
+        if (isVerifyReadRef.current) {
+          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read timeout, max retries`, rawHex: '' });
+        }
+        resetToVersionQuery();
       }
-      resetToVersionQuery();
     }, RESPONSE_TIMEOUT);
   }, [sendFrame, addLog, resetToVersionQuery]);
 
@@ -320,10 +335,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     });
     responseTimerRef.current = setTimeout(() => {
       if (!calendarPollingRef.current) return;
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `calendar-read timeout`, rawHex: '' });
-      calendarPollingRef.current = false;
-      pendingCalendarReadRef.current = false;
-      startPeriodicPollRef.current();
+      calendarErrorCountRef.current++;
+      if (calendarErrorCountRef.current < 3) {
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `calendar-read timeout, retry ${calendarErrorCountRef.current}/3`, rawHex: '' });
+        waitingResponseRef.current = false;
+        sendCalendarRecordFrame(groupIdx, recordIdx);
+      } else {
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `calendar-read timeout, max retries`, rawHex: '' });
+        calendarPollingRef.current = false;
+        pendingCalendarReadRef.current = false;
+        startPeriodicPollRef.current();
+      }
     }, RESPONSE_TIMEOUT);
   }, [sendFrame, addLog]);
 
@@ -335,6 +357,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     calendarPollGroupIdxRef.current = 0;
     calendarPollRecordIdxRef.current = 0;
     calendarPollingRef.current = true;
+    calendarErrorCountRef.current = 0;
     calendarRecordsRef.current = [];
     setCalendarRecords([]);
     sendCalendarRecordFrame(0, 0);
@@ -557,6 +580,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         return;
       }
       isWritingRef.current = false;
+      errorCountRef.current = 0;
       if (responseTimerRef.current) {
         clearTimeout(responseTimerRef.current);
         responseTimerRef.current = null;
@@ -612,6 +636,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     if (!versionRef.current && parsed.registers.length > 0) {
+      errorCountRef.current = 0;
       const verHex = registerToVersionHex(parsed.registers[0]!);
       versionRef.current = verHex;
       setDeviceVersion(verHex);
@@ -641,6 +666,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         rawHex,
       });
       waitingResponseRef.current = false;
+      calendarErrorCountRef.current = 0;
       advanceCalendarPoll(parsed.registers);
       return;
     }
@@ -682,6 +708,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read-response addr=${addr} func=${fc} data=[${dataHex}] crc=${crcOk}`, rawHex });
     }
 
+    errorCountRef.current = 0;
     advancePoll();
   }, [parsedFields, addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery, sendFrame]);
 
@@ -811,10 +838,18 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
       responseTimerRef.current = setTimeout(() => {
         if (!isWritingRef.current) return;
-        isWritingRef.current = false;
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'write-response timeout', rawHex: '' });
-        showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入超时` : `${writeFieldNameRef.current} write timeout`, 'error');
-        executePendingWriteOrPollRef.current();
+        errorCountRef.current++;
+        if (errorCountRef.current < 3) {
+          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response timeout, retry ${errorCountRef.current}/3`, rawHex: '' });
+          isWritingRef.current = false;
+          waitingResponseRef.current = false;
+          writeField(fieldRowIndex, newValue);
+        } else {
+          isWritingRef.current = false;
+          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'write-response timeout, max retries', rawHex: '' });
+          showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入超时` : `${writeFieldNameRef.current} write timeout`, 'error');
+          executePendingWriteOrPollRef.current();
+        }
       }, RESPONSE_TIMEOUT);
     }
   }, [sendFrame, addLog]);
