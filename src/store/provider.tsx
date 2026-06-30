@@ -685,7 +685,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     clearLogs,
     autoRead,
     writeField,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, logs, toasts, sendFrame, clearLogs, autoRead, writeField]);
+    showToast,
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, logs, toasts, sendFrame, clearLogs, autoRead, writeField, showToast]);
 
   return (
     <BmsContext.Provider value={store}>

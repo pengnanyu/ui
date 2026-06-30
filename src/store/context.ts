@@ -41,6 +41,7 @@ export interface BmsActions {
   clearLogs: () => void;
   autoRead: () => void;
   writeField: (fieldRowIndex: number, newValue: number) => void;
+  showToast: (message: string, type: 'success' | 'error') => void;
 }
 
 export type BmsStore = BmsState & BmsActions;

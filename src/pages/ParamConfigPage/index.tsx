@@ -20,7 +20,7 @@ function useIsNarrow(breakpoint: number): boolean {
 }
 
 export function ParamConfigPage() {
-  const { dataMemeryGroups, parsedValues, deviceVersion, toasts, writeField } = useBmsStore();
+  const { dataMemeryGroups, parsedValues, deviceVersion, toasts, writeField, showToast } = useBmsStore();
   const { i18n } = useTranslation();
   const isZh = i18n.language === 'zh';
   const isNarrow = useIsNarrow(NARROW_BREAKPOINT);
@@ -116,11 +116,11 @@ export function ParamConfigPage() {
         try {
           const data = JSON.parse(reader.result as string);
           if (!data.version || !data.params) {
-            alert(isZh ? '无效的配置文件格式' : 'Invalid config file format');
+            showToast(isZh ? '无效的配置文件格式' : 'Invalid config file format', 'error');
             return;
           }
           if (data.version !== deviceVersion) {
-            alert(isZh ? `版本不匹配: 文件=${data.version}, 当前=${deviceVersion}` : `Version mismatch: file=${data.version}, current=${deviceVersion}`);
+            showToast(isZh ? `版本不匹配: 文件=${data.version}, 当前=${deviceVersion}` : `Version mismatch: file=${data.version}, current=${deviceVersion}`, 'error');
             return;
           }
           const pending = new Map<number, number>();
@@ -136,16 +136,16 @@ export function ParamConfigPage() {
           }
           setPendingImport(pending);
           if (pending.size === 0) {
-            alert(isZh ? '没有需要写入的差异参数' : 'No differences to write');
+            showToast(isZh ? '没有需要写入的差异参数' : 'No differences to write', 'error');
           }
         } catch {
-          alert(isZh ? '解析文件失败' : 'Failed to parse file');
+          showToast(isZh ? '解析文件失败' : 'Failed to parse file', 'error');
         }
       };
       reader.readAsText(file);
     };
     input.click();
-  }, [deviceVersion, isZh, parsedValues]);
+  }, [deviceVersion, isZh, parsedValues, showToast]);
 
   const handleConfirmImport = useCallback(() => {
     pendingImport.forEach((value, rowIndex) => {
