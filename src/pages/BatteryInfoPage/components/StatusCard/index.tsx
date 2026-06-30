@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import type { FieldValue, ParsedProtocol } from '@/utils/modbus';
+import type { ProtocolDatabase } from '@/types';
 import { CardShell } from '@/components/shared/CardShell';
 import type { StatusGroupType } from '@/types';
 import styles from './StatusCard.module.css';
 
 interface StatusCardProps {
+  protocolDb: ProtocolDatabase | null;
   parsedProtocol: ParsedProtocol | null;
   parsedValues: FieldValue[];
 }
@@ -21,21 +23,53 @@ function splitBitDesc(bitDesc: string, byteLen: number): string[] {
   return labels;
 }
 
-export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
+export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusCardProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('safety');
 
   const { safetyFlags, statusFlags, safetyActiveCount } = useMemo(() => {
-    interface Entry { configNameEn: string; bitDesc: string; byteLen: number; rawValue: number; }
-    const entries: Entry[] = [];
+    interface BitEntry { configNameEn: string; bitDesc: string; byteLen: number; rawValue: number; }
+    const entries: BitEntry[] = [];
 
-    const valueMap = new Map<number, FieldValue>();
-    for (const v of parsedValues) {
-      valueMap.set(v.absAddr, v);
+    if (protocolDb) {
+      const bitTagRows = protocolDb.rows.filter(row => {
+        const bt = String(row['BitTag'] ?? '');
+        return bt.toUpperCase() === 'TRUE';
+      });
+
+      if (bitTagRows.length > 0) {
+        const valueMap = new Map<number, FieldValue>();
+        for (const v of parsedValues) {
+          valueMap.set(v.absAddr, v);
+        }
+
+        for (const row of bitTagRows) {
+          const bitDesc = String(row['BitDesc'] ?? '');
+          const byteLen = Number(row['Length']) || 2;
+          const configNameEn = String(row['ConfigName_English'] ?? 'Status');
+
+          let rawValue = 0;
+          if (parsedProtocol) {
+            const nameEn = String(row['Name_English'] ?? '');
+            const matchField = parsedProtocol.dataFields.find(f => f.name === nameEn);
+            if (matchField) {
+              const val = valueMap.get(matchField.absAddr);
+              rawValue = val?.rawValue ?? 0;
+            }
+          }
+
+          entries.push({ configNameEn, bitDesc, byteLen, rawValue });
+        }
+      }
     }
 
-    if (parsedProtocol) {
+    if (entries.length === 0 && parsedProtocol) {
+      const valueMap = new Map<number, FieldValue>();
+      for (const v of parsedValues) {
+        valueMap.set(v.absAddr, v);
+      }
+
       for (const f of parsedProtocol.dataFields) {
-        if (!f.bitDesc) continue;
+        if (!f.bitDesc && !f.bitTag) continue;
         const inst = parsedProtocol.instructions[f.parentInstructionIndex];
         const val = valueMap.get(f.absAddr);
         entries.push({
@@ -47,21 +81,9 @@ export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
       }
     }
 
-    if (entries.length === 0) {
-      for (const v of parsedValues) {
-        if (!v.bitDesc) continue;
-        entries.push({
-          configNameEn: v.configNameEn || 'Status',
-          bitDesc: v.bitDesc,
-          byteLen: v.byteLen,
-          rawValue: v.rawValue,
-        });
-      }
-    }
-
     if (entries.length === 0) return { safetyFlags: [], statusFlags: [], safetyActiveCount: 0 };
 
-    const groupMap = new Map<string, Entry[]>();
+    const groupMap = new Map<string, BitEntry[]>();
     for (const e of entries) {
       const list = groupMap.get(e.configNameEn) ?? [];
       list.push(e);
@@ -88,7 +110,7 @@ export function StatusCard({ parsedProtocol, parsedValues }: StatusCardProps) {
       statusFlags: status,
       safetyActiveCount: safety.filter(f => f.active).length,
     };
-  }, [parsedProtocol, parsedValues]);
+  }, [protocolDb, parsedProtocol, parsedValues]);
 
   if (safetyFlags.length === 0 && statusFlags.length === 0) {
     return (
