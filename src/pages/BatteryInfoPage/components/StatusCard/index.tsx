@@ -5,16 +5,16 @@ import type { StatusGroupType } from '@/types';
 import styles from './StatusCard.module.css';
 
 interface StatusCardProps {
-  infoFields: FieldValue[];
+  allFields: FieldValue[];
 }
 
 type TabKey = 'safety' | 'status';
 
-export function StatusCard({ infoFields }: StatusCardProps) {
+export function StatusCard({ allFields }: StatusCardProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('safety');
 
   const { safetyFlags, statusFlags, safetyActiveCount } = useMemo(() => {
-    const bitTagFields = infoFields.filter(f => f.bitTag);
+    const bitTagFields = allFields.filter(f => f.bitTag);
     const groupMap = new Map<string, FieldValue[]>();
     for (const f of bitTagFields) {
       const key = f.configNameEn || 'Status';
@@ -45,7 +45,7 @@ export function StatusCard({ infoFields }: StatusCardProps) {
       statusFlags: status,
       safetyActiveCount: safety.filter(f => f.active).length,
     };
-  }, [infoFields]);
+  }, [allFields]);
 
   if (safetyFlags.length === 0 && statusFlags.length === 0) {
     return (

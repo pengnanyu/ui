@@ -14,16 +14,17 @@ export function CellIcon({ index, voltage, soc, isBalancing }: CellIconProps) {
 
   return (
     <div className={styles.cell}>
-      <div
-        className={styles.fill}
-        style={{ width: `calc(${fillPercent}% - 6px)`, background: fillColor }}
-      />
+      <div className={styles.inner}>
+        <div
+          className={styles.fill}
+          style={{ width: `calc(${fillPercent}% - 6px)`, background: fillColor }}
+        />
+      </div>
       <div className={styles.cellInfo}>
         <span className={styles.cellName}>C{index}</span>
         <span className={styles.cellVoltage}>{voltage}mV</span>
       </div>
       {isBalancing && <span className={styles.balancing}>⚡</span>}
-
     </div>
   );
 }

@@ -7,12 +7,27 @@ import styles from './VoltageCurrentChart.module.css';
 
 interface VoltageCurrentChartProps {
   dataPoints: VoltageCurrentDataPoint[];
+  voltageValue?: number;
+  currentValue?: number;
+  voltageUnit?: string;
+  currentUnit?: string;
 }
 
-export function VoltageCurrentChart({ dataPoints }: VoltageCurrentChartProps) {
+export function VoltageCurrentChart({ dataPoints, voltageValue, currentValue, voltageUnit, currentUnit }: VoltageCurrentChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const option = useChartOption(dataPoints);
+
+  const titleExtra = (voltageValue !== undefined || currentValue !== undefined) ? (
+    <div className={styles.titleValues}>
+      {voltageValue !== undefined && (
+        <span className={styles.voltageVal}>{voltageValue.toFixed(1)}{voltageUnit || 'V'}</span>
+      )}
+      {currentValue !== undefined && (
+        <span className={styles.currentVal}>{currentValue.toFixed(1)}{currentUnit || 'A'}</span>
+      )}
+    </div>
+  ) : undefined;
 
   const ensureInstance = useCallback(() => {
     if (!chartRef.current) return null;
@@ -43,17 +58,13 @@ export function VoltageCurrentChart({ dataPoints }: VoltageCurrentChartProps) {
     };
   }, []);
 
-  if (dataPoints.length === 0) {
-    return (
-      <CardShell title="电压电流曲线">
-        <div className={styles.empty}>--</div>
-      </CardShell>
-    );
-  }
-
   return (
-    <CardShell title="电压电流曲线">
-      <div ref={chartRef} className={styles.chartContainer} />
+    <CardShell title="电压电流曲线" titleExtra={titleExtra}>
+      {dataPoints.length === 0 ? (
+        <div className={styles.empty}>--</div>
+      ) : (
+        <div ref={chartRef} className={styles.chartContainer} />
+      )}
     </CardShell>
   );
 }

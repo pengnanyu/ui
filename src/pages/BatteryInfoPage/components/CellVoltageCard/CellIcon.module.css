@@ -3,7 +3,6 @@
   aspect-ratio: 2 / 1;
   border: 2.5px solid var(--color-border);
   border-radius: 4px;
-  overflow: hidden;
   background: var(--color-muted);
   margin-right: 6px;
 }
@@ -11,12 +10,19 @@
 .cell::after {
   content: '';
   position: absolute;
-  right: -9px;
+  right: -8px;
   top: 22%;
   width: 5px;
   height: 56%;
   background: var(--color-border);
-  border-radius: 0 2px 2px 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  overflow: hidden;
 }
 
 .fill {

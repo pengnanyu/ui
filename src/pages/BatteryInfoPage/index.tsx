@@ -90,17 +90,24 @@ export function BatteryInfoPage() {
     return infoFields.filter(f => f.graph);
   }, [infoFields]);
 
+  const graphVoltage = useMemo(() => {
+    const f = graphFields.find(f => /voltage/i.test(f.name));
+    return f;
+  }, [graphFields]);
+
+  const graphCurrent = useMemo(() => {
+    const f = graphFields.find(f => /current/i.test(f.name));
+    return f;
+  }, [graphFields]);
+
   const chartDataPoints = useMemo(() => {
-    if (graphFields.length === 0) return [];
-    const voltageF = graphFields.find(f => /voltage/i.test(f.name));
-    const currentF = graphFields.find(f => /current/i.test(f.name));
-    if (!voltageF && !currentF) return [];
+    if (!graphVoltage && !graphCurrent) return [];
     return [{
       timestamp: Date.now(),
-      voltage: voltageF?.value ?? 0,
-      current: currentF?.value ?? 0,
+      voltage: graphVoltage?.value ?? 0,
+      current: graphCurrent?.value ?? 0,
     }];
-  }, [graphFields]);
+  }, [graphVoltage, graphCurrent]);
 
   const extraFields = useMemo(() => {
     const skipInstrIdx = new Set<number>();
@@ -126,10 +133,10 @@ export function BatteryInfoPage() {
     <div className={styles.grid}>
       <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} />
       <DeviceInfoCard bmsId={deviceVersion ?? undefined} extraFields={extraFields} />
-      <StatusCard infoFields={infoFields} />
-      <VoltageCurrentChart dataPoints={chartDataPoints} />
+      <StatusCard allFields={parsedValues} />
+      <VoltageCurrentChart dataPoints={chartDataPoints} voltageValue={graphVoltage?.value} currentValue={graphCurrent?.value} voltageUnit={graphVoltage?.unit} currentUnit={graphCurrent?.unit} />
       <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} />
-      <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} voltageMax={voltageMax} voltageMin={voltageMin} />
+      <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />
     </div>
   );
 }

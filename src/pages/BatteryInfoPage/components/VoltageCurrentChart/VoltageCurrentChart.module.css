@@ -11,3 +11,19 @@
   font-size: 14px;
   height: 280px;
 }
+
+.titleValues {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.voltageVal {
+  color: #6366f1;
+}
+
+.currentVal {
+  color: #f59e0b;
+}
