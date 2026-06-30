@@ -74,6 +74,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
 
     const allItems: StatusItem[] = [];
     for (const e of entries) {
+      if (/CELL.*BALAN/i.test(e.nameEn)) continue;
       const isSafety = e.nameEn.toLowerCase().includes('alarm') || e.nameEn.toLowerCase().includes('safety');
       const labels = splitBitDesc(e.bitDesc, e.byteLen);
       for (let i = 0; i < labels.length; i++) {
