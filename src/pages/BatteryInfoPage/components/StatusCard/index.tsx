@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FieldValue, ParsedProtocol } from '@/utils/modbus';
 import type { ProtocolDatabase } from '@/types';
@@ -30,6 +30,7 @@ interface StatusItem {
   label: string;
   active: boolean;
   isSafety: boolean;
+  isAlarm: boolean;
 }
 
 function ShieldIcon({ color, count }: { color: string; count?: number }) {
@@ -54,11 +55,15 @@ function buildGroups(items: StatusItem[], hideInactive: boolean): Map<string, St
   return grouped;
 }
 
+function getGroupCols(count: number): number {
+  if (count <= 4) return 4;
+  if (count <= 8) return 8;
+  return 16;
+}
+
 export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }: StatusCardProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('safety');
   const { t } = useTranslation();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [flagWidth, setFlagWidth] = useState<number | undefined>(undefined);
 
   const { safetyItems, statusItems, safetyActiveCount } = useMemo(() => {
     interface BitEntry { nameEn: string; nameZh: string; bitDesc: string; byteLen: number; rawValue: number; }
@@ -102,7 +107,8 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
     const allItems: StatusItem[] = [];
     for (const e of entries) {
       if (/CELL.*BALAN/i.test(e.nameEn)) continue;
-      const isSafety = e.nameEn.toLowerCase().includes('alarm') || e.nameEn.toLowerCase().includes('safety');
+      const isAlarm = e.nameEn.toLowerCase().includes('alarm');
+      const isSafety = isAlarm || e.nameEn.toLowerCase().includes('safety');
       const labels = splitBitDesc(e.bitDesc, e.byteLen);
       for (let i = 0; i < labels.length; i++) {
         allItems.push({
@@ -111,6 +117,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
           label: labels[i]!,
           active: ((e.rawValue >> i) & 1) === 1,
           isSafety,
+          isAlarm,
         });
       }
     }
@@ -124,22 +131,6 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
       safetyActiveCount: safety.filter(f => f.active).length,
     };
   }, [protocolDb, parsedProtocol, parsedValues]);
-
-  const measureFlags = useCallback(() => {
-    if (!containerRef.current) return;
-    const flags = containerRef.current.querySelectorAll<HTMLElement>('[data-flag]');
-    let maxW = 0;
-    flags.forEach(el => {
-      el.style.width = '';
-      const w = el.scrollWidth;
-      if (w > maxW) maxW = w;
-    });
-    if (maxW > 0) setFlagWidth(maxW);
-  }, []);
-
-  useLayoutEffect(() => {
-    measureFlags();
-  }, [measureFlags, safetyItems, statusItems]);
 
   if (safetyItems.length === 0 && statusItems.length === 0) {
     return (
@@ -158,24 +149,32 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
   const safetyGroups = buildGroups(safetyItems, true);
   const statusGroups = buildGroups(statusItems, false);
 
-  const renderGroups = (groups: Map<string, StatusItem[]>, isSafety: boolean) =>
-    Array.from(groups.entries()).map(([name, items]) => (
-      <div key={name} className={styles.group}>
-        <div className={styles.groupName}>{items[0]?.nameZh || name}</div>
-        <div className={styles.flagList}>
-          {items.map((item, i) => (
-            <span
-              key={i}
-              data-flag
-              className={`${styles.flag} ${item.active ? (isSafety ? styles.flagSafetyActive : styles.flagStatusActive) : (isSafety ? styles.flagSafetyInactive : styles.flagStatusInactive)}`}
-              style={flagWidth ? { width: flagWidth } : undefined}
-            >
-              {item.label}
-            </span>
-          ))}
+  const renderGroups = (groups: Map<string, StatusItem[]>, isSafetyTab: boolean) =>
+    Array.from(groups.entries()).map(([name, items]) => {
+      const groupIsAlarm = items.some(it => it.isAlarm);
+      const cols = getGroupCols(items.length);
+      const colorClass = groupIsAlarm ? styles.groupAlarm : (isSafetyTab ? styles.groupSafety : styles.groupStatus);
+      const nameColorClass = groupIsAlarm ? styles.groupNameAlarm : (isSafetyTab ? styles.groupNameSafety : styles.groupNameStatus);
+      return (
+        <div key={name} className={`${styles.group} ${colorClass}`}>
+          <div className={`${styles.groupName} ${nameColorClass}`}>{items[0]?.nameZh || name}</div>
+          <div className={styles.flagList} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+            {items.map((item, i) => {
+              const flagColorClass = groupIsAlarm
+                ? (item.active ? styles.flagAlarmActive : styles.flagAlarmInactive)
+                : (isSafetyTab
+                  ? (item.active ? styles.flagSafetyActive : styles.flagSafetyInactive)
+                  : (item.active ? styles.flagStatusActive : styles.flagStatusInactive));
+              return (
+                <span key={i} className={`${styles.flag} ${flagColorClass}`}>
+                  {item.label}
+                </span>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    ));
+      );
+    });
 
   const titleContent = (
     <div className={styles.titleTabs}>
@@ -201,7 +200,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
   );
 
   const innerContent = (
-    <div ref={containerRef}>
+    <div>
       {effectiveTab === 'safety' && safetyItems.length > 0 && (
         <div className={styles.groupList}>
           {renderGroups(safetyGroups, true)}
@@ -230,7 +229,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
           )}
           {statusItems.length > 0 && (
             <button
-              className={`${styles.sideBtn} ${effectiveTab === 'status' ? styles.sideBtnActive : ''} ${styles.sideBtnStatus}`}
+              className={`${styles.sideBtn} ${effectiveTab === 'status' ? styles.sideBtnActive : ''} ${styles.tabStatus}`}
               onClick={() => setActiveTab('status')}
             >
               <ShieldIcon color="#16a34a" />

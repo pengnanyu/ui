@@ -107,29 +107,57 @@
 }
 
 .group {
+  border-radius: 6px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+.groupAlarm {
+  background: oklch(0.97 0.04 90);
+  border: 1px solid oklch(0.85 0.1 90);
+}
+
+.groupSafety {
+  background: oklch(0.97 0.03 25);
+  border: 1px solid oklch(0.85 0.08 25);
+}
+
+.groupStatus {
+  background: oklch(0.97 0.02 145);
+  border: 1px solid oklch(0.88 0.05 145);
+}
+
 .groupName {
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-foreground);
-  opacity: 0.7;
   padding-bottom: 2px;
   border-bottom: 1px solid var(--color-border);
 }
 
+.groupNameAlarm {
+  color: #b45309;
+  border-bottom-color: oklch(0.85 0.1 90);
+}
+
+.groupNameSafety {
+  color: #dc2626;
+  border-bottom-color: oklch(0.85 0.08 25);
+}
+
+.groupNameStatus {
+  color: #16a34a;
+  border-bottom-color: oklch(0.88 0.05 145);
+}
+
 .flagList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-width: 0;
+  display: grid;
+  gap: 3px;
 }
 
 .flag {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 2px 4px;
@@ -139,26 +167,38 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  min-width: 0;
+}
+
+.flagAlarmActive {
+  color: #92400e;
+  background: #fbbf24;
+  font-weight: 600;
+}
+
+.flagAlarmInactive {
+  color: var(--color-muted-foreground);
+  background: var(--color-muted);
 }
 
 .flagSafetyActive {
-  color: oklch(0.5 0.2 25);
-  background: oklch(0.95 0.04 25);
+  color: #fff;
+  background: #dc2626;
   font-weight: 600;
 }
 
 .flagSafetyInactive {
   color: var(--color-muted-foreground);
+  background: var(--color-muted);
 }
 
 .flagStatusActive {
-  color: oklch(0.4 0.15 145);
-  background: oklch(0.92 0.06 145);
+  color: #fff;
+  background: #16a34a;
   font-weight: 600;
 }
 
 .flagStatusInactive {
   color: var(--color-muted-foreground);
-  background: oklch(0.97 0.02 145);
+  background: var(--color-muted);
 }
