@@ -5,6 +5,7 @@ import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
 import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, verifyCrc, reverseOperation, parseCalendarGroups, parseCalendarRecord } from '@/utils/modbus';
+import { getCachedProtocol, setCachedProtocol } from '@/utils/protocol-cache';
 import type { ParsedProtocol, FieldValue, CalendarGroup, CalendarRecord } from '@/utils/modbus';
 import i18n from '@/i18n';
 
@@ -224,20 +225,34 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data && data.columns && data.rows) {
-        setProtocolDb({
+        const entry = {
           version,
           table: data.table || '',
           columns: data.columns,
           rows: data.rows,
           loadedAt: Date.now(),
-        });
-
+        };
+        setProtocolDb(entry);
+        setCachedProtocol(entry);
+        setProtocolLoading(false);
+        return;
       }
     } catch (_e) {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db failed: version=${version} ${_e}`, rawHex: '' });
-    } finally {
-      setProtocolLoading(false);
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db online failed: version=${version}, trying cache`, rawHex: '' });
     }
+    try {
+      const cached = await getCachedProtocol(version);
+      if (cached && cached.columns && cached.rows) {
+        setProtocolDb(cached);
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db loaded from cache: version=${version}`, rawHex: '' });
+        setProtocolLoading(false);
+        return;
+      }
+    } catch (_e) {
+      // ignore cache read error
+    }
+    addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db failed: version=${version} (no online, no cache)`, rawHex: '' });
+    setProtocolLoading(false);
   }, [addLog]);
 
   const sendInstructionFrame = useCallback((instrIdx: number) => {
