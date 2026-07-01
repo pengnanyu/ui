@@ -121,6 +121,7 @@
   overflow: hidden;
   min-width: 0;
   flex: 1;
+  justify-content: flex-start;
 }
 
 .titleTime {
@@ -133,15 +134,18 @@
   overflow: hidden;
   flex: 1;
   min-width: 0;
-  mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);
 }
 
 .marqueeTrack {
   display: flex;
   gap: 4px;
-  animation: marqueeScroll 12s linear infinite;
   width: max-content;
+}
+
+.marqueeScroll {
+  animation: marqueeScroll 12s linear infinite;
+  mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);
 }
 
 @keyframes marqueeScroll {

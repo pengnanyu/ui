@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect, useCallback } from 'react';
 import type { SocData, PackData } from '@/types';
 import type { StatusItem } from '../../hooks/useStatusItems';
 import { CardShell } from '@/components/shared/CardShell';
@@ -15,18 +16,35 @@ interface SocPackCardProps {
 
 export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, safetyItems }: SocPackCardProps) {
   const activeSafetyItems = safetyItems?.filter(f => f.active) ?? [];
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [overflowing, setOverflowing] = useState(false);
+
+  const checkOverflow = useCallback(() => {
+    if (!wrapRef.current || !trackRef.current) return;
+    setOverflowing(trackRef.current.scrollWidth > wrapRef.current.clientWidth + 2);
+  }, []);
+
+  useEffect(() => {
+    checkOverflow();
+    const ro = new ResizeObserver(checkOverflow);
+    if (wrapRef.current) ro.observe(wrapRef.current);
+    return () => ro.disconnect();
+  }, [checkOverflow, activeSafetyItems]);
+
+  const flags = activeSafetyItems.map((item, i) => (
+    <span key={i} className={`${styles.safetyFlag} ${item.isAlarm ? styles.flagAlarm : styles.flagSafety}`}>
+      {item.label}
+    </span>
+  ));
 
   const titleExtra = (
     <div className={styles.titleBar}>
       {bmsTime && <span className={styles.titleTime}>{bmsTime}</span>}
       {activeSafetyItems.length > 0 && (
-        <div className={styles.marqueeWrap}>
-          <div className={styles.marqueeTrack}>
-            {[...activeSafetyItems, ...activeSafetyItems].map((item, i) => (
-              <span key={i} className={`${styles.safetyFlag} ${item.isAlarm ? styles.flagAlarm : styles.flagSafety}`}>
-                {item.label}
-              </span>
-            ))}
+        <div className={styles.marqueeWrap} ref={wrapRef}>
+          <div className={`${styles.marqueeTrack} ${overflowing ? styles.marqueeScroll : ''}`} ref={trackRef}>
+            {overflowing ? [...flags, ...flags] : flags}
           </div>
         </div>
       )}
