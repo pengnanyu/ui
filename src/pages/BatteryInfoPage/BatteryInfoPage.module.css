@@ -6,8 +6,8 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  flex: 1;
   min-height: 0;
+  flex: 1;
 }
 
 @media (min-width: 640px) {
@@ -51,7 +51,7 @@
 
 .detailGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 10px;
 }
 
