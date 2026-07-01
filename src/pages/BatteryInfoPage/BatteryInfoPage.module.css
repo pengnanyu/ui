@@ -28,6 +28,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+  align-items: stretch;
 }
 
 @media (min-width: 640px) {
