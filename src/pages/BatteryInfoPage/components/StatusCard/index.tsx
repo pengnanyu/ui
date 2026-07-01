@@ -23,10 +23,6 @@ function buildGroups(items: { name: string; nameZh: string; label: string; activ
   return grouped;
 }
 
-function getGroupCols(count: number): number {
-  if (count <= 4) return 4;
-  return 8;
-}
 
 export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }: StatusCardProps) {
   const { t } = useTranslation();
@@ -44,11 +40,10 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
 
   const renderGroups = () =>
     Array.from(statusGroups.entries()).map(([name, items]) => {
-      const cols = getGroupCols(items.length);
       return (
         <div key={name} className={`${styles.group} ${styles.groupStatus}`}>
           <div className={`${styles.groupName} ${styles.groupNameStatus}`}>{items[0]?.nameZh || name}</div>
-          <div className={styles.flagList} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+          <div className={styles.flagList}>
             {items.map((item, i) => (
               <span key={i} className={`${styles.flag} ${item.active ? styles.flagStatusActive : styles.flagStatusInactive}`}>
                 {item.label}
