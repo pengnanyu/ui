@@ -215,7 +215,14 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
     </div>
   );
 
-  if (noShell) return innerContent;
+  if (noShell) {
+    return (
+      <div>
+        {titleContent}
+        {innerContent}
+      </div>
+    );
+  }
 
   return (
     <CardShell title={titleContent}>
