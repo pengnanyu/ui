@@ -9,9 +9,10 @@ interface TempBarProps {
 
 function getTempGradient(temp: number): string {
   if (temp < 0) {
-    const t = Math.max(0, Math.min(1, (temp + 45) / 45));
-    if (t < 0.33) return `linear-gradient(90deg, #22c55e, #22c55e)`;
-    if (t < 0.66) return `linear-gradient(90deg, #22c55e, #eab308)`;
+    const yellowStart = -10;
+    const redStart = -25;
+    if (temp >= yellowStart) return `linear-gradient(90deg, #22c55e, #22c55e)`;
+    if (temp >= redStart) return `linear-gradient(90deg, #22c55e, #eab308)`;
     return `linear-gradient(90deg, #22c55e, #eab308, #ef4444)`;
   }
   const t = Math.max(0, Math.min(1, temp / 100));

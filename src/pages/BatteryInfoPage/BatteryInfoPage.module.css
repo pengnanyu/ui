@@ -99,6 +99,34 @@
   }
 }
 
+@media (min-width: 640px) {
+
+  .orderStatus,
+  .orderTemp {
+    align-self: stretch;
+  }
+
+  .orderStatus>*,
+  .orderTemp>* {
+    flex: 1;
+  }
+}
+
+@media (min-width: 1024px) {
+
+  .orderDevice,
+  .orderStatus,
+  .orderTemp {
+    align-self: stretch;
+  }
+
+  .orderDevice>*,
+  .orderStatus>*,
+  .orderTemp>* {
+    flex: 1;
+  }
+}
+
 .chartSpan2 {
   grid-column: span 2;
 }

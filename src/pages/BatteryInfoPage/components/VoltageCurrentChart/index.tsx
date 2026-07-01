@@ -70,7 +70,13 @@ export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, volt
     if (!el) return;
 
     const ro = new ResizeObserver(() => {
-      instanceRef.current?.resize();
+      const chart = instanceRef.current;
+      if (!chart) return;
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) {
+        chart.resize();
+      }
     });
     ro.observe(el);
 

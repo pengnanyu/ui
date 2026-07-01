@@ -46,13 +46,13 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
         </div>
       </div>
     </div>
-  ) : undefined;
+  ) : 'SOC';
 
   const titleExtraContent = bmsTime ? <span>{bmsTime}</span> : undefined;
 
   return (
     <CardShell
-      title={titleContent!}
+      title={titleContent}
       titleExtra={titleExtraContent}
       className={styles.shell}
     >
