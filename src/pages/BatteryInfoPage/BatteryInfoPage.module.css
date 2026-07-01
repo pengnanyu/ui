@@ -43,6 +43,7 @@
 .edgeTab {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   padding: 6px 14px;
   font-size: 12px;
@@ -53,6 +54,7 @@
   background: transparent;
   color: var(--color-muted-foreground);
   transition: background 0.15s, color 0.15s;
+  flex: 1;
 }
 
 .edgeTab:hover {
@@ -67,6 +69,23 @@
 .edgeBody {
   padding: 12px;
   min-height: 100px;
+}
+
+.panelStack {
+  display: grid;
+}
+
+.panelStack>div {
+  grid-area: 1 / 1;
+}
+
+.panelVisible {
+  visibility: visible;
+}
+
+.panelHidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .sideTabCard {

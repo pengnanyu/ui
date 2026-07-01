@@ -217,9 +217,30 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
 
   if (noShell) {
     return (
-      <div>
-        {titleContent}
-        {innerContent}
+      <div className={styles.sideLayout}>
+        <div className={styles.sideNav}>
+          {safetyItems.length > 0 && (
+            <button
+              className={`${styles.sideBtn} ${effectiveTab === 'safety' ? styles.sideBtnActive : ''} ${styles.sideBtnSafety}`}
+              onClick={() => setActiveTab('safety')}
+            >
+              <ShieldIcon color="#dc2626" count={safetyActiveCount} />
+              <span className={styles.sideBtnLabel}>{t('status.safety')}</span>
+            </button>
+          )}
+          {statusItems.length > 0 && (
+            <button
+              className={`${styles.sideBtn} ${effectiveTab === 'status' ? styles.sideBtnActive : ''} ${styles.sideBtnStatus}`}
+              onClick={() => setActiveTab('status')}
+            >
+              <ShieldIcon color="#16a34a" />
+              <span className={styles.sideBtnLabel}>{t('status.status')}</span>
+            </button>
+          )}
+        </div>
+        <div className={styles.sideContent}>
+          {innerContent}
+        </div>
       </div>
     );
   }
