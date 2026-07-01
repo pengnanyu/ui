@@ -13,11 +13,12 @@ interface VoltageCurrentChartProps {
   voltageMax?: number;
   voltageMin?: number;
   balanceFlags?: boolean[];
+  soc?: number;
 }
 
 const MAX_POINTS = 120;
 
-export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, voltageMin, balanceFlags }: VoltageCurrentChartProps) {
+export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, voltageMin, balanceFlags, soc }: VoltageCurrentChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const [history, setHistory] = useState<VoltageCurrentDataPoint[]>([]);
@@ -95,6 +96,7 @@ export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, volt
                 key={cell.index}
                 index={cell.index}
                 voltage={cell.voltage}
+                soc={soc}
                 isBalancing={balanceFlags?.[(cell.index - 1)] ?? false}
                 compact
               />

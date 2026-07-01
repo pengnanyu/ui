@@ -92,16 +92,3 @@
 .cellCompact .cellVoltage {
   font-size: 9px;
 }
-
-.cellError .battery {
-  border-color: var(--color-destructive);
-}
-
-.cellError .cellName {
-  color: var(--color-destructive);
-}
-
-.cellError .cellVoltage {
-  color: var(--color-destructive);
-  font-weight: 600;
-}

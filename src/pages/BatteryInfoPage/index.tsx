@@ -212,7 +212,7 @@ export function BatteryInfoPage() {
       {cols === 1 ? (
         <>
           <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} />
-          <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} />
+          <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
           {detailContent}
         </>
       ) : (
@@ -224,7 +224,7 @@ export function BatteryInfoPage() {
             <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} />
           </div>
           <div className={`${styles.orderChart} ${styles.chartSpan2}`}>
-            <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} />
+            <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
           </div>
           <div className={styles.orderStatus}>
             <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} />
