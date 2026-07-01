@@ -48,7 +48,7 @@ export function BatteryInfoPage() {
   const { ref: gridRef, cols } = useColumnCount();
   const [mergedTab, setMergedTab] = useState<MergedTab>('device');
 
-  const { safetyItems, safetyActiveCount, alarmActiveCount } = useStatusItems(protocolDb, parsedProtocol, parsedValues);
+  const { safetyItems } = useStatusItems(protocolDb, parsedProtocol, parsedValues);
 
   const infoFields = useMemo(() => parsedValues.filter(f => f.configType === 'Info' || f.configType === 'Register'), [parsedValues]);
 
@@ -211,17 +211,27 @@ export function BatteryInfoPage() {
     <div className={styles.page} ref={gridRef}>
       {cols === 1 ? (
         <>
-          <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} safetyActiveCount={safetyActiveCount} alarmActiveCount={alarmActiveCount} />
+          <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} />
           <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} />
           {detailContent}
         </>
       ) : (
         <div className={styles.mainGrid}>
-          <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} safetyActiveCount={safetyActiveCount} alarmActiveCount={alarmActiveCount} />
-          <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} />
-          <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} className={styles.chartSpan2} />
-          <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} />
-          <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />
+          <div className={styles.orderSoc}>
+            <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} />
+          </div>
+          <div className={styles.orderDevice}>
+            <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} />
+          </div>
+          <div className={`${styles.orderChart} ${styles.chartSpan2}`}>
+            <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} />
+          </div>
+          <div className={styles.orderStatus}>
+            <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} />
+          </div>
+          <div className={styles.orderTemp}>
+            <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />
+          </div>
         </div>
       )}
     </div>

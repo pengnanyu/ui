@@ -26,26 +26,74 @@
 
 .mainGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
 @media (min-width: 640px) {
   .mainGrid {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 14px;
   }
 }
 
 @media (min-width: 1024px) {
   .mainGrid {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
+  }
+}
+
+.orderSoc {
+  order: 1;
+}
+
+.orderChart {
+  order: 2;
+}
+
+.orderDevice {
+  order: 3;
+}
+
+.orderStatus {
+  order: 4;
+}
+
+.orderTemp {
+  order: 5;
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .orderSoc {
+    order: 1;
+  }
+
+  .orderDevice {
+    order: 2;
+  }
+
+  .orderChart {
+    order: 3;
+  }
+
+  .orderStatus {
+    order: 4;
+  }
+
+  .orderTemp {
+    order: 5;
   }
 }
 
 .chartSpan2 {
   grid-column: span 2;
+}
+
+@media (min-width: 1024px) {
+  .chartSpan2 {
+    grid-column: span 2;
+  }
 }
 
 .edgeCard {

@@ -11,14 +11,10 @@ interface SocPackCardProps {
   dischargeTime?: string;
   chargeTime?: string;
   safetyItems?: StatusItem[];
-  safetyActiveCount?: number;
-  alarmActiveCount?: number;
 }
 
-export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, safetyItems, safetyActiveCount, alarmActiveCount }: SocPackCardProps) {
+export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, safetyItems }: SocPackCardProps) {
   const activeSafetyItems = safetyItems?.filter(f => f.active) ?? [];
-  const alarmItems = activeSafetyItems.filter(f => f.isAlarm);
-  const safetyOnlyItems = activeSafetyItems.filter(f => !f.isAlarm);
 
   const titleExtra = (
     <div className={styles.titleBar}>
