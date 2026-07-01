@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react';
-import { getSocColor, getCurrentColor } from '@/utils/color';
+import { getSocColor } from '@/utils/color';
 
 interface GaugeConfig {
   type: 'current' | 'voltage' | 'soc';
@@ -10,6 +10,12 @@ interface GaugeConfig {
 
 function getComputedStyleVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function getSocRgb(soc: number): [number, number, number] {
+  if (soc < 20) return [239, 68, 68];
+  if (soc < 50) return [245, 158, 11];
+  return [34, 197, 94];
 }
 
 export function useGaugeDraw(canvasRef: React.RefObject<HTMLCanvasElement | null>, config: GaugeConfig | null) {
@@ -97,6 +103,12 @@ function drawCurrentGauge(ctx: CanvasRenderingContext2D, w: number, h: number, v
   ctx.fillText('A', cx, cy + r * 0.25);
 }
 
+function getCurrentColor(current: number): string {
+  if (current > 0) return getComputedStyleVar('--gauge-current-positive');
+  if (current < 0) return getComputedStyleVar('--gauge-current-negative');
+  return getComputedStyleVar('--gauge-current-zero');
+}
+
 function drawVoltageGauge(ctx: CanvasRenderingContext2D, w: number, h: number, value: number, max: number) {
   const cx = w * 0.6;
   const cy = h * 0.85;
@@ -149,53 +161,64 @@ function drawVoltageGauge(ctx: CanvasRenderingContext2D, w: number, h: number, v
 }
 
 function drawSocGauge(ctx: CanvasRenderingContext2D, w: number, h: number, _value: number, _max: number, soc: number) {
-  const cx = w * 0.4;
-  const cy = h * 0.85;
-  const r = Math.min(w * 0.5, h * 0.7);
-  const lineWidth = r * 0.1;
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w, h) * 0.38;
+  const lineWidth = r * 0.13;
 
-  const startAngle = (180 * Math.PI) / 180;
-  const endAngle = (0 * Math.PI) / 180;
+  const startAngle = (135 * Math.PI) / 180;
+  const totalSweep = (270 * Math.PI) / 180;
+  const endAngle = startAngle + totalSweep;
 
   ctx.beginPath();
-  ctx.arc(cx, cy, r, startAngle, endAngle, true);
+  ctx.arc(cx, cy, r, startAngle, endAngle);
   ctx.strokeStyle = getComputedStyleVar('--color-muted');
   ctx.lineWidth = lineWidth;
   ctx.lineCap = 'round';
   ctx.stroke();
 
-  const ratio = Math.min(soc / 100, 1);
-  const valueAngle = startAngle - ratio * (startAngle - endAngle);
-  const color = getSocColor(soc);
+  const ratio = Math.min(Math.max(soc, 0) / 100, 1);
+  if (ratio > 0.005) {
+    const valueAngle = startAngle + ratio * totalSweep;
+    const segments = Math.max(Math.ceil(ratio * 80), 4);
+    const segmentAngle = (valueAngle - startAngle) / segments;
+    const [cr, cg, cb] = getSocRgb(soc);
 
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, startAngle, valueAngle, true);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = lineWidth;
-  ctx.lineCap = 'round';
-  ctx.stroke();
+    for (let i = 0; i < segments; i++) {
+      const a1 = startAngle + i * segmentAngle;
+      const a2 = a1 + segmentAngle + 0.008;
+      const t = segments > 1 ? i / (segments - 1) : 1;
+      const alpha = 0.35 + 0.65 * t;
 
-  const tickCount = 10;
-  for (let i = 0; i <= tickCount; i++) {
-    const angle = startAngle - (i / tickCount) * (startAngle - endAngle);
-    const innerR = r - lineWidth * 1.2;
-    const outerR = r - lineWidth * 0.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, a1, Math.min(a2, valueAngle));
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha})`;
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = (i === 0 || i === segments - 1) ? 'round' : 'butt';
+      ctx.stroke();
+    }
+
+    const glowR = r + lineWidth * 0.5;
+    const glowGrad = ctx.createRadialGradient(cx, cy, r - lineWidth, cx, cy, glowR + 4);
+    const [gr, gg, gb] = getSocRgb(soc);
+    glowGrad.addColorStop(0, `rgba(${gr},${gg},${gb},0)`);
+    glowGrad.addColorStop(0.7, `rgba(${gr},${gg},${gb},0.08)`);
+    glowGrad.addColorStop(1, `rgba(${gr},${gg},${gb},0)`);
     ctx.beginPath();
-    ctx.moveTo(cx + innerR * Math.cos(angle), cy + innerR * Math.sin(angle));
-    ctx.lineTo(cx + outerR * Math.cos(angle), cy + outerR * Math.sin(angle));
-    ctx.strokeStyle = getComputedStyleVar('--gauge-soc-tick');
-    ctx.lineWidth = 1.5;
+    ctx.arc(cx, cy, r, startAngle, valueAngle);
+    ctx.strokeStyle = glowGrad;
+    ctx.lineWidth = lineWidth + 8;
     ctx.lineCap = 'round';
     ctx.stroke();
   }
 
   ctx.fillStyle = getComputedStyleVar('--color-foreground');
-  ctx.font = `bold ${r * 0.28}px -apple-system, sans-serif`;
+  ctx.font = `bold ${r * 0.42}px -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`${Math.round(soc)}%`, cx + r * 0.1, cy - r * 0.15);
+  ctx.fillText(`${Math.round(soc)}%`, cx, cy - r * 0.05);
 
   ctx.fillStyle = getComputedStyleVar('--color-muted-foreground');
-  ctx.font = `${r * 0.15}px -apple-system, sans-serif`;
-  ctx.fillText('SOC', cx + r * 0.1, cy + r * 0.1);
+  ctx.font = `${r * 0.14}px -apple-system, sans-serif`;
+  ctx.fillText('SOC', cx, cy + r * 0.22);
 }

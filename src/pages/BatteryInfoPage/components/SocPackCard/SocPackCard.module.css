@@ -1,18 +1,49 @@
-.core {
+.shell {
+  padding: 0;
+}
+
+.container {
+  position: relative;
+  min-height: 220px;
+}
+
+.gaugeBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.gaugeBg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 220px;
+  padding: 12px;
+}
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .sideCard {
-  flex: 1;
+  background: color-mix(in srgb, var(--color-card) 75%, transparent);
+  backdrop-filter: blur(6px);
+  border-radius: 8px;
+  padding: 8px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 8px 4px;
-  background: var(--color-muted);
-  border-radius: 8px;
+  gap: 1px;
 }
 
 .sideValue {
@@ -24,37 +55,30 @@
 }
 
 .sideLabel {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-muted-foreground);
   font-weight: 500;
-}
-
-.ringArea {
-  width: 140px;
-  min-width: 100px;
-  flex-shrink: 0;
-  height: 140px;
 }
 
 .bottomCards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
 }
 
 .bottomCard {
-  background: var(--color-muted);
+  background: color-mix(in srgb, var(--color-card) 75%, transparent);
+  backdrop-filter: blur(6px);
   border-radius: 8px;
-  padding: 8px 6px;
+  padding: 6px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
 }
 
 .bottomValue {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-foreground);
   font-variant-numeric: tabular-nums;
@@ -62,16 +86,21 @@
 }
 
 .bottomLabel {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--color-muted-foreground);
   font-weight: 500;
   text-align: center;
+  white-space: nowrap;
 }
 
 @media (max-width: 480px) {
-  .ringArea {
-    width: 100px;
-    height: 100px;
+  .container {
+    min-height: 180px;
+  }
+
+  .overlay {
+    min-height: 180px;
+    padding: 8px;
   }
 
   .sideValue {
@@ -83,6 +112,6 @@
   }
 
   .bottomValue {
-    font-size: 14px;
+    font-size: 13px;
   }
 }
