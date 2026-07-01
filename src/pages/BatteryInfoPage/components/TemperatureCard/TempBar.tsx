@@ -6,17 +6,6 @@ interface TempBarProps {
   name?: string;
 }
 
-function getTempColor(temp: number): string {
-  if (temp < 0) {
-    if (temp <= -10) return '#22c55e';
-    if (temp <= 0) return '#eab308';
-    return '#ef4444';
-  }
-  if (temp <= 25) return '#22c55e';
-  if (temp <= 45) return '#22c55e';
-  if (temp <= 55) return '#eab308';
-  return '#ef4444';
-}
 
 function getTempGradient(temp: number): string {
   if (temp < 0) {
