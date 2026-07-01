@@ -1,18 +1,23 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import * as echarts from 'echarts';
-import type { VoltageCurrentDataPoint } from '@/types';
+import type { VoltageCurrentDataPoint, CellVoltage } from '@/types';
 import { CardShell } from '@/components/shared/CardShell';
 import { useChartOption } from './useChartOption';
+import { CellIcon } from '../CellVoltageCard/CellIcon';
+import cellStyles from '../CellVoltageCard/CellVoltageCard.module.css';
 import styles from './VoltageCurrentChart.module.css';
 
 interface VoltageCurrentChartProps {
   dataPoints: VoltageCurrentDataPoint[];
-
+  cellVoltages?: CellVoltage[];
+  voltageMax?: number;
+  voltageMin?: number;
+  balanceFlags?: boolean[];
 }
 
 const MAX_POINTS = 120;
 
-export function VoltageCurrentChart({ dataPoints }: VoltageCurrentChartProps) {
+export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, voltageMin, balanceFlags }: VoltageCurrentChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const [history, setHistory] = useState<VoltageCurrentDataPoint[]>([]);
@@ -73,12 +78,38 @@ export function VoltageCurrentChart({ dataPoints }: VoltageCurrentChartProps) {
     };
   }, []);
 
+  const headerInfo = (voltageMax !== undefined || voltageMin !== undefined) ? (
+    <div className={styles.headerInfo}>
+      {voltageMax !== undefined && <span className={styles.headerItem}><span className={styles.arrowUp}>↑</span>{(voltageMax / 1000).toFixed(2)}V</span>}
+      {voltageMin !== undefined && <span className={styles.headerItem}><span className={styles.arrowDown}>↓</span>{(voltageMin / 1000).toFixed(2)}V</span>}
+    </div>
+  ) : null;
+
   return (
     <CardShell title="电压电流曲线" titleExtra={titleExtra} className={styles.compactShell}>
       {history.length === 0 ? (
         <div className={styles.empty}>--</div>
       ) : (
         <div ref={chartRef} className={styles.chartContainer} />
+      )}
+      {cellVoltages && cellVoltages.length > 0 && (
+        <div className={styles.cellSection}>
+          <div className={styles.cellHeader}>
+            <span className={styles.cellTitle}>单体电压</span>
+            {headerInfo}
+          </div>
+          <div className={cellStyles.grid}>
+            {cellVoltages.map(cell => (
+              <CellIcon
+                key={cell.index}
+                index={cell.index}
+                voltage={cell.voltage}
+                isBalancing={balanceFlags?.[(cell.index - 1)] ?? false}
+                compact
+              />
+            ))}
+          </div>
+        </div>
       )}
     </CardShell>
   );

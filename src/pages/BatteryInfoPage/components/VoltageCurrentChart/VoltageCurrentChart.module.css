@@ -36,3 +36,46 @@
 .compactShell {
   padding: 6px !important;
 }
+
+.cellSection {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cellHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.cellTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+
+.headerInfo {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.headerItem {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.arrowUp {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.arrowDown {
+  color: var(--color-info);
+  font-weight: 600;
+}
