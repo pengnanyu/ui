@@ -6,11 +6,10 @@ import styles from './SocPackCard.module.css';
 interface SocPackCardProps {
   soc: SocData | null;
   pack: PackData | null;
-  chargeVoltage?: number;
   bmsTime?: string;
 }
 
-export function SocPackCard({ soc, pack, chargeVoltage, bmsTime }: SocPackCardProps) {
+export function SocPackCard({ soc, pack, bmsTime }: SocPackCardProps) {
   return (
     <CardShell
       title="SOC Pack"
