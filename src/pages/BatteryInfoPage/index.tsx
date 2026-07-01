@@ -211,7 +211,7 @@ export function BatteryInfoPage() {
     <div className={styles.page} ref={gridRef}>
       <div className={styles.overview}>
         <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} safetyActiveCount={safetyActiveCount} alarmActiveCount={alarmActiveCount} />
-        <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} />
+        <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} className={cols > 1 ? styles.chartSpan2 : undefined} />
       </div>
       <div className={styles.detail}>
         {detailContent}

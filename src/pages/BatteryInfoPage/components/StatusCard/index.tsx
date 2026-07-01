@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FieldValue, ParsedProtocol } from '@/utils/modbus';
 import type { ProtocolDatabase } from '@/types';
-import { useStatusItems } from '../hooks/useStatusItems';
+import { useStatusItems } from '../../hooks/useStatusItems';
 import { CardShell } from '@/components/shared/CardShell';
 import styles from './StatusCard.module.css';
 

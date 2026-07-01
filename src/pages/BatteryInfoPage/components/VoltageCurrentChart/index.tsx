@@ -13,11 +13,12 @@ interface VoltageCurrentChartProps {
   voltageMax?: number;
   voltageMin?: number;
   balanceFlags?: boolean[];
+  className?: string;
 }
 
 const MAX_POINTS = 120;
 
-export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, voltageMin, balanceFlags }: VoltageCurrentChartProps) {
+export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, voltageMin, balanceFlags, className }: VoltageCurrentChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const [history, setHistory] = useState<VoltageCurrentDataPoint[]>([]);
@@ -81,27 +82,29 @@ export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, volt
   }, []);
 
   return (
-    <CardShell title="电压电流曲线" titleExtra={titleExtra} className={styles.compactShell}>
-      {history.length === 0 ? (
-        <div className={styles.empty}>--</div>
-      ) : (
-        <div ref={chartRef} className={styles.chartContainer} />
-      )}
-      {cellVoltages && cellVoltages.length > 0 && (
-        <div className={styles.cellSection}>
-          <div className={cellStyles.grid}>
-            {cellVoltages.map(cell => (
-              <CellIcon
-                key={cell.index}
-                index={cell.index}
-                voltage={cell.voltage}
-                isBalancing={balanceFlags?.[(cell.index - 1)] ?? false}
-                compact
-              />
-            ))}
+    <div className={className}>
+      <CardShell title="电压电流曲线" titleExtra={titleExtra} className={styles.compactShell}>
+        {history.length === 0 ? (
+          <div className={styles.empty}>--</div>
+        ) : (
+          <div ref={chartRef} className={styles.chartContainer} />
+        )}
+        {cellVoltages && cellVoltages.length > 0 && (
+          <div className={styles.cellSection}>
+            <div className={cellStyles.grid}>
+              {cellVoltages.map(cell => (
+                <CellIcon
+                  key={cell.index}
+                  index={cell.index}
+                  voltage={cell.voltage}
+                  isBalancing={balanceFlags?.[(cell.index - 1)] ?? false}
+                  compact
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-    </CardShell>
+        )}
+      </CardShell>
+    </div>
   );
 }

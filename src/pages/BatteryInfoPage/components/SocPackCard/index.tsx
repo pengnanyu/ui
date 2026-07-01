@@ -1,5 +1,5 @@
 import type { SocData, PackData } from '@/types';
-import type { StatusItem } from '../hooks/useStatusItems';
+import type { StatusItem } from '../../hooks/useStatusItems';
 import { CardShell } from '@/components/shared/CardShell';
 import { GaugeCanvas } from './GaugeCanvas';
 import styles from './SocPackCard.module.css';
