@@ -201,19 +201,15 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
   );
 
   const innerContent = (
-    <div ref={containerRef} className={styles.tabStack}>
-      {safetyItems.length > 0 && (
-        <div className={`${styles.tabPanel} ${effectiveTab === 'safety' ? styles.tabVisible : styles.tabHidden}`}>
-          <div className={styles.groupList}>
-            {renderGroups(safetyGroups, true)}
-          </div>
+    <div ref={containerRef}>
+      {effectiveTab === 'safety' && safetyItems.length > 0 && (
+        <div className={styles.groupList}>
+          {renderGroups(safetyGroups, true)}
         </div>
       )}
-      {statusItems.length > 0 && (
-        <div className={`${styles.tabPanel} ${effectiveTab === 'status' ? styles.tabVisible : styles.tabHidden}`}>
-          <div className={styles.groupList}>
-            {renderGroups(statusGroups, false)}
-          </div>
+      {effectiveTab === 'status' && statusItems.length > 0 && (
+        <div className={styles.groupList}>
+          {renderGroups(statusGroups, false)}
         </div>
       )}
     </div>

@@ -26,73 +26,101 @@
   }
 }
 
-.mergedTabs {
-  display: flex;
-  gap: 4px;
-  align-items: center;
+.edgeCard {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.mergedTab {
+.edgeTabBar {
+  display: flex;
+  background: var(--color-muted);
+  padding: 4px 4px 0;
+  gap: 2px;
+}
+
+.edgeTab {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 5px;
-  font-size: 13px;
+  gap: 5px;
+  padding: 6px 14px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
   background: transparent;
   color: var(--color-muted-foreground);
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.mergedTab:hover {
-  background: var(--color-muted);
+.edgeTab:hover {
+  background: var(--color-background);
 }
 
-.mergedTabActive {
-  background: var(--color-muted);
+.edgeTabActive {
+  background: var(--color-card);
   border-color: var(--color-border);
   color: var(--color-foreground);
+  margin-bottom: -1px;
+}
+
+.edgeBody {
+  padding: 12px;
+}
+
+.sideTabCard {
+  display: flex;
+  gap: 0;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .sideTabLayout {
   display: flex;
-  gap: 8px;
+  gap: 0;
   min-height: 0;
 }
 
 .sideTabNav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
   flex-shrink: 0;
+  background: var(--color-muted);
+  padding: 4px 0;
+  border-right: 1px solid var(--color-border);
 }
 
 .sideTab {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 8px;
-  border-radius: 5px;
+  padding: 10px 6px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: none;
+  border-left: 3px solid transparent;
   background: transparent;
   color: var(--color-muted-foreground);
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 2px;
 }
 
 .sideTab:hover {
-  background: var(--color-muted);
+  background: var(--color-background);
 }
 
 .sideTabActive {
-  background: var(--color-muted);
-  border-color: var(--color-border);
+  background: var(--color-card);
+  border-left-color: var(--color-foreground);
   color: var(--color-foreground);
 }
 
@@ -100,4 +128,5 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  padding: 8px;
 }

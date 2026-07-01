@@ -35,22 +35,6 @@
   color: oklch(0.45 0.15 145);
 }
 
-.tabStack {
-  display: grid;
-}
-
-.tabPanel {
-  grid-area: 1 / 1;
-}
-
-.tabVisible {
-  visibility: visible;
-}
-
-.tabHidden {
-  visibility: hidden;
-  pointer-events: none;
-}
 
 .groupList {
   display: flex;

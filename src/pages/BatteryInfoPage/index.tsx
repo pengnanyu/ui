@@ -9,7 +9,6 @@ import { StatusCard } from './components/StatusCard';
 import { VoltageCurrentChart } from './components/VoltageCurrentChart';
 import { CellVoltageCard } from './components/CellVoltageCard';
 import { TemperatureCard } from './components/TemperatureCard';
-import { CardShell } from '@/components/shared/CardShell';
 import styles from './BatteryInfoPage.module.css';
 
 function findField(fields: FieldValue[], nameEn: string): FieldValue | undefined {
@@ -23,6 +22,14 @@ function FingerprintIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4" /><path d="M5 12a7 7 0 0 1 7-7 7 7 0 0 1 5.7 3" /><path d="M8 12a4 4 0 0 1 4-4 4 4 0 0 1 3.5 2.1" /><path d="M12 12h.01" /><path d="M17.5 8.5A10 10 0 0 1 22 12" /><path d="M15 11a7 7 0 0 1 4 6" /><path d="M12 16a4 4 0 0 1 2 3.5" /><path d="M8 16a10 10 0 0 0 1 5" />
+    </svg>
+  );
+}
+
+function ShieldSvg({ color }: { color: string }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" fill={color} fillOpacity={0.15} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -150,65 +157,77 @@ export function BatteryInfoPage() {
   const tempCard = <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />;
   const chartCard = <VoltageCurrentChart dataPoints={chartDataPoints} />;
 
-  const cellTempLeftTabs = (
-    <CardShell title={isZh ? '单体电压/温度' : 'Voltage/Temp'}>
-      <div className={styles.sideTabLayout}>
-        <div className={styles.sideTabNav}>
-          <button className={`${styles.sideTab} ${cellTempTab === 'voltage' ? styles.sideTabActive : ''}`} onClick={() => setCellTempTab('voltage')}>
-            {isZh ? '电压' : 'V'}
-          </button>
-          <button className={`${styles.sideTab} ${cellTempTab === 'temperature' ? styles.sideTabActive : ''}`} onClick={() => setCellTempTab('temperature')}>
-            {isZh ? '温度' : 'T'}
-          </button>
-        </div>
-        <div className={styles.sideTabContent}>
-          <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} noShell />
-          {cellTempTab === 'temperature' && <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />}
-        </div>
-      </div>
-    </CardShell>
-  );
+  const edgeTabs: { key: MergedTab; icon: React.ReactNode; label: string }[] = [
+    { key: 'device', icon: <FingerprintIcon />, label: t('battery.deviceInfo') },
+    { key: 'cells', icon: null, label: isZh ? '电压/温度' : 'V/T' },
+    { key: 'status', icon: <ShieldSvg color="#16a34a" />, label: t('status.status') },
+  ];
 
   const mergedContent = (
     <>
-      <CardShell
-        title={
-          <div className={styles.mergedTabs}>
-            <button className={`${styles.mergedTab} ${mergedTab === 'device' ? styles.mergedTabActive : ''}`} onClick={() => setMergedTab('device')}>
-              <FingerprintIcon />
-              <span>{t('battery.deviceInfo')}</span>
+      <div className={styles.edgeCard}>
+        <div className={styles.edgeTabBar}>
+          {edgeTabs.map(tab => (
+            <button
+              key={tab.key}
+              className={`${styles.edgeTab} ${mergedTab === tab.key ? styles.edgeTabActive : ''}`}
+              onClick={() => setMergedTab(tab.key)}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
             </button>
-            <button className={`${styles.mergedTab} ${mergedTab === 'cells' ? styles.mergedTabActive : ''}`} onClick={() => setMergedTab('cells')}>
-              <span>{isZh ? '单体电压/温度' : 'Voltage/Temp'}</span>
-            </button>
-            <button className={`${styles.mergedTab} ${mergedTab === 'status' ? styles.mergedTabActive : ''}`} onClick={() => setMergedTab('status')}>
-              <span>{t('status.status')}</span>
-            </button>
-          </div>
-        }
-        titleExtra={bmsId && mergedTab === 'device' ? <span style={{ fontSize: 12, opacity: 0.7 }}>{bmsId}</span> : undefined}
-      >
-        {mergedTab === 'device' && <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} noShell />}
-        {mergedTab === 'cells' && (
-          <div className={styles.sideTabLayout}>
-            <div className={styles.sideTabNav}>
-              <button className={`${styles.sideTab} ${cellTempTab === 'voltage' ? styles.sideTabActive : ''}`} onClick={() => setCellTempTab('voltage')}>
-                {isZh ? '电压' : 'V'}
-              </button>
-              <button className={`${styles.sideTab} ${cellTempTab === 'temperature' ? styles.sideTabActive : ''}`} onClick={() => setCellTempTab('temperature')}>
-                {isZh ? '温度' : 'T'}
-              </button>
+          ))}
+        </div>
+        <div className={styles.edgeBody}>
+          {mergedTab === 'device' && <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} noShell />}
+          {mergedTab === 'cells' && (
+            <div className={styles.sideTabLayout}>
+              <div className={styles.sideTabNav}>
+                <button className={`${styles.sideTab} ${cellTempTab === 'voltage' ? styles.sideTabActive : ''}`} onClick={() => setCellTempTab('voltage')}>
+                  {isZh ? '电压' : 'V'}
+                </button>
+                <button className={`${styles.sideTab} ${cellTempTab === 'temperature' ? styles.sideTabActive : ''}`} onClick={() => setCellTempTab('temperature')}>
+                  {isZh ? '温度' : 'T'}
+                </button>
+              </div>
+              <div className={styles.sideTabContent}>
+                <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} noShell />
+                {cellTempTab === 'temperature' && (
+                  <>
+                    <div style={{ height: 8 }} />
+                    <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />
+                  </>
+                )}
+              </div>
             </div>
-            <div className={styles.sideTabContent}>
-              <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} noShell />
-              {cellTempTab === 'temperature' && <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />}
-            </div>
-          </div>
-        )}
-        {mergedTab === 'status' && <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell />}
-      </CardShell>
+          )}
+          {mergedTab === 'status' && <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell />}
+        </div>
+      </div>
       {chartCard}
     </>
+  );
+
+  const cellTempLeftTabs = (
+    <div className={styles.sideTabCard}>
+      <div className={styles.sideTabNav}>
+        <button className={`${styles.sideTab} ${cellTempTab === 'voltage' ? styles.sideTabActive : ''}`} onClick={() => setCellTempTab('voltage')}>
+          {isZh ? '电压' : 'V'}
+        </button>
+        <button className={`${styles.sideTab} ${cellTempTab === 'temperature' ? styles.sideTabActive : ''}`} onClick={() => setCellTempTab('temperature')}>
+          {isZh ? '温度' : 'T'}
+        </button>
+      </div>
+      <div className={styles.sideTabContent}>
+        <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} noShell />
+        {cellTempTab === 'temperature' && (
+          <>
+            <div style={{ height: 8 }} />
+            <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />
+          </>
+        )}
+      </div>
+    </div>
   );
 
   return (
