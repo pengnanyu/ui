@@ -1,8 +1,4 @@
-import { detectPlatform } from './platform';
-
-function isMiniProgram(): boolean {
-  return detectPlatform() === 'miniapp';
-}
+import { isMiniProgram } from './platform';
 
 export function getItem(key: string): string | null {
   if (isMiniProgram()) {
