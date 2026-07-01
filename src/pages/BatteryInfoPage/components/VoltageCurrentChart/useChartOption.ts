@@ -9,7 +9,7 @@ export function useChartOption(dataPoints: VoltageCurrentDataPoint[]): ChartOpti
   return useMemo(() => {
     return {
       animation: false,
-      grid: { left: 40, right: 40, top: 10, bottom: 24 },
+      grid: { left: 30, right: 30, top: 10, bottom: 24 },
       tooltip: { trigger: 'axis' },
       xAxis: {
         type: 'category',
