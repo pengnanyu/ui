@@ -57,19 +57,19 @@
 }
 
 .flagList {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(0, 1fr));
   gap: 4px;
 }
 
 .flag {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 11px;
-  min-width: 70px;
+  text-align: center;
 }
 
 .flagSafetyActive {
