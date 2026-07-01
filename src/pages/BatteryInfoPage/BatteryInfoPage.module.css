@@ -57,19 +57,47 @@
   color: var(--color-foreground);
 }
 
-.mergedStack {
-  display: grid;
+.sideTabLayout {
+  display: flex;
+  gap: 8px;
+  min-height: 0;
 }
 
-.mergedStack>div {
-  grid-area: 1 / 1;
+.sideTabNav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
-.panelVisible {
-  visibility: visible;
+.sideTab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
-.panelHidden {
-  visibility: hidden;
-  pointer-events: none;
+.sideTab:hover {
+  background: var(--color-muted);
+}
+
+.sideTabActive {
+  background: var(--color-muted);
+  border-color: var(--color-border);
+  color: var(--color-foreground);
+}
+
+.sideTabContent {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
