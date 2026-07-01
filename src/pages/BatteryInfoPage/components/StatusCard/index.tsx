@@ -57,8 +57,7 @@ function buildGroups(items: StatusItem[], hideInactive: boolean): Map<string, St
 
 function getGroupCols(count: number): number {
   if (count <= 4) return 4;
-  if (count <= 8) return 8;
-  return 16;
+  return 8;
 }
 
 export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }: StatusCardProps) {
