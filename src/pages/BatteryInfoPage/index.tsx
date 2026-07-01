@@ -75,6 +75,18 @@ export function BatteryInfoPage() {
   }, [infoFields, temperInstrIdx, isZh]);
 
 
+  const temperMax = useMemo(() => {
+    if (temperInstrIdx < 0) return undefined;
+    const f = infoFields.find(f => f.parentInstructionIndex === temperInstrIdx && f.name === 'Temper Max');
+    return f?.value;
+  }, [infoFields, temperInstrIdx]);
+
+  const temperMin = useMemo(() => {
+    if (temperInstrIdx < 0) return undefined;
+    const f = infoFields.find(f => f.parentInstructionIndex === temperInstrIdx && f.name === 'Temper Min');
+    return f?.value;
+  }, [infoFields, temperInstrIdx]);
+
   const graphFields = useMemo(() => {
     return infoFields.filter(f => f.graph);
   }, [infoFields]);
@@ -144,7 +156,7 @@ export function BatteryInfoPage() {
       <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} />
       <VoltageCurrentChart dataPoints={chartDataPoints} />
       <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} />
-      <TemperatureCard temperatures={temperatures} voltageMax={voltageMax} voltageMin={voltageMin} />
+      <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />
     </div>
   );
 }

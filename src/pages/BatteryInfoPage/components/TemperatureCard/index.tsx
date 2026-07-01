@@ -6,18 +6,18 @@ import styles from './TemperatureCard.module.css';
 interface TemperatureCardProps {
   temperatures: TempData[];
   mosTemperature?: TempData;
-  voltageMax?: number;
-  voltageMin?: number;
+  temperMax?: number;
+  temperMin?: number;
 }
 
-export function TemperatureCard({ temperatures, mosTemperature, voltageMax, voltageMin }: TemperatureCardProps) {
-  const titleExtra = (voltageMax !== undefined || voltageMin !== undefined) ? (
+export function TemperatureCard({ temperatures, mosTemperature, temperMax, temperMin }: TemperatureCardProps) {
+  const titleExtra = (temperMax !== undefined || temperMin !== undefined) ? (
     <div className={styles.headerInfo}>
-      {voltageMax !== undefined && (
-        <span className={styles.headerItem}>↑ {voltageMax.toFixed(3)}V</span>
+      {temperMax !== undefined && (
+        <span className={styles.headerItem}>↑ {temperMax.toFixed(1)}℃</span>
       )}
-      {voltageMin !== undefined && (
-        <span className={styles.headerItem}>↓ {voltageMin.toFixed(3)}V</span>
+      {temperMin !== undefined && (
+        <span className={styles.headerItem}>↓ {temperMin.toFixed(1)}℃</span>
       )}
     </div>
   ) : undefined;

@@ -7,10 +7,7 @@ import styles from './VoltageCurrentChart.module.css';
 
 interface VoltageCurrentChartProps {
   dataPoints: VoltageCurrentDataPoint[];
-  voltageValue?: number;
-  currentValue?: number;
-  voltageUnit?: string;
-  currentUnit?: string;
+
 }
 
 const MAX_POINTS = 120;

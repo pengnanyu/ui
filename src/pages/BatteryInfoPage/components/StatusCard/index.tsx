@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { FieldValue, ParsedProtocol } from '@/utils/modbus';
 import type { ProtocolDatabase } from '@/types';
 import { CardShell } from '@/components/shared/CardShell';
@@ -30,8 +31,20 @@ interface StatusItem {
   isSafety: boolean;
 }
 
+function ShieldIcon({ color, count }: { color: string; count?: number }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" fill={color} fillOpacity={0.15} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+      {count !== undefined && count > 0 && (
+        <text x="12" y="15.5" textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>{count > 9 ? '9+' : count}</text>
+      )}
+    </svg>
+  );
+}
+
 export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusCardProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('safety');
+  const { t } = useTranslation();
 
   const { safetyItems, statusItems, safetyActiveCount } = useMemo(() => {
     interface BitEntry { nameEn: string; nameZh: string; bitDesc: string; byteLen: number; rawValue: number; }
@@ -100,15 +113,15 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
 
   if (safetyItems.length === 0 && statusItems.length === 0) {
     return (
-      <CardShell title="状态指示">
+      <CardShell title={null!}>
         <div style={{ color: 'var(--color-muted-foreground)', fontSize: 14, textAlign: 'center', padding: '16px 0' }}>--</div>
       </CardShell>
     );
   }
 
-  const tabs: { key: TabKey; label: string; badge?: number }[] = [];
-  if (safetyItems.length > 0) tabs.push({ key: 'safety', label: '告警', badge: safetyActiveCount });
-  if (statusItems.length > 0) tabs.push({ key: 'status', label: '状态' });
+  const tabs: { key: TabKey }[] = [];
+  if (safetyItems.length > 0) tabs.push({ key: 'safety' });
+  if (statusItems.length > 0) tabs.push({ key: 'status' });
 
   const effectiveTab = tabs.find(t => t.key === activeTab) ? activeTab : (tabs[0]?.key ?? 'safety');
   const currentItems = effectiveTab === 'safety' ? safetyItems : statusItems;
@@ -122,22 +135,31 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
     grouped.set(item.name, list);
   }
 
-  return (
-    <CardShell title="状态指示">
-      {tabs.length >= 1 && (
-        <div className={styles.tabBar}>
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              className={`${styles.tab} ${effectiveTab === tab.key ? styles.tabActive : ''} ${tab.key === 'safety' ? styles.tabSafety : styles.tabStatus}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-              {tab.badge !== undefined && tab.badge > 0 && <span className={styles.badge}>{tab.badge}</span>}
-            </button>
-          ))}
-        </div>
+  const titleContent = (
+    <div className={styles.titleTabs}>
+      {safetyItems.length > 0 && (
+        <button
+          className={`${styles.tabBtn} ${effectiveTab === 'safety' ? styles.tabBtnActive : ''} ${styles.tabSafety}`}
+          onClick={() => setActiveTab('safety')}
+        >
+          <ShieldIcon color="#dc2626" count={safetyActiveCount} />
+          <span>{t('status.safety')}</span>
+        </button>
       )}
+      {statusItems.length > 0 && (
+        <button
+          className={`${styles.tabBtn} ${effectiveTab === 'status' ? styles.tabBtnActive : ''} ${styles.tabStatus}`}
+          onClick={() => setActiveTab('status')}
+        >
+          <ShieldIcon color="#16a34a" />
+          <span>{t('status.status')}</span>
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <CardShell title={titleContent}>
       <div className={styles.groupList}>
         {Array.from(grouped.entries()).map(([name, items]) => (
           <div key={name} className={styles.group}>
@@ -148,7 +170,6 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
                   key={i}
                   className={`${styles.flag} ${item.active ? (isSafety ? styles.flagSafetyActive : styles.flagStatusActive) : (isSafety ? styles.flagSafetyInactive : styles.flagStatusInactive)}`}
                 >
-
                   {item.label}
                 </span>
               ))}

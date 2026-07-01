@@ -26,7 +26,7 @@
     "chargeVoltage": "充电电压"
   },
   "status": {
-    "safety": "安全保护",
+    "safety": "安全",
     "alarm": "告警",
     "status": "状态"
   },
