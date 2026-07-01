@@ -1,5 +1,6 @@
 .shell {
   padding: 0;
+  border-width: 0.5px;
 }
 
 .container {
@@ -12,6 +13,7 @@
   position: absolute;
   inset: 0;
   z-index: 0;
+  bottom: 80px;
 }
 
 .gaugeBg canvas {
@@ -27,7 +29,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 12px;
+  padding: 8px 4px;
 }
 
 .topRow {
@@ -39,8 +41,8 @@
 .sideCard {
   background: color-mix(in srgb, var(--color-card) 75%, transparent);
   backdrop-filter: blur(6px);
-  border-radius: 8px;
-  padding: 8px 14px;
+  border-radius: 6px;
+  padding: 6px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -48,7 +50,7 @@
 }
 
 .sideValue {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-foreground);
   font-variant-numeric: tabular-nums;
@@ -56,7 +58,7 @@
 }
 
 .sideLabel {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-muted-foreground);
   font-weight: 500;
 }
@@ -64,14 +66,14 @@
 .bottomCards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  gap: 4px;
 }
 
 .bottomCard {
-  background: color-mix(in srgb, var(--color-card) 75%, transparent);
+  background: color-mix(in srgb, var(--color-card) 80%, transparent);
   backdrop-filter: blur(6px);
-  border-radius: 8px;
-  padding: 6px 4px;
+  border-radius: 6px;
+  padding: 5px 3px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -79,7 +81,7 @@
 }
 
 .bottomValue {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--color-foreground);
   font-variant-numeric: tabular-nums;
@@ -87,7 +89,7 @@
 }
 
 .bottomLabel {
-  font-size: 9px;
+  font-size: 8px;
   color: var(--color-muted-foreground);
   font-weight: 500;
   text-align: center;
@@ -99,13 +101,12 @@
     min-height: 180px;
   }
 
-  .overlay {
-
-    padding: 8px;
+  .gaugeBg {
+    bottom: 70px;
   }
 
   .sideValue {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .bottomCards {
@@ -113,6 +114,6 @@
   }
 
   .bottomValue {
-    font-size: 13px;
+    font-size: 12px;
   }
 }
