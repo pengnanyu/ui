@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useBmsStore } from '@/store/context';
 import { useTranslation } from 'react-i18next';
 import type { FieldValue } from '@/utils/modbus';
+import type { VoltageCurrentDataPoint } from '@/types';
 import { useColumnCount } from '@/hooks/useColumnCount';
 import { useStatusItems } from './hooks/useStatusItems';
 import { SocPackCard } from './components/SocPackCard';
@@ -126,9 +127,21 @@ export function BatteryInfoPage() {
   const graphVoltage = useMemo(() => graphFields.find(f => /voltage/i.test(f.name)), [graphFields]);
   const graphCurrent = useMemo(() => graphFields.find(f => /current/i.test(f.name)), [graphFields]);
 
-  const chartDataPoints = useMemo(() => {
-    if (!graphVoltage && !graphCurrent) return [];
-    return [{ timestamp: Date.now(), voltage: graphVoltage?.value ?? 0, current: graphCurrent?.value ?? 0 }];
+
+  const MAX_CHART_POINTS = 120;
+  const [chartHistory, setChartHistory] = useState<VoltageCurrentDataPoint[]>([]);
+  const lastChartTsRef = useRef(0);
+
+  useMemo(() => {
+    if (!graphVoltage && !graphCurrent) return;
+    const ts = Date.now();
+    if (ts === lastChartTsRef.current) return;
+    lastChartTsRef.current = ts;
+    const pt: VoltageCurrentDataPoint = { timestamp: ts, voltage: graphVoltage?.value ?? 0, current: graphCurrent?.value ?? 0 };
+    setChartHistory(prev => {
+      const next = [...prev, pt];
+      return next.length > MAX_CHART_POINTS ? next.slice(-MAX_CHART_POINTS) : next;
+    });
   }, [graphVoltage, graphCurrent]);
 
   const extraFields = useMemo(() => {
@@ -212,7 +225,7 @@ export function BatteryInfoPage() {
       {cols === 1 ? (
         <>
           <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} />
-          <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
+          <VoltageCurrentChart history={chartHistory} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
           {detailContent}
         </>
       ) : (
@@ -224,7 +237,7 @@ export function BatteryInfoPage() {
             <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} />
           </div>
           <div className={`${styles.orderChart} ${styles.chartSpan2}`}>
-            <VoltageCurrentChart dataPoints={chartDataPoints} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
+            <VoltageCurrentChart history={chartHistory} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
           </div>
           <div className={styles.orderStatus}>
             <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} />

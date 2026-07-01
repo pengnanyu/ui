@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import * as echarts from 'echarts';
 import type { VoltageCurrentDataPoint, CellVoltage } from '@/types';
 import { CardShell } from '@/components/shared/CardShell';
@@ -8,7 +8,7 @@ import cellStyles from '../CellVoltageCard/CellVoltageCard.module.css';
 import styles from './VoltageCurrentChart.module.css';
 
 interface VoltageCurrentChartProps {
-  dataPoints: VoltageCurrentDataPoint[];
+  history: VoltageCurrentDataPoint[];
   cellVoltages?: CellVoltage[];
   voltageMax?: number;
   voltageMin?: number;
@@ -16,21 +16,9 @@ interface VoltageCurrentChartProps {
   soc?: number;
 }
 
-const MAX_POINTS = 120;
-
-export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, voltageMin, balanceFlags, soc }: VoltageCurrentChartProps) {
+export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltageMin, balanceFlags, soc }: VoltageCurrentChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
-  const [history, setHistory] = useState<VoltageCurrentDataPoint[]>([]);
-
-  useEffect(() => {
-    if (dataPoints.length === 0) return;
-    const latest = dataPoints[dataPoints.length - 1]!;
-    setHistory(prev => {
-      const next = [...prev, latest];
-      return next.length > MAX_POINTS ? next.slice(-MAX_POINTS) : next;
-    });
-  }, [dataPoints]);
 
   const option = useChartOption(history);
 

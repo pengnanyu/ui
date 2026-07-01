@@ -6,7 +6,7 @@
   transition: background-color 0.2s, border-color 0.2s;
   display: flex;
   flex-direction: column;
-
+  min-height: 0;
 }
 
 .title {

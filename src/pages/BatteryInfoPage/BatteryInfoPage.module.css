@@ -55,6 +55,16 @@
 .orderTemp {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+.orderSoc>*,
+.orderChart>*,
+.orderDevice>*,
+.orderStatus>*,
+.orderTemp>* {
+  flex: 1;
+  min-height: 0;
 }
 
 .orderSoc {
@@ -105,11 +115,6 @@
   .orderTemp {
     align-self: stretch;
   }
-
-  .orderStatus>*,
-  .orderTemp>* {
-    flex: 1;
-  }
 }
 
 @media (min-width: 1024px) {
@@ -118,12 +123,6 @@
   .orderStatus,
   .orderTemp {
     align-self: stretch;
-  }
-
-  .orderDevice>*,
-  .orderStatus>*,
-  .orderTemp>* {
-    flex: 1;
   }
 }
 
