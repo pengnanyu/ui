@@ -81,7 +81,7 @@ export function VoltageCurrentChart({ dataPoints, cellVoltages, voltageMax, volt
   }, []);
 
   return (
-    <CardShell title="电压电流曲线" titleExtra={titleExtra} className={styles.compactShell}>
+    <CardShell title="电压电流曲线" titleExtra={titleExtra}>
       {history.length === 0 ? (
         <div className={styles.empty}>--</div>
       ) : (
