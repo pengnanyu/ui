@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FieldValue, ParsedProtocol } from '@/utils/modbus';
 import type { ProtocolDatabase } from '@/types';
@@ -39,6 +39,41 @@ function ShieldIcon({ color, count }: { color: string; count?: number }) {
         <text x="12" y="15.5" textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>{count > 9 ? '9+' : count}</text>
       )}
     </svg>
+  );
+}
+
+function FlagGroup({ items, isSafety }: { items: StatusItem[]; isSafety: boolean }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [flagWidth, setFlagWidth] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    if (!listRef.current) return;
+    const flags = listRef.current.querySelectorAll<HTMLElement>('[data-flag]');
+    let maxW = 0;
+    flags.forEach(el => {
+      el.style.width = '';
+      const w = el.scrollWidth;
+      if (w > maxW) maxW = w;
+    });
+    if (maxW > 0) setFlagWidth(maxW);
+  }, [items]);
+
+  return (
+    <div className={styles.group}>
+      <div className={styles.groupName}>{items[0]?.nameZh || items[0]?.name}</div>
+      <div className={styles.flagList} ref={listRef}>
+        {items.map((item, i) => (
+          <span
+            key={i}
+            data-flag
+            className={`${styles.flag} ${item.active ? (isSafety ? styles.flagSafetyActive : styles.flagStatusActive) : (isSafety ? styles.flagSafetyInactive : styles.flagStatusInactive)}`}
+            style={flagWidth ? { width: flagWidth } : undefined}
+          >
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -162,19 +197,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues }: StatusC
     <CardShell title={titleContent}>
       <div className={styles.groupList}>
         {Array.from(grouped.entries()).map(([name, items]) => (
-          <div key={name} className={styles.group}>
-            <div className={styles.groupName}>{items[0]?.nameZh || name}</div>
-            <div className={styles.flagList}>
-              {items.map((item, i) => (
-                <span
-                  key={i}
-                  className={`${styles.flag} ${item.active ? (isSafety ? styles.flagSafetyActive : styles.flagStatusActive) : (isSafety ? styles.flagSafetyInactive : styles.flagStatusInactive)}`}
-                >
-                  {item.label}
-                </span>
-              ))}
-            </div>
-          </div>
+          <FlagGroup key={name} items={items} isSafety={isSafety} />
         ))}
       </div>
     </CardShell>
