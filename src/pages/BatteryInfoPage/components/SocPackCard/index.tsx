@@ -38,23 +38,22 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
     </span>
   ));
 
-  const titleExtra = (
+  const titleContent = activeSafetyItems.length > 0 ? (
     <div className={styles.titleBar}>
-      {bmsTime && <span className={styles.titleTime}>{bmsTime}</span>}
-      {activeSafetyItems.length > 0 && (
-        <div className={styles.marqueeWrap} ref={wrapRef}>
-          <div className={`${styles.marqueeTrack} ${overflowing ? styles.marqueeScroll : ''}`} ref={trackRef}>
-            {overflowing ? [...flags, ...flags] : flags}
-          </div>
+      <div className={styles.marqueeWrap} ref={wrapRef}>
+        <div className={`${styles.marqueeTrack} ${overflowing ? styles.marqueeScroll : ''}`} ref={trackRef}>
+          {overflowing ? [...flags, ...flags] : flags}
         </div>
-      )}
+      </div>
     </div>
-  );
+  ) : undefined;
+
+  const titleExtraContent = bmsTime ? <span>{bmsTime}</span> : undefined;
 
   return (
     <CardShell
-      title={null!}
-      titleExtra={titleExtra}
+      title={titleContent!}
+      titleExtra={titleExtraContent}
       className={styles.shell}
     >
       <div className={styles.container}>
