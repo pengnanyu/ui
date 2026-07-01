@@ -23,11 +23,16 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
   const titleExtra = (
     <div className={styles.titleBar}>
       {bmsTime && <span className={styles.titleTime}>{bmsTime}</span>}
-      {alarmItems.length > 0 && (
-        <span className={`${styles.safetyTag} ${styles.tagAlarm}`}>Alarm {alarmActiveCount ?? 0}</span>
-      )}
-      {safetyOnlyItems.length > 0 && (
-        <span className={`${styles.safetyTag} ${styles.tagSafety}`}>Safety {(safetyActiveCount ?? 0) - (alarmActiveCount ?? 0)}</span>
+      {activeSafetyItems.length > 0 && (
+        <div className={styles.marqueeWrap}>
+          <div className={styles.marqueeTrack}>
+            {[...activeSafetyItems, ...activeSafetyItems].map((item, i) => (
+              <span key={i} className={`${styles.safetyFlag} ${item.isAlarm ? styles.flagAlarm : styles.flagSafety}`}>
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
