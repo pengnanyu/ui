@@ -3,12 +3,18 @@
   align-items: center;
   gap: 8px;
   padding: 4px 0;
+  min-width: 0;
 }
 
 .barLabel {
   font-size: 12px;
   color: var(--color-muted-foreground);
   min-width: 60px;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .barTrack {

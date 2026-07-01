@@ -9,12 +9,14 @@
   gap: 12px;
   font-size: 12px;
   color: var(--color-muted-foreground);
+  flex-shrink: 0;
 }
 
 .headerItem {
   display: flex;
   align-items: center;
   gap: 3px;
+  white-space: nowrap;
 }
 
 .arrowUp {
