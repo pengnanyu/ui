@@ -5,6 +5,7 @@
 .container {
   position: relative;
   min-height: 220px;
+  height: 100%;
 }
 
 .gaugeBg {
