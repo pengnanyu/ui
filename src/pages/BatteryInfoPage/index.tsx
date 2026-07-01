@@ -191,13 +191,8 @@ export function BatteryInfoPage() {
                 </button>
               </div>
               <div className={styles.sideTabContent}>
-                <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} noShell />
-                {cellTempTab === 'temperature' && (
-                  <>
-                    <div style={{ height: 8 }} />
-                    <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />
-                  </>
-                )}
+                {cellTempTab === 'voltage' && <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} noShell />}
+                {cellTempTab === 'temperature' && <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />}
               </div>
             </div>
           )}
@@ -219,13 +214,8 @@ export function BatteryInfoPage() {
         </button>
       </div>
       <div className={styles.sideTabContent}>
-        <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} noShell />
-        {cellTempTab === 'temperature' && (
-          <>
-            <div style={{ height: 8 }} />
-            <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />
-          </>
-        )}
+        {cellTempTab === 'voltage' && <CellVoltageCard cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} noShell />}
+        {cellTempTab === 'temperature' && <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />}
       </div>
     </div>
   );
