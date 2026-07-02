@@ -22,9 +22,9 @@ function AppContent() {
 
   return (
     <>
-      <main style={{ position: 'sticky', top: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', height: 'calc(var(--vh, 1vh) * 100)', paddingBottom: '72px', overflow: 'hidden', minHeight: 0, zIndex: 1 }}>
+      <main style={{ position: 'sticky', top: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', height: 'calc(var(--vh, 1vh) * 100)', paddingBottom: '72px', overflow: 'clip', minHeight: 0, zIndex: 1 }}>
         {pages.map(({ path, element: Page }) => (
-          <div key={path} style={{ display: path === activePath ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column', overflow: 'hidden' }}>
+          <div key={path} style={{ display: path === activePath ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column', overflow: 'clip' }}>
             <Page />
           </div>
         ))}
@@ -33,7 +33,7 @@ function AppContent() {
         activeRoute={activePath}
         onNavigate={handleNavigate}
       />
-      <div style={{ height: '60px' }} aria-hidden="true" />
+      <div style={{ height: '100px' }} aria-hidden="true" />
     </>
   );
 }

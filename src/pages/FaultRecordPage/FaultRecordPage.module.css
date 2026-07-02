@@ -70,7 +70,7 @@
 
 .tableWrap {
   overflow: auto;
-  overscroll-behavior: contain;
+
   -webkit-overflow-scrolling: touch;
   flex: 1;
   min-height: 0;
