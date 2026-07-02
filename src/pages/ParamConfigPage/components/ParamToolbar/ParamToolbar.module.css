@@ -7,7 +7,7 @@
 }
 
 .btn {
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
@@ -32,7 +32,7 @@
 }
 
 .btnCancel {
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
@@ -47,7 +47,7 @@
 }
 
 .btnConfirm {
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
