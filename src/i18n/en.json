@@ -27,7 +27,9 @@
     "dischargeTime": "Time to Empty",
     "chargeTime": "Time to Full",
     "powerW": "Power W",
-    "sohPercent": "SOH %"
+    "sohPercent": "SOH %",
+    "viChart": "V/I Chart",
+    "temp": "Temperature"
   },
   "status": {
     "safety": "Safety",

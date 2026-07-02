@@ -27,7 +27,9 @@
     "dischargeTime": "剩余放空",
     "chargeTime": "剩余充满",
     "powerW": "功率 W",
-    "sohPercent": "SOH %"
+    "sohPercent": "SOH %",
+    "viChart": "V/I曲线",
+    "temp": "温度"
   },
   "status": {
     "safety": "安全",
