@@ -6,7 +6,6 @@ import { CellIcon } from '../CellVoltageCard/CellIcon';
 import cellStyles from '../CellVoltageCard/CellVoltageCard.module.css';
 import styles from './VoltageCurrentChart.module.css';
 
-const DEFAULT_VISIBLE = 120;
 const RESTORE_DELAY = 3000;
 
 interface VoltageCurrentChartProps {
@@ -19,10 +18,8 @@ interface VoltageCurrentChartProps {
 }
 
 function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
-  const total = dataPoints.length;
-  const startIdx = Math.max(0, total - DEFAULT_VISIBLE);
-  const startTime = total <= DEFAULT_VISIBLE ? dataPoints[0]!.timestamp : dataPoints[startIdx]!.timestamp;
-  const endTime = dataPoints[total - 1]!.timestamp;
+  const startTime = dataPoints[0]!.timestamp;
+  const endTime = dataPoints[dataPoints.length - 1]!.timestamp;
 
   return {
     animation: false,
@@ -132,17 +129,14 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
   const historyRef = useRef(history);
   historyRef.current = history;
 
-  const restoreToDefault = useCallback(() => {
+  const restoreToFull = useCallback(() => {
     const chart = instanceRef.current;
     const h = historyRef.current;
     if (!chart || h.length === 0) return;
-    const startIdx = Math.max(0, h.length - DEFAULT_VISIBLE);
-    const sv = h[startIdx]!.timestamp;
-    const ev = h[h.length - 1]!.timestamp;
     chart.setOption({
       dataZoom: [
-        { type: 'inside', startValue: sv, endValue: ev },
-        { type: 'slider', startValue: sv, endValue: ev },
+        { type: 'inside', startValue: h[0]!.timestamp, endValue: h[h.length - 1]!.timestamp },
+        { type: 'slider', startValue: h[0]!.timestamp, endValue: h[h.length - 1]!.timestamp },
       ],
     });
   }, []);
@@ -196,14 +190,11 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
         ],
       });
     } else {
-      const startIdx = Math.max(0, history.length - DEFAULT_VISIBLE);
-      const sv = history[startIdx]!.timestamp;
-      const ev = history[history.length - 1]!.timestamp;
       chart.setOption({
         series: [{ data: vData }, { data: cData }],
         dataZoom: [
-          { type: 'inside', startValue: sv, endValue: ev },
-          { type: 'slider', startValue: sv, endValue: ev },
+          { type: 'inside', startValue: history[0]!.timestamp, endValue: history[history.length - 1]!.timestamp },
+          { type: 'slider', startValue: history[0]!.timestamp, endValue: history[history.length - 1]!.timestamp },
         ],
       });
     }
@@ -231,7 +222,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     const onLeave = () => {
       hoveringRef.current = false;
       restoreTimerRef.current = setTimeout(() => {
-        restoreToDefault();
+        restoreToFull();
         restoreTimerRef.current = null;
       }, RESTORE_DELAY);
     };
@@ -248,7 +239,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
       instanceRef.current = null;
       initializedRef.current = false;
     };
-  }, [restoreToDefault]);
+  }, [restoreToFull]);
 
   return (
     <CardShell title="电压电流曲线" titleExtra={titleExtra}>
