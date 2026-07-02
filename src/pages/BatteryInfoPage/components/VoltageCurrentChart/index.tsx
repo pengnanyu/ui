@@ -126,7 +126,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const userZoomedRef = useRef(false);
+  const hoveringRef = useRef(false);
   const prevLenRef = useRef(0);
   const initializedRef = useRef(false);
 
@@ -139,7 +139,6 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
       startValue: history[startIdx]!.timestamp,
       endValue: history[history.length - 1]!.timestamp,
     });
-    userZoomedRef.current = false;
   }, [history]);
 
   const titleExtra = (
@@ -165,9 +164,6 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     if (!chart) {
       chart = echarts.init(el, undefined, { renderer: 'canvas' });
       instanceRef.current = chart;
-      chart.on('datazoom', () => {
-        userZoomedRef.current = true;
-      });
     }
 
     if (!initializedRef.current) {
@@ -191,11 +187,20 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
       ],
     }, { replaceMerge: ['series'] });
 
-    if (savedZoom) {
+    if (hoveringRef.current) {
+      if (savedZoom) {
+        chart.dispatchAction({
+          type: 'dataZoom',
+          startValue: savedZoom.startValue,
+          endValue: savedZoom.endValue,
+        });
+      }
+    } else {
+      const startIdx = Math.max(0, history.length - DEFAULT_VISIBLE);
       chart.dispatchAction({
         type: 'dataZoom',
-        startValue: savedZoom.startValue,
-        endValue: savedZoom.endValue,
+        startValue: savedZoom ? savedZoom.startValue : history[startIdx]!.timestamp,
+        endValue: history[history.length - 1]!.timestamp,
       });
     }
   }, [history]);
@@ -216,6 +221,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     ro.observe(el);
 
     const handleMouseEnter = () => {
+      hoveringRef.current = true;
       if (restoreTimerRef.current) {
         clearTimeout(restoreTimerRef.current);
         restoreTimerRef.current = null;
@@ -223,7 +229,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     };
 
     const handleMouseLeave = () => {
-      if (!userZoomedRef.current) return;
+      hoveringRef.current = false;
       restoreTimerRef.current = setTimeout(() => {
         dispatchRestore();
         restoreTimerRef.current = null;
