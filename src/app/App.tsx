@@ -22,9 +22,9 @@ function AppContent() {
 
   return (
     <>
-      <main style={{ position: 'sticky', top: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', height: 'calc(var(--vh, 1vh) * 100)', paddingBottom: '72px', overflow: 'clip', minHeight: 0, zIndex: 1 }}>
+      <main style={{ position: 'sticky', top: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', height: 'calc(var(--vh, 1vh) * 100)', paddingBottom: '72px', minHeight: 0, zIndex: 1 }}>
         {pages.map(({ path, element: Page }) => (
-          <div key={path} style={{ display: path === activePath ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column', overflow: 'clip' }}>
+          <div key={path} style={{ display: path === activePath ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
             <Page />
           </div>
         ))}
