@@ -350,34 +350,40 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const protocol = parsedProtocolRef.current;
     if (!protocol) return;
     const siblingFields = Array.from(parsedValuesMapRef.current.values());
-    const getLeRegisterValue = (absAddr: number): number => {
-      for (const { fieldRowIndex } of fields) {
-        const fv = parsedValuesMapRef.current.get(fieldRowIndex);
-        if (!fv) continue;
-        const instrIdx = fv.parentInstructionIndex;
-        const p = parsedProtocolRef.current;
-        if (!p || instrIdx >= p.instructions.length) continue;
-        const inst = p.instructions[instrIdx]!;
-        const offsetInInstr = absAddr - inst.startAddr;
-        const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
-        return parsedFields.get(key) ?? 0;
-      }
-      return 0;
+    const getLeRegisterValue = (absAddr: number, instrIdx: number): number => {
+      const p = parsedProtocolRef.current;
+      if (!p || instrIdx >= p.instructions.length) return 0;
+      const inst = p.instructions[instrIdx]!;
+      const offsetInInstr = absAddr - inst.startAddr;
+      const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
+      return parsedFields.get(key) ?? 0;
     };
-    const fieldValues: { field: FieldValue; newValue: number }[] = [];
+
+    const groupMap = new Map<string, { field: FieldValue; newValue: number }[]>();
     for (const { fieldRowIndex, newValue } of fields) {
       const fv = parsedValuesMapRef.current.get(fieldRowIndex);
-      if (fv) fieldValues.push({ field: fv, newValue });
+      if (!fv) continue;
+      const gk = fv.configNameEn || fv.configNameZh || 'Unknown';
+      const list = groupMap.get(gk) ?? [];
+      list.push({ field: fv, newValue });
+      groupMap.set(gk, list);
     }
-    const frames = buildBatchWriteFrames(fieldValues, siblingFields, getLeRegisterValue);
-    if (frames.length === 0) return;
+
+    const allFrames: number[][] = [];
+    for (const [, groupFields] of groupMap) {
+      const firstInstrIdx = groupFields[0]!.field.parentInstructionIndex;
+      const getLe = (absAddr: number) => getLeRegisterValue(absAddr, firstInstrIdx);
+      const frames = buildBatchWriteFrames(groupFields, siblingFields, getLe);
+      allFrames.push(...frames);
+    }
+    if (allFrames.length === 0) return;
 
     stopAllTimers();
     waitingResponseRef.current = false;
     isBatchWritingRef.current = true;
     setIsBatchWriting(true);
-    batchWriteQueueRef.current = [...frames];
-    batchWriteTotalRef.current = frames.length;
+    batchWriteQueueRef.current = [...allFrames];
+    batchWriteTotalRef.current = allFrames.length;
     batchWriteDoneRef.current = 0;
     batchWriteErrorRef.current = false;
     sendNextBatchFrameRef.current();
