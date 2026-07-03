@@ -50,6 +50,7 @@ export function ParamConfigPage() {
         unit: field.unit,
         group: groupName,
         dataType: field.dataType,
+        byteLen: field.byteLen,
         readonly: field.rwType === 'R' || field.rwType === 'r' || field.rwType === 'RO',
         pendingImportValue: pendingImport.get(field.rowIndex),
       }));

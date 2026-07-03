@@ -118,6 +118,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const batchWriteErrorRef = useRef(false);
   const isBatchWritingRef = useRef(false);
   const batchVerifyInstrIdxRef = useRef(-1);
+  const flushUpdatesRef = useRef<() => void>(() => { });
   const sendNextBatchFrameRef = useRef<() => void>(() => { });
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -316,7 +317,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       } else {
         showToast(i18n.language === 'zh' ? `${total}帧批量写入成功` : `${total} frames batch written OK`, 'success');
       }
-      flushUpdates();
+      flushUpdatesRef.current();
       const regIndices = registerInstrIndicesRef.current;
       if (regIndices.length > 0) {
         pollIdxRef.current = 0;
@@ -346,7 +347,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         sendNextBatchFrameRef.current();
       }
     }, RESPONSE_TIMEOUT);
-  }, [sendFrame, addLog, showToast, sendInstructionFrame, flushUpdates]);
+  }, [sendFrame, addLog, showToast, sendInstructionFrame]);
 
   sendNextBatchFrameRef.current = sendNextBatchFrame;
 
@@ -583,6 +584,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       pendingDmUpdateRef.current = false;
     }
   }, []);
+
+  flushUpdatesRef.current = flushUpdates;
 
   const advancePoll = useCallback(() => {
     if (responseTimerRef.current) {
