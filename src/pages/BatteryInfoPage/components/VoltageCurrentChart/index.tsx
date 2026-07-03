@@ -18,10 +18,7 @@ interface VoltageCurrentChartProps {
   soc?: number;
 }
 
-function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
-  const startTime = dataPoints[0]!.timestamp;
-  const endTime = dataPoints[dataPoints.length - 1]!.timestamp;
-
+function buildInitialOption(_dataPoints: VoltageCurrentDataPoint[]) {
   return {
     animation: false,
     grid: { left: 30, right: 30, top: 18, bottom: 48 },
