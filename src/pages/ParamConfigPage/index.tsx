@@ -77,20 +77,21 @@ export function ParamConfigPage() {
       params: dataMemeryGroups.map(g => ({
         group: g.configNameEn,
         groupZh: g.configNameZh,
-        fields: g.fields.map(f => ({
-          name: f.name,
-          nameZh: f.nameZh,
-          value: f.value,
-          displayValue: f.displayValue,
-          unit: f.unit,
-          absAddr: '0x' + f.absAddr.toString(16).toUpperCase(),
-          byteLen: f.byteLen,
-          byteOffset: f.byteOffset,
-          operation: f.operation,
-          ratio: f.ratio,
-          dataType: f.dataType,
-          rwType: f.rwType,
-        })),
+        fields: g.fields
+          .filter(f => f.rwType !== 'R' && f.rwType !== 'r' && f.rwType !== 'RO')
+          .map(f => ({
+            name: f.name,
+            nameZh: f.nameZh,
+            displayValue: f.displayValue,
+            unit: f.unit,
+            absAddr: '0x' + f.absAddr.toString(16).toUpperCase().padStart(4, '0'),
+            byteLen: f.byteLen,
+            byteOffset: f.byteOffset,
+            operation: f.operation,
+            ratio: f.ratio,
+            dataType: f.dataType,
+            rwType: f.rwType,
+          })),
       })),
     };
     const json = JSON.stringify(data, null, 2);
@@ -138,8 +139,14 @@ export function ParamConfigPage() {
               const importAddr = typeof f.absAddr === 'string' ? parseInt(f.absAddr, 16) : f.absAddr;
               const fv = parsedValues.find(v => v.name === f.name && v.absAddr === importAddr);
               if (fv && fv.rwType !== 'R' && fv.rwType !== 'r' && fv.rwType !== 'RO') {
-                if (Math.abs(fv.value - f.value) >= 1e-9) {
-                  pending.set(fv.rowIndex, f.value);
+                const importDisplayVal = String(f.displayValue);
+                if (fv.displayValue !== importDisplayVal) {
+                  const numVal = fv.dataType === 'HEX' || fv.dataType === '2HEX'
+                    ? parseInt(importDisplayVal, 16)
+                    : parseFloat(importDisplayVal);
+                  if (!isNaN(numVal)) {
+                    pending.set(fv.rowIndex, numVal);
+                  }
                 }
               }
             }
