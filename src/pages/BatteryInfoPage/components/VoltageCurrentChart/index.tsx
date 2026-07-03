@@ -18,7 +18,7 @@ interface VoltageCurrentChartProps {
   soc?: number;
 }
 
-function buildInitialOption(_dataPoints: VoltageCurrentDataPoint[]) {
+function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
   return {
     animation: false,
     grid: { left: 30, right: 30, top: 18, bottom: 48 },
