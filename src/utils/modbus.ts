@@ -515,8 +515,7 @@ function formatValue(val: number): string {
   if (!Number.isFinite(val)) return '0';
   const rounded = Math.round(val * 10000) / 10000;
   if (Number.isInteger(rounded)) return rounded.toString();
-  const s = rounded.toPrecision(6);
-  return parseFloat(s).toString();
+  return parseFloat(rounded.toFixed(4)).toString();
 }
 
 function parseBcdTime(registers: number[]): string {
