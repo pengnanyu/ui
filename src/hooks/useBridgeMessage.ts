@@ -8,18 +8,13 @@ interface UseBridgeMessageOptions {
   handlers?: Partial<Record<BridgeMessageType, MessageHandler>>;
 }
 
-function setupMiniProgramBridge(handlers: Partial<Record<BridgeMessageType, MessageHandler>>): () => void {
-  if (typeof wx !== 'undefined' && wx.onMessage) {
-    const handler = (res: { data?: unknown }) => {
-      const data = res.data as BridgeMessage | undefined;
-      if (!data?.type?.startsWith('bms:')) return;
-      const h = handlers[data.type];
-      if (h) h(data.payload);
-    };
-    wx.onMessage(handler);
-    return () => { };
-  }
-  return () => { };
+function isBridgeMessage(data: unknown): data is BridgeMessage {
+  return typeof data === 'object' && data !== null && 'type' in data && typeof (data as { type?: unknown }).type === 'string';
+}
+
+function dispatchBridgeMessage(data: unknown, handlers: Partial<Record<BridgeMessageType, MessageHandler>>) {
+  if (!isBridgeMessage(data) || !data.type.startsWith('bms:')) return;
+  handlers[data.type]?.(data.payload);
 }
 
 function setupAppBridge(handlers: Partial<Record<BridgeMessageType, MessageHandler>>): () => void {
@@ -27,11 +22,7 @@ function setupAppBridge(handlers: Partial<Record<BridgeMessageType, MessageHandl
   if (bridge && typeof bridge === 'object') {
     const onMessage = (bridge as Record<string, unknown>).onMessage;
     if (typeof onMessage === 'function') {
-      const handler = (data: BridgeMessage) => {
-        if (!data?.type?.startsWith('bms:')) return;
-        const h = handlers[data.type];
-        if (h) h(data.payload);
-      };
+      const handler = (data: BridgeMessage) => dispatchBridgeMessage(data, handlers);
       (onMessage as (cb: (data: BridgeMessage) => void) => void)(handler);
       return () => { };
     }
@@ -44,32 +35,26 @@ export function useBridgeMessage(options: UseBridgeMessageOptions = {}) {
   handlersRef.current = options.handlers;
 
   useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      dispatchBridgeMessage(event.data, handlersRef.current ?? {});
+    };
 
     if (isMiniProgram()) {
-      return setupMiniProgramBridge(handlersRef.current ?? {});
+      if (typeof wx !== 'undefined' && wx.onMessage) {
+        const handler = (res: { data?: unknown }) => handleMessage({ data: res.data } as MessageEvent);
+        wx.onMessage(handler);
+      }
+      return () => { };
     }
 
     if (isApp()) {
       const unsub = setupAppBridge(handlersRef.current ?? {});
-      const handleMessage = (event: MessageEvent) => {
-        const data = event.data as BridgeMessage | undefined;
-        if (!data?.type?.startsWith('bms:')) return;
-        const handler = handlersRef.current?.[data.type];
-        if (handler) handler(data.payload);
-      };
       window.addEventListener('message', handleMessage);
       return () => {
         unsub();
         window.removeEventListener('message', handleMessage);
       };
     }
-
-    const handleMessage = (event: MessageEvent) => {
-      const data = event.data as BridgeMessage | undefined;
-      if (!data?.type?.startsWith('bms:')) return;
-      const handler = handlersRef.current?.[data.type];
-      if (handler) handler(data.payload);
-    };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
