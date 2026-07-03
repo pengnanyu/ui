@@ -808,6 +808,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       if (isVerifyReadRef.current) {
         addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read exception func=0x${(data[1]!).toString(16).padStart(2, '0')}`, rawHex });
       }
+      rawBufRef.current = [];
       advancePoll();
       return;
     }
@@ -815,7 +816,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const parsed = parseModbusResponse(data);
 
     if (!parsed) {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `invalid frame (CRC/length error, skipped)`, rawHex });
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `invalid frame (CRC/length error, resync)`, rawHex });
+      rawBufRef.current = [];
       advancePoll();
       return;
     }
