@@ -907,7 +907,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (connectionStatus === 'connected') {
-      startVersionRetryRef.current();
+      rawBufRef.current = [];
+      const timer = setTimeout(() => {
+        startVersionRetryRef.current();
+      }, 100);
+      return () => clearTimeout(timer);
     } else {
       stopAllTimersRef.current();
       stopVersionRetryRef.current();
