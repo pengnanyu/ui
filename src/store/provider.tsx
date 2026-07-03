@@ -110,12 +110,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     batchDoneRef.current = 0;
     batchErrorRef.current = false;
   }, []);
-  const startBatchWrite = useCallback((count: number) => {
-    batchWritingRef.current = true;
-    batchTotalRef.current = count;
-    batchDoneRef.current = 0;
-    batchErrorRef.current = false;
-  }, []);
 
   const [isBatchWriting, setIsBatchWriting] = useState(false);
   const batchWriteQueueRef = useRef<number[][]>([]);
@@ -124,89 +118,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const batchWriteErrorRef = useRef(false);
   const isBatchWritingRef = useRef(false);
   const sendNextBatchFrameRef = useRef<() => void>(() => { });
-
-  const sendNextBatchFrame = useCallback(() => {
-    if (batchWriteQueueRef.current.length === 0) {
-      isBatchWritingRef.current = false;
-      setIsBatchWriting(false);
-      const total = batchWriteTotalRef.current;
-      const err = batchWriteErrorRef.current;
-      batchWriteTotalRef.current = 0;
-      batchWriteDoneRef.current = 0;
-      batchWriteErrorRef.current = false;
-      if (err) {
-        showToast(i18n.language === 'zh' ? `批量写入完成（部分失败）` : `Batch write done (some failed)`, 'error');
-      } else {
-        showToast(i18n.language === 'zh' ? `${total}帧批量写入成功` : `${total} frames batch written OK`, 'success');
-      }
-      const regIndices = registerInstrIndicesRef.current;
-      if (regIndices.length > 0) {
-        pollIdxRef.current = 0;
-        sendInstructionFrameRef.current(regIndices[0]!);
-      }
-      return;
-    }
-    const frame = batchWriteQueueRef.current.shift()!;
-    isWritingRef.current = true;
-    errorCountRef.current = 0;
-    sendFrame(frame);
-    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `batch-write frame ${batchWriteDoneRef.current + 1}/${batchWriteTotalRef.current}`, rawHex: fmtHex(frame) });
-    responseTimerRef.current = setTimeout(() => {
-      if (!isWritingRef.current) return;
-      errorCountRef.current++;
-      if (errorCountRef.current < 3) {
-        isWritingRef.current = false;
-        waitingResponseRef.current = false;
-        batchWriteQueueRef.current.unshift(frame);
-        sendNextBatchFrameRef.current();
-      } else {
-        isWritingRef.current = false;
-        batchWriteErrorRef.current = true;
-        batchWriteDoneRef.current++;
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'batch-write timeout, max retries', rawHex: '' });
-        sendNextBatchFrameRef.current();
-      }
-    }, RESPONSE_TIMEOUT);
-  }, [sendFrame, addLog, showToast]);
-
-  sendNextBatchFrameRef.current = sendNextBatchFrame;
-
-  const writeBatch = useCallback((fields: { fieldRowIndex: number; newValue: number }[]) => {
-    const protocol = parsedProtocolRef.current;
-    if (!protocol) return;
-    const siblingFields = Array.from(parsedValuesMapRef.current.values());
-    const getLeRegisterValue = (absAddr: number): number => {
-      for (const { fieldRowIndex } of fields) {
-        const fv = parsedValuesMapRef.current.get(fieldRowIndex);
-        if (!fv) continue;
-        const instrIdx = fv.parentInstructionIndex;
-        const p = parsedProtocolRef.current;
-        if (!p || instrIdx >= p.instructions.length) continue;
-        const inst = p.instructions[instrIdx]!;
-        const offsetInInstr = absAddr - inst.startAddr;
-        const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
-        return parsedFields.get(key) ?? 0;
-      }
-      return 0;
-    };
-    const fieldValues: { field: FieldValue; newValue: number }[] = [];
-    for (const { fieldRowIndex, newValue } of fields) {
-      const fv = parsedValuesMapRef.current.get(fieldRowIndex);
-      if (fv) fieldValues.push({ field: fv, newValue });
-    }
-    const frames = buildBatchWriteFrames(fieldValues, siblingFields, getLeRegisterValue);
-    if (frames.length === 0) return;
-
-    stopAllTimers();
-    waitingResponseRef.current = false;
-    isBatchWritingRef.current = true;
-    setIsBatchWriting(true);
-    batchWriteQueueRef.current = [...frames];
-    batchWriteTotalRef.current = frames.length;
-    batchWriteDoneRef.current = 0;
-    batchWriteErrorRef.current = false;
-    sendNextBatchFrameRef.current();
-  }, [sendNextBatchFrame, stopAllTimers]);
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollIdxRef = useRef(0);
@@ -388,6 +299,89 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
     }, RESPONSE_TIMEOUT);
   }, [sendFrame, addLog, resetToVersionQuery]);
+
+  const sendNextBatchFrame = useCallback(() => {
+    if (batchWriteQueueRef.current.length === 0) {
+      isBatchWritingRef.current = false;
+      setIsBatchWriting(false);
+      const total = batchWriteTotalRef.current;
+      const err = batchWriteErrorRef.current;
+      batchWriteTotalRef.current = 0;
+      batchWriteDoneRef.current = 0;
+      batchWriteErrorRef.current = false;
+      if (err) {
+        showToast(i18n.language === 'zh' ? `批量写入完成（部分失败）` : `Batch write done (some failed)`, 'error');
+      } else {
+        showToast(i18n.language === 'zh' ? `${total}帧批量写入成功` : `${total} frames batch written OK`, 'success');
+      }
+      const regIndices = registerInstrIndicesRef.current;
+      if (regIndices.length > 0) {
+        pollIdxRef.current = 0;
+        sendInstructionFrame(regIndices[0]!);
+      }
+      return;
+    }
+    const frame = batchWriteQueueRef.current.shift()!;
+    isWritingRef.current = true;
+    errorCountRef.current = 0;
+    sendFrame(frame);
+    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `batch-write frame ${batchWriteDoneRef.current + 1}/${batchWriteTotalRef.current}`, rawHex: fmtHex(frame) });
+    responseTimerRef.current = setTimeout(() => {
+      if (!isWritingRef.current) return;
+      errorCountRef.current++;
+      if (errorCountRef.current < 3) {
+        isWritingRef.current = false;
+        waitingResponseRef.current = false;
+        batchWriteQueueRef.current.unshift(frame);
+        sendNextBatchFrameRef.current();
+      } else {
+        isWritingRef.current = false;
+        batchWriteErrorRef.current = true;
+        batchWriteDoneRef.current++;
+        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'batch-write timeout, max retries', rawHex: '' });
+        sendNextBatchFrameRef.current();
+      }
+    }, RESPONSE_TIMEOUT);
+  }, [sendFrame, addLog, showToast, sendInstructionFrame]);
+
+  sendNextBatchFrameRef.current = sendNextBatchFrame;
+
+  const writeBatch = useCallback((fields: { fieldRowIndex: number; newValue: number }[]) => {
+    const protocol = parsedProtocolRef.current;
+    if (!protocol) return;
+    const siblingFields = Array.from(parsedValuesMapRef.current.values());
+    const getLeRegisterValue = (absAddr: number): number => {
+      for (const { fieldRowIndex } of fields) {
+        const fv = parsedValuesMapRef.current.get(fieldRowIndex);
+        if (!fv) continue;
+        const instrIdx = fv.parentInstructionIndex;
+        const p = parsedProtocolRef.current;
+        if (!p || instrIdx >= p.instructions.length) continue;
+        const inst = p.instructions[instrIdx]!;
+        const offsetInInstr = absAddr - inst.startAddr;
+        const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
+        return parsedFields.get(key) ?? 0;
+      }
+      return 0;
+    };
+    const fieldValues: { field: FieldValue; newValue: number }[] = [];
+    for (const { fieldRowIndex, newValue } of fields) {
+      const fv = parsedValuesMapRef.current.get(fieldRowIndex);
+      if (fv) fieldValues.push({ field: fv, newValue });
+    }
+    const frames = buildBatchWriteFrames(fieldValues, siblingFields, getLeRegisterValue);
+    if (frames.length === 0) return;
+
+    stopAllTimers();
+    waitingResponseRef.current = false;
+    isBatchWritingRef.current = true;
+    setIsBatchWriting(true);
+    batchWriteQueueRef.current = [...frames];
+    batchWriteTotalRef.current = frames.length;
+    batchWriteDoneRef.current = 0;
+    batchWriteErrorRef.current = false;
+    sendNextBatchFrameRef.current();
+  }, [sendNextBatchFrame, stopAllTimers]);
 
   const startInitialPoll = useCallback(() => {
     const db = protocolDb;
