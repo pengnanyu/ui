@@ -1,9 +1,11 @@
 .shell {
-  background: linear-gradient(180deg, rgba(8, 16, 34, 0.95), rgba(14, 26, 50, 0.98));
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 20px;
-  padding: 18px;
-  transition: background-color 0.2s, border-color 0.2s, transform 0.2s ease;
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: background-color 0.2s, border-color 0.2s;
   display: flex;
   flex-direction: column;
   min-height: 0;

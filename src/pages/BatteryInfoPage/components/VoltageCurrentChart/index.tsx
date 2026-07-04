@@ -9,6 +9,10 @@ import styles from './VoltageCurrentChart.module.css';
 
 const RESTORE_DELAY = 3000;
 
+function getThemeColor(varName: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#4a90d9';
+}
+
 interface VoltageCurrentChartProps {
   history: VoltageCurrentDataPoint[];
   cellVoltages?: CellVoltage[];
@@ -25,7 +29,7 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
     tooltip: {
       trigger: 'axis',
       triggerOn: 'mousemove',
-      axisPointer: { type: 'cross', label: { backgroundColor: '#0f172a' } },
+      axisPointer: { type: 'cross', label: { backgroundColor: getThemeColor('--color-background') } },
       formatter(params: unknown) {
         const ps = Array.isArray(params) ? params : [params];
         const p0 = ps[0] as { axisValue?: string; marker?: string; seriesName?: string; value?: unknown };
@@ -81,8 +85,8 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         bottom: 10,
         borderColor: 'transparent',
         backgroundColor: 'rgba(148,163,184,0.08)',
-        fillerColor: '#4ac9ee',
-        handleStyle: { color: '#4ac9ee' },
+        fillerColor: getThemeColor('--color-primary'),
+        handleStyle: { color: getThemeColor('--color-primary') },
         textStyle: { fontSize: 10, color: '#cbd5e1' },
       },
     ],
@@ -188,7 +192,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
       series: [{ data: vData }, { data: cData }],
       dataZoom: [
         { type: 'inside', xAxisIndex: 0, ...zoomOption, zoomOnMouseWheel: true, moveOnMouseMove: false, preventDefaultMouseMove: true, filterMode: 'none' },
-        { type: 'slider', xAxisIndex: 0, ...zoomOption, height: 14, bottom: 10, borderColor: 'transparent', backgroundColor: 'rgba(148,163,184,0.08)', fillerColor: '#4ac9ee', handleStyle: { color: '#4ac9ee' }, textStyle: { fontSize: 10, color: '#cbd5e1' } },
+        { type: 'slider', xAxisIndex: 0, ...zoomOption, height: 14, bottom: 10, borderColor: 'transparent', backgroundColor: 'rgba(148,163,184,0.08)', fillerColor: getThemeColor('--color-primary'), handleStyle: { color: getThemeColor('--color-primary') }, textStyle: { fontSize: 10, color: '#cbd5e1' } },
       ],
     });
   }, [history]);

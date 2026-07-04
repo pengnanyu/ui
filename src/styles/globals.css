@@ -8,8 +8,8 @@
 
 :root {
   --vh: 1vh;
-  --font-sans: Inter, 'Plus Jakarta Sans', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', 'Menlo', 'Monaco', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
 }
 
 html {
@@ -40,29 +40,6 @@ body {
   position: relative;
   background: var(--body-bg);
   color: var(--color-foreground);
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.3s, color 0.3s;
   text-rendering: optimizeLegibility;
 }
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(circle at 14% 12%, oklch(0.7686 0.1647 70 / 0.16), transparent 12%),
-                    radial-gradient(circle at 86% 24%, oklch(0.4732 0.1247 46.2007 / 0.16), transparent 14%),
-                    linear-gradient(90deg, oklch(0.7686 0.1647 70 / 0.05), oklch(0.4732 0.1247 46.2007 / 0.04));
-  opacity: var(--body-overlay-opacity);
-  mix-blend-mode: screen;
-}
-
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: linear-gradient(0deg, rgba(128,128,128,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.04) 1px, transparent 1px);
-  background-size: 120px 120px;
-  opacity: var(--body-grid-opacity);
-  pointer-events: none;
-}
-

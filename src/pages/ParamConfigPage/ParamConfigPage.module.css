@@ -6,9 +6,11 @@
   overflow: hidden;
   padding: 18px;
   gap: 18px;
-  background: rgba(10, 16, 28, 0.78);
-  border: 1px solid rgba(110, 123, 146, 0.16);
-  border-radius: 24px;
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
 }
 
 @media (min-width: 640px) {
@@ -44,7 +46,7 @@
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px oklch(0 0 0 / 0.12);
   animation: toastIn 0.25s ease-out;
 }
 
@@ -82,9 +84,11 @@
   width: 220px;
   min-width: 180px;
   max-width: 280px;
-  background: rgba(14, 24, 42, 0.98);
-  border: 1px solid rgba(110, 123, 146, 0.16);
-  border-radius: 20px;
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
   overflow-y: auto;
   flex-shrink: 0;
   min-height: 0;
@@ -110,17 +114,20 @@
 }
 
 .navItem:hover {
-  background: rgba(74, 201, 238, 0.1);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  opacity: 0.85;
 }
 
 .navItemActive {
-  background: rgba(74, 201, 238, 0.2);
-  color: #e8f8ff;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
   font-weight: 600;
+  opacity: 1;
 }
 
 .navItemActive:hover {
-  background: rgba(74, 201, 238, 0.26);
+  opacity: 0.9;
 }
 
 .navItemPending {
@@ -157,9 +164,11 @@
   flex: 1;
   color: var(--color-muted-foreground);
   font-size: 14px;
-  background: rgba(14, 24, 42, 0.98);
-  border: 1px solid rgba(110, 123, 146, 0.14);
-  border-radius: 18px;
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
 }
 
 @media (max-width: 639px) {
