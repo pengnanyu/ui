@@ -4,26 +4,21 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 18px;
-  gap: 18px;
-  background: var(--card-bg);
-  backdrop-filter: blur(var(--card-blur));
-  -webkit-backdrop-filter: blur(var(--card-blur));
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
+  padding: 8px;
+  gap: 8px;
 }
 
 @media (min-width: 640px) {
   .container {
-    padding: 22px;
-    gap: 20px;
+    padding: 10px;
+    gap: 10px;
   }
 }
 
 @media (min-width: 1024px) {
   .container {
-    padding: 26px;
-    gap: 24px;
+    padding: 12px;
+    gap: 12px;
   }
 }
 
@@ -99,7 +94,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 14px 18px;
+  padding: 8px 10px;
   border: none;
   background: transparent;
   color: var(--color-foreground);

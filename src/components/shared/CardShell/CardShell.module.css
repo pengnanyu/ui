@@ -4,7 +4,7 @@
   -webkit-backdrop-filter: blur(var(--card-blur));
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 10px;
   transition: background-color 0.2s, border-color 0.2s;
   display: flex;
   flex-direction: column;
@@ -15,7 +15,7 @@
   color: var(--color-card-title);
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -1,29 +1,24 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
+  gap: 8px;
+  padding: 8px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: var(--card-bg);
-  backdrop-filter: blur(var(--card-blur));
-  -webkit-backdrop-filter: blur(var(--card-blur));
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
 }
 
 @media (min-width: 640px) {
   .container {
-    gap: 18px;
-    padding: 20px;
+    gap: 10px;
+    padding: 10px;
   }
 }
 
 @media (min-width: 1024px) {
   .container {
-    gap: 22px;
-    padding: 24px;
+    gap: 12px;
+    padding: 12px;
   }
 }
 
@@ -51,7 +46,7 @@
 }
 
 .groupHeader {
-  padding: 14px 18px;
+  padding: 8px 10px;
   background: var(--table-header-bg);
   font-size: 14px;
   font-weight: 600;

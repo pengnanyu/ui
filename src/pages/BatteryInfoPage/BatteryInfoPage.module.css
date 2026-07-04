@@ -1,18 +1,12 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 8px;
+  padding: 8px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
   flex: 1;
-  background: var(--card-bg);
-  backdrop-filter: blur(var(--card-blur));
-  -webkit-backdrop-filter: blur(var(--card-blur));
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
 }
 
 .page>*:not(.mainGrid) {
@@ -21,15 +15,15 @@
 
 @media (min-width: 640px) {
   .page {
-    gap: 12px;
-    padding: 12px;
+    gap: 10px;
+    padding: 10px;
   }
 }
 
 @media (min-width: 1024px) {
   .page {
-    gap: 16px;
-    padding: 16px;
+    gap: 12px;
+    padding: 12px;
   }
 }
 
@@ -192,7 +186,7 @@
 }
 
 .edgeBody {
-  padding: 18px;
+  padding: 10px;
   min-height: 120px;
 }
 
