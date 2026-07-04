@@ -1,25 +1,6 @@
 .container {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  composes: pageContainer from '@/styles/page.css';
   overflow: hidden;
-  padding: 8px;
-  gap: 8px;
-}
-
-@media (min-width: 640px) {
-  .container {
-    padding: 10px;
-    gap: 10px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .container {
-    padding: 12px;
-    gap: 12px;
-  }
 }
 
 

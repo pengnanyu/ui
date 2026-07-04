@@ -594,19 +594,31 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (calendarPollingRef.current) return;
     if (initPhaseRef.current === 'periodic') {
       pendingCalendarReadRef.current = true;
+      showToast(i18n.language === 'zh' ? '等待当前轮询完成后读取...' : 'Waiting for poll cycle...', 'success');
     } else if (initPhaseRef.current === 'idle') {
       startCalendarPoll();
+    } else {
+      pendingCalendarReadRef.current = true;
+      showToast(i18n.language === 'zh' ? '等待初始化完成后读取...' : 'Waiting for init...', 'success');
     }
-  }, [startCalendarPoll]);
+  }, [startCalendarPoll, showToast]);
+
+  const finishCalendarPoll = useCallback(() => {
+    calendarPollingRef.current = false;
+    const count = calendarRecordsRef.current.filter(r => !r.isEmpty).length;
+    const msg = i18n.language === 'zh'
+      ? (count > 0 ? `读取完成，共${count}条记录` : '读取完成，无异常记录')
+      : (count > 0 ? `Read complete, ${count} record(s)` : 'Read complete, no faults');
+    showToast(msg, 'success');
+    startPeriodicPollRef.current();
+  }, [showToast]);
 
   const advanceCalendarPoll = useCallback((registers: number[]) => {
     const groups = calendarGroupsRef.current;
     const gIdx = calendarPollGroupIdxRef.current;
     const rIdx = calendarPollRecordIdxRef.current;
     if (gIdx >= groups.length) {
-      calendarPollingRef.current = false;
-      showToast(i18n.language === 'zh' ? '读取完成' : 'Read complete', 'success');
-      startPeriodicPollRef.current();
+      finishCalendarPoll();
       return;
     }
 
@@ -622,9 +634,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         calendarPollRecordIdxRef.current = 0;
         sendCalendarRecordFrame(gIdx + 1, 0);
       } else {
-        calendarPollingRef.current = false;
-        showToast(i18n.language === 'zh' ? '读取完成' : 'Read complete', 'success');
-        startPeriodicPollRef.current();
+        finishCalendarPoll();
       }
       return;
     }
@@ -637,11 +647,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       calendarPollRecordIdxRef.current = 0;
       sendCalendarRecordFrame(gIdx + 1, 0);
     } else {
-      calendarPollingRef.current = false;
-      showToast(i18n.language === 'zh' ? '读取完成' : 'Read complete', 'success');
-      startPeriodicPollRef.current();
+      finishCalendarPoll();
     }
-  }, [sendCalendarRecordFrame]);
+  }, [sendCalendarRecordFrame, finishCalendarPoll]);
 
   const startPeriodicPoll = useCallback(() => {
     const skipped = skippedInstrIndicesRef.current;

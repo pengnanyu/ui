@@ -1,30 +1,11 @@
 .page {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  composes: pageContainer from '@/styles/page.css';
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  min-height: 0;
-  flex: 1;
 }
 
 .page>*:not(.mainGrid) {
   flex-shrink: 0;
-}
-
-@media (min-width: 640px) {
-  .page {
-    gap: 10px;
-    padding: 10px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .page {
-    gap: 12px;
-    padding: 12px;
-  }
 }
 
 .mainGrid {

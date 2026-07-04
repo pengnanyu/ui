@@ -1,11 +1,5 @@
 .shell {
-  background: var(--card-bg);
-  backdrop-filter: blur(var(--card-blur));
-  -webkit-backdrop-filter: blur(var(--card-blur));
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  padding: 10px;
-  transition: background-color 0.2s, border-color 0.2s;
+  composes: card from '@/styles/card.css';
   display: flex;
   flex-direction: column;
   min-height: 0;
