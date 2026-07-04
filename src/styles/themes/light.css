@@ -44,4 +44,11 @@
   --gauge-soc-tick: oklch(0.7 0.15 75);
 
   --color-card-title: var(--color-muted-foreground);
+
+  --body-bg: linear-gradient(180deg, #f8f9fc 0%, #eef0f5 100%);
+  --body-overlay-opacity: 0.6;
+  --body-grid-opacity: 0.06;
+  --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 252, 0.98));
+  --card-border: rgba(0, 0, 0, 0.08);
+  --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }

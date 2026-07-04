@@ -5,7 +5,7 @@
   --color-card: oklch(0.18 0.08 270);
   --color-card-foreground: oklch(0.96 0.03 260);
 
-  --color-primary: #4ac9ee;
+  --color-primary: #f59e0a;
   --color-primary-foreground: oklch(0 0 0);
 
   --color-secondary: oklch(0.15 0.03 260);
@@ -14,8 +14,8 @@
   --color-muted: oklch(0.22 0.02 255);
   --color-muted-foreground: oklch(0.75 0.04 240);
 
-  --color-accent: #7f5af0;
-  --color-accent-foreground: oklch(0.98 0.14 100);
+  --color-accent: oklch(0.4732 0.1247 46.2007);
+  --color-accent-foreground: oklch(0.9243 0.1151 95.7459);
 
   --color-destructive: oklch(0.63 0.22 24);
   --color-destructive-foreground: oklch(1.0000 0 0);
@@ -33,15 +33,22 @@
   --color-input: oklch(0.24 0.04 265);
   --color-ring: oklch(0.72 0.16 72);
 
-  --gauge-voltage-arc: oklch(0.60 0.18 270);
-  --gauge-voltage-tick: oklch(0.68 0.12 195);
+  --gauge-voltage-arc: oklch(0.65 0.16 70);
+  --gauge-voltage-tick: oklch(0.68 0.12 70);
   --gauge-current-positive: oklch(0.60 0.17 145);
   --gauge-current-negative: oklch(0.60 0.18 240);
   --gauge-current-zero: oklch(0.60 0.03 0);
   --gauge-soc-low: oklch(0.68 0.22 30);
   --gauge-soc-mid: oklch(0.78 0.18 85);
-  --gauge-soc-high: oklch(0.60 0.17 145);
+  --gauge-soc-high: oklch(0.65 0.16 70);
   --gauge-soc-tick: oklch(0.72 0.15 75);
 
   --color-card-title: var(--color-muted-foreground);
+
+  --body-bg: linear-gradient(180deg, #040812 0%, #02040a 100%);
+  --body-overlay-opacity: 0.9;
+  --body-grid-opacity: 0.15;
+  --card-bg: linear-gradient(180deg, rgba(10, 18, 34, 0.94), rgba(12, 22, 40, 0.98));
+  --card-border: rgba(110, 123, 146, 0.16);
+  --card-shadow: 0 24px 45px rgba(0, 0, 0, 0.14);
 }

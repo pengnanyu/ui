@@ -1,10 +1,10 @@
 .card {
-  background: linear-gradient(180deg, rgba(10, 18, 34, 0.94), rgba(12, 22, 40, 0.98));
-  border: 1px solid rgba(110, 123, 146, 0.16);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 18px;
   padding: 18px;
   transition: transform 0.2s ease, background-color 0.2s, border-color 0.2s;
-  box-shadow: 0 24px 45px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--card-shadow);
 }
 
 .card:hover {
