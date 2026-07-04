@@ -25,15 +25,21 @@ interface VoltageCurrentChartProps {
 function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
   return {
     animation: false,
-    grid: { left: 30, right: 30, top: 18, bottom: 48 },
+    grid: { left: 30, right: 30, top: 18, bottom: 24 },
     tooltip: {
       trigger: 'axis',
       triggerOn: 'mousemove',
       axisPointer: { type: 'cross', label: { backgroundColor: getThemeColor('--color-background') } },
       formatter(params: unknown) {
         const ps = Array.isArray(params) ? params : [params];
-        const p0 = ps[0] as { axisValue?: string; marker?: string; seriesName?: string; value?: unknown };
-        let s = `<b>${p0?.axisValue ?? ''}</b><br/>`;
+        const p0 = ps[0] as { axisValue?: string | number; marker?: string; seriesName?: string; value?: unknown };
+        let timeStr = String(p0?.axisValue ?? '');
+        const ts = Number(p0?.axisValue);
+        if (!isNaN(ts) && ts > 0) {
+          const d = new Date(ts);
+          timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+        }
+        let s = `<b>${timeStr}</b><br/>`;
         for (const item of ps) {
           const it = item as { marker?: string; seriesName?: string; value?: unknown };
           s += `${it.marker ?? ''} ${it.seriesName ?? ''}: ${Array.isArray(it.value) ? it.value[1] : it.value}<br/>`;
@@ -72,22 +78,10 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         start: 0,
         end: 100,
         zoomOnMouseWheel: true,
-        moveOnMouseMove: false,
+        moveOnMouseMove: true,
+        moveOnMouseDrag: true,
         preventDefaultMouseMove: true,
         filterMode: 'none',
-      },
-      {
-        type: 'slider',
-        xAxisIndex: 0,
-        start: 0,
-        end: 100,
-        height: 14,
-        bottom: 10,
-        borderColor: 'transparent',
-        backgroundColor: 'rgba(148,163,184,0.08)',
-        fillerColor: getThemeColor('--color-primary'),
-        handleStyle: { color: getThemeColor('--color-primary') },
-        textStyle: { fontSize: 10, color: '#cbd5e1' },
       },
     ],
     series: [
@@ -146,7 +140,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     chart.setOption({
       dataZoom: [
         { type: 'inside', startValue: h[0]!.timestamp, endValue: h[h.length - 1]!.timestamp },
-        { type: 'slider', startValue: h[0]!.timestamp, endValue: h[h.length - 1]!.timestamp },
+
       ],
     });
   }, []);
@@ -191,8 +185,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     chart.setOption({
       series: [{ data: vData }, { data: cData }],
       dataZoom: [
-        { type: 'inside', xAxisIndex: 0, ...zoomOption, zoomOnMouseWheel: true, moveOnMouseMove: false, preventDefaultMouseMove: true, filterMode: 'none' },
-        { type: 'slider', xAxisIndex: 0, ...zoomOption, height: 14, bottom: 10, borderColor: 'transparent', backgroundColor: 'rgba(148,163,184,0.08)', fillerColor: getThemeColor('--color-primary'), handleStyle: { color: getThemeColor('--color-primary') }, textStyle: { fontSize: 10, color: '#cbd5e1' } },
+        { type: 'inside', xAxisIndex: 0, ...zoomOption, zoomOnMouseWheel: true, moveOnMouseMove: true, moveOnMouseDrag: true, preventDefaultMouseMove: true, filterMode: 'none' },
       ],
     });
   }, [history]);
