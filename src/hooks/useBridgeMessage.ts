@@ -17,12 +17,12 @@ function dispatchBridgeMessage(data: unknown, handlers: Partial<Record<BridgeMes
   handlers[data.type]?.(data.payload);
 }
 
-function setupAppBridge(handlers: Partial<Record<BridgeMessageType, MessageHandler>>): () => void {
+function setupAppBridge(handlersRef: React.RefObject<Partial<Record<BridgeMessageType, MessageHandler>> | null>): () => void {
   const bridge = (window as unknown as Record<string, unknown>).__APP_BRIDGE__;
   if (bridge && typeof bridge === 'object') {
     const onMessage = (bridge as Record<string, unknown>).onMessage;
     if (typeof onMessage === 'function') {
-      const handler = (data: BridgeMessage) => dispatchBridgeMessage(data, handlers);
+      const handler = (data: BridgeMessage) => dispatchBridgeMessage(data, handlersRef.current ?? {});
       (onMessage as (cb: (data: BridgeMessage) => void) => void)(handler);
       return () => { };
     }
@@ -47,17 +47,27 @@ export function useBridgeMessage(options: UseBridgeMessageOptions = {}) {
       return () => { };
     }
 
-    if (isApp()) {
-      const unsub = setupAppBridge(handlersRef.current ?? {});
-      window.addEventListener('message', handleMessage);
-      return () => {
-        unsub();
-        window.removeEventListener('message', handleMessage);
-      };
+    let appUnsub: (() => void) | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const trySetupApp = () => {
+      if (isApp()) {
+        appUnsub = setupAppBridge(handlersRef);
+        return true;
+      }
+      return false;
+    };
+
+    if (!trySetupApp()) {
+      retryTimer = setTimeout(() => { trySetupApp(); }, 500);
     }
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      if (appUnsub) appUnsub();
+      if (retryTimer) clearTimeout(retryTimer);
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
   const sendMessage = useCallback((message: BridgeMessage) => {
