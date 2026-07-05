@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
-import { isWeb } from './utils/platform';
+import { isWeb, isApp, isMiniProgram } from './utils/platform';
 import './styles/globals.css';
 import './styles/breakpoints.css';
 import './styles/card.css';
@@ -41,7 +41,8 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-if (isWeb() && 'serviceWorker' in navigator) {
+// 注册 Service Worker：Web 独立访问和 iframe 嵌入模式都注册，Android WebView 和小程序不注册
+if (!isApp() && !isMiniProgram() && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => { });
   });

@@ -11,6 +11,10 @@ import i18n from '@/i18n';
 import { buildDataMemoryGroups, buildFieldValueMap } from './helpers';
 
 const PROTOCOL_API_URL = 'https://sql.hzxhhc.com/api/data/';
+const PROTOCOL_API_URLS = [
+  'https://api.bms.pub/api/data',
+  'https://sql.hzxhhc.com/api/data/',
+];
 const VERSION_QUERY_INTERVAL = 1000;
 const RESPONSE_TIMEOUT = 5000;
 const TARGET_CYCLE_MS = 1000;
@@ -322,26 +326,30 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const loadProtocolDb = useCallback(async (version: string) => {
     setProtocolLoading(true);
     initPhaseRef.current = 'protocol';
-    try {
-      const res = await fetch(`${PROTOCOL_API_URL}?search=${encodeURIComponent(version)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data && data.columns && data.rows) {
-        const entry = {
-          version,
-          table: data.table || '',
-          columns: data.columns,
-          rows: data.rows,
-          loadedAt: Date.now(),
-        };
-        setProtocolDb(entry);
-        setCachedProtocol(entry);
-        setProtocolLoading(false);
-        return;
+    // 尝试多个 API 源（新 ESA API 优先，旧 API 回退）
+    for (const apiUrl of PROTOCOL_API_URLS) {
+      try {
+        const res = await fetch(`${apiUrl}?search=${encodeURIComponent(version)}`);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data && data.columns && data.rows) {
+          const entry = {
+            version,
+            table: data.table || '',
+            columns: data.columns,
+            rows: data.rows,
+            loadedAt: Date.now(),
+          };
+          setProtocolDb(entry);
+          setCachedProtocol(entry);
+          setProtocolLoading(false);
+          return;
+        }
+      } catch (_e) {
+        // 尝试下一个 API 源
       }
-    } catch (_e) {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db online failed: version=${version}, trying cache`, rawHex: '' });
     }
+    addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db online failed: version=${version}, trying cache`, rawHex: '' });
     try {
       const cached = await getCachedProtocol(version);
       if (cached && cached.columns && cached.rows) {
