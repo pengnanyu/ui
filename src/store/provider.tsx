@@ -953,7 +953,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const handleRawData = useCallback((payload: unknown) => {
     const p = payload as { data: string | number[] };
-    const rawData = typeof p.data === 'string' ? Array.from({ length: p.data.length / 2 }, (_, i) => parseInt(p.data.substring(i * 2, i * 2 + 2), 16)) : p.data;
+    const d = p.data;
+    const rawData = typeof d === 'string' ? Array.from({ length: d.length / 2 }, (_, i) => parseInt(d.substring(i * 2, i * 2 + 2), 16)) : d;
     if (!rawData || rawData.length === 0) return;
 
     for (const b of rawData) rawBufRef.current.push(b);
