@@ -1,0 +1,60 @@
+.chartContainer {
+  width: 100%;
+  min-height: 220px;
+  height: 260px;
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  overflow: hidden;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  min-height: 220px;
+  height: 260px;
+  background: var(--color-muted);
+}
+
+.titleLegend {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.arrowUp {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.arrowDown {
+  color: var(--color-info);
+  font-weight: 600;
+}
+
+
+.cellSection {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border);
+}

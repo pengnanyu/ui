@@ -1,0 +1,94 @@
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+  cursor: default;
+}
+
+.battery {
+  position: relative;
+  width: 100%;
+  max-width: 36px;
+  aspect-ratio: 9 / 11;
+  border: 2.5px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-muted);
+}
+
+.cap {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px 2px 0 0;
+}
+
+.inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  transition: height 0.3s ease;
+  border-radius: 2px;
+}
+
+.cellName {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--color-foreground);
+  font-weight: 600;
+  z-index: 1;
+  text-shadow: 0 0 4px var(--color-card), 0 0 4px var(--color-card), 0 1px 2px var(--color-card);
+  pointer-events: none;
+}
+
+.cellVoltage {
+  font-size: 11px;
+  color: var(--color-foreground);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.balancing {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  font-size: 10px;
+  color: var(--color-warning);
+  z-index: 2;
+}
+
+.cellCompact .battery {
+  max-width: 30px;
+}
+
+.cellCompact .cap {
+  width: 12px;
+  height: 3px;
+  top: -4px;
+}
+
+.cellCompact .cellName {
+  font-size: 9px;
+}
+
+.cellCompact .cellVoltage {
+  font-size: 10px;
+}

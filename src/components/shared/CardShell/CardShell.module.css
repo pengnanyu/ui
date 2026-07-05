@@ -1,0 +1,46 @@
+.shell {
+  composes: card from '@/styles/card.css';
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.title {
+  color: var(--color-card-title);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.titleText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.titleExtra {
+  font-size: 13px;
+  opacity: 0.8;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+.content {
+  color: var(--color-card-foreground);
+  flex: 1;
+  min-height: 0;
+}

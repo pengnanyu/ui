@@ -1,0 +1,53 @@
+import { useState, useCallback, useEffect } from 'react';
+
+type Theme = 'light' | 'dark';
+
+interface UseThemeReturn {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+}
+
+function getStoredTheme(): Theme | null {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlTheme = params.get('theme');
+    if (urlTheme === 'light' || urlTheme === 'dark') {
+      localStorage.setItem('bms-theme', urlTheme);
+      return urlTheme;
+    }
+    const stored = localStorage.getItem('bms-theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch (_e) { }
+  return null;
+}
+
+function getSystemTheme(): Theme {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'light';
+}
+
+function applyTheme(theme: Theme): void {
+  document.documentElement.setAttribute('data-theme', theme);
+  try {
+    localStorage.setItem('bms-theme', theme);
+  } catch (_e) { }
+}
+
+export function useTheme(): UseThemeReturn {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    return getStoredTheme() ?? getSystemTheme();
+  });
+
+  const setTheme = useCallback((newTheme: Theme) => {
+    setThemeState(newTheme);
+    applyTheme(newTheme);
+  }, []);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  return { theme, setTheme };
+}

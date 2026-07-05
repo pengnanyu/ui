@@ -1,0 +1,21 @@
+.tempList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.headerInfo {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--color-muted-foreground);
+  flex-shrink: 0;
+}
+
+.headerItem {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}

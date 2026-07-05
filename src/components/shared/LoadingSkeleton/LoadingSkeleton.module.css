@@ -1,0 +1,32 @@
+.skeleton {
+  background: var(--color-muted);
+  border-radius: 6px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.card {
+  height: 200px;
+  border-radius: 8px;
+}
+
+.list {
+  height: 48px;
+  margin-bottom: 8px;
+}
+
+.chart {
+  height: 300px;
+  border-radius: 8px;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}

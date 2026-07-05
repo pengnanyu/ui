@@ -1,0 +1,229 @@
+.container {
+  composes: pageContainer from '@/styles/page.css';
+  overflow: hidden;
+}
+
+
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.body {
+  display: flex;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.nav {
+  width: 220px;
+  min-width: 180px;
+  max-width: 280px;
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.navToolbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+
+.navBtn {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  transition: background-color 0.15s;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.navBtn:hover {
+  background: var(--color-muted);
+}
+
+.navBtnCancel {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  transition: background-color 0.15s;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.navBtnCancel:hover {
+  background: var(--color-muted);
+}
+
+.navBtnConfirm {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-weight: 500;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.navBtnConfirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.navBtnConfirm:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-primary-foreground);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-foreground);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s, color 0.18s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.navItem:hover {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  opacity: 0.85;
+}
+
+.navItemActive {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-weight: 600;
+  opacity: 1;
+}
+
+.navItemActive:hover {
+  opacity: 0.9;
+}
+
+.navItemPending {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 13px;
+}
+
+.navBadge {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.navItemActive .navBadge {
+  background: var(--color-primary-foreground);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+}
+
+@media (max-width: 639px) {
+
+  .body {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nav {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: 1;
+    max-height: none;
+  }
+
+  .content {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+}

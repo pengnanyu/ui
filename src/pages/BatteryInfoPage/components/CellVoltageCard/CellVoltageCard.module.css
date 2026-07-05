@@ -1,0 +1,30 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(24px, 36px));
+  gap: clamp(2px, 1vw, 6px);
+}
+
+.headerInfo {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+  flex-shrink: 0;
+}
+
+.headerItem {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.arrowUp {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.arrowDown {
+  color: var(--color-info);
+  font-weight: 600;
+}

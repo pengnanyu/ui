@@ -1,0 +1,26 @@
+{
+  "assets": {
+    "directory": "dist"
+  },
+  "install": {
+    "command": "npm install"
+  },
+  "build": {
+    "command": "npm run build",
+    "outputDirectory": "dist"
+  },
+  "routes": {
+    "include": [
+      "/*"
+    ]
+  },
+  "headers": {
+    "/*": {
+      "X-Frame-Options": "",
+      "Content-Security-Policy": "frame-ancestors 'self' https://app.aibms.net https://bms-app.aibms.net http://localhost:5173 http://localhost:4173"
+    },
+    "/assets/*": {
+      "Cache-Control": "public, max-age=31536000, immutable"
+    }
+  }
+}

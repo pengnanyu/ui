@@ -1,0 +1,50 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  min-width: 0;
+}
+
+.barLabel {
+  font-size: 14px;
+  color: var(--color-muted-foreground);
+  min-width: 60px;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.barTrack {
+  flex: 1;
+  height: 12px;
+  background: var(--color-muted);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #06b6d4, #f59e0b, #ef4444);
+  transition: width 0.3s ease;
+}
+
+.barFillAbnormal {
+  height: 100%;
+  width: 8px;
+  border-radius: 3px;
+  background: var(--color-destructive);
+}
+
+.barValue {
+  font-size: 14px;
+  color: var(--color-foreground);
+  min-width: 50px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}

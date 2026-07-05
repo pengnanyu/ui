@@ -1,0 +1,59 @@
+[data-theme="dark"] {
+  --color-background: rgb(6,7,9);
+  --color-foreground: rgb(228,232,239);
+
+  --color-card: rgb(19,22,27);
+  --color-card-foreground: rgb(228,232,239);
+
+  --color-primary: rgb(75,163,247);
+  --color-primary-foreground: rgb(255,255,255);
+
+  --color-secondary: rgb(15,18,22);
+  --color-secondary-foreground: rgb(228,232,239);
+
+  --color-muted: rgb(24,27,31);
+  --color-muted-foreground: rgb(136,144,156);
+
+  --color-accent: rgb(75,163,247);
+  --color-accent-foreground: rgb(255,255,255);
+
+  --color-destructive: rgb(241,56,65);
+  --color-destructive-foreground: rgb(255,255,255);
+
+  --color-info: rgb(39,132,213);
+  --color-info-foreground: rgb(7,7,7);
+
+  --color-warning: rgb(242,178,0);
+  --color-warning-foreground: rgb(42,29,0);
+
+  --color-success: rgb(39,153,54);
+  --color-success-foreground: rgb(6,6,6);
+
+  --color-border: rgb(38,41,46);
+  --color-input: rgb(28,31,36);
+  --color-ring: rgb(75,163,247);
+
+  --gauge-voltage-arc: rgb(58,147,230);
+  --gauge-voltage-tick: rgb(64,117,170);
+  --gauge-current-positive: rgb(39,153,54);
+  --gauge-current-negative: rgb(39,132,213);
+  --gauge-current-zero: rgb(124,109,113);
+  --gauge-soc-low: rgb(255,79,59);
+  --gauge-soc-mid: rgb(235,171,0);
+  --gauge-soc-high: rgb(39,153,54);
+  --gauge-soc-tick: rgb(81,148,213);
+
+  --color-card-title: var(--color-muted-foreground);
+
+  --body-bg: rgb(6,7,9);
+  --body-overlay-opacity: 0;
+  --body-grid-opacity: 0;
+  --card-bg: rgba(19,22,27,0.72);
+  --card-border: rgba(43,46,51,0.45);
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.28);
+  --card-blur: 20px;
+  --table-header-bg: rgb(13,16,20);
+  --table-row-bg: rgb(10,11,13);
+  --table-row-even-bg: rgb(16,18,21);
+  --table-border: rgba(38,41,46,0.6);
+}
