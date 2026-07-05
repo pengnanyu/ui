@@ -13,7 +13,11 @@ function isBridgeMessage(data: unknown): data is BridgeMessage {
 }
 
 function dispatchBridgeMessage(data: unknown, handlers: Partial<Record<BridgeMessageType, MessageHandler>>) {
-  if (!isBridgeMessage(data) || !data.type.startsWith('bms:')) return;
+  if (!isBridgeMessage(data) || !data.type.startsWith('bms:')) {
+    console.log('dispatchBridgeMessage: rejected data=', JSON.stringify(data).substring(0,100), 'isBridge=', isBridgeMessage(data));
+    return;
+  }
+  console.log('dispatchBridgeMessage: type=' + data.type + ' hasHandler=' + !!handlers[data.type] + ' handlerKeys=' + Object.keys(handlers).join(','));
   handlers[data.type]?.(data.payload);
 }
 
