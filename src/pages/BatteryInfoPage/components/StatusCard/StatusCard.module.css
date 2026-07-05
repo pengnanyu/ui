@@ -13,8 +13,8 @@
 }
 
 .groupStatus {
-  background: oklch(0.97 0.02 145);
-  border: 1px solid oklch(0.88 0.05 145);
+  background: rgb(237,249,237);
+  border: 1px solid rgb(196,225,196);
 }
 
 .groupName {
@@ -26,7 +26,7 @@
 
 .groupNameStatus {
   color: #16a34a;
-  border-bottom-color: oklch(0.88 0.05 145);
+  border-bottom-color: rgb(196,225,196);
 }
 
 .flagList {

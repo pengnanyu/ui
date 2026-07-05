@@ -49,8 +49,8 @@
 }
 
 .critical {
-  background: oklch(0.45 0.22 25);
-  color: oklch(0.98 0 0);
+  background: rgb(176,0,0);
+  color: rgb(248,248,248);
 }
 
 .code {

@@ -1,59 +1,59 @@
 [data-theme="dark"] {
-  --color-background: oklch(0.13 0.005 260);
-  --color-foreground: oklch(0.93 0.01 260);
+  --color-background: rgb(6,7,9);
+  --color-foreground: rgb(228,232,239);
 
-  --color-card: oklch(0.20 0.01 260);
-  --color-card-foreground: oklch(0.93 0.01 260);
+  --color-card: rgb(19,22,27);
+  --color-card-foreground: rgb(228,232,239);
 
-  --color-primary: oklch(0.70 0.15 250);
-  --color-primary-foreground: oklch(1.0 0 0);
+  --color-primary: rgb(75,163,247);
+  --color-primary-foreground: rgb(255,255,255);
 
-  --color-secondary: oklch(0.18 0.01 260);
-  --color-secondary-foreground: oklch(0.93 0.01 260);
+  --color-secondary: rgb(15,18,22);
+  --color-secondary-foreground: rgb(228,232,239);
 
-  --color-muted: oklch(0.22 0.01 260);
-  --color-muted-foreground: oklch(0.65 0.02 260);
+  --color-muted: rgb(24,27,31);
+  --color-muted-foreground: rgb(136,144,156);
 
-  --color-accent: oklch(0.70 0.15 250);
-  --color-accent-foreground: oklch(1.0 0 0);
+  --color-accent: rgb(75,163,247);
+  --color-accent-foreground: rgb(255,255,255);
 
-  --color-destructive: oklch(0.63 0.22 24);
-  --color-destructive-foreground: oklch(1.0000 0 0);
+  --color-destructive: rgb(241,56,65);
+  --color-destructive-foreground: rgb(255,255,255);
 
-  --color-info: oklch(0.60 0.15 250);
-  --color-info-foreground: oklch(0.13 0 0);
+  --color-info: rgb(39,132,213);
+  --color-info-foreground: rgb(7,7,7);
 
-  --color-warning: oklch(0.80 0.18 85);
-  --color-warning-foreground: oklch(0.24 0.05 85);
+  --color-warning: rgb(242,178,0);
+  --color-warning-foreground: rgb(42,29,0);
 
-  --color-success: oklch(0.60 0.17 145);
-  --color-success-foreground: oklch(0.12 0 0);
+  --color-success: rgb(39,153,54);
+  --color-success-foreground: rgb(6,6,6);
 
-  --color-border: oklch(0.28 0.01 260);
-  --color-input: oklch(0.24 0.01 260);
-  --color-ring: oklch(0.70 0.15 250);
+  --color-border: rgb(38,41,46);
+  --color-input: rgb(28,31,36);
+  --color-ring: rgb(75,163,247);
 
-  --gauge-voltage-arc: oklch(0.65 0.15 250);
-  --gauge-voltage-tick: oklch(0.55 0.10 250);
-  --gauge-current-positive: oklch(0.60 0.17 145);
-  --gauge-current-negative: oklch(0.60 0.15 250);
-  --gauge-current-zero: oklch(0.55 0.02 0);
-  --gauge-soc-low: oklch(0.68 0.22 30);
-  --gauge-soc-mid: oklch(0.78 0.18 85);
-  --gauge-soc-high: oklch(0.60 0.17 145);
-  --gauge-soc-tick: oklch(0.65 0.12 250);
+  --gauge-voltage-arc: rgb(58,147,230);
+  --gauge-voltage-tick: rgb(64,117,170);
+  --gauge-current-positive: rgb(39,153,54);
+  --gauge-current-negative: rgb(39,132,213);
+  --gauge-current-zero: rgb(124,109,113);
+  --gauge-soc-low: rgb(255,79,59);
+  --gauge-soc-mid: rgb(235,171,0);
+  --gauge-soc-high: rgb(39,153,54);
+  --gauge-soc-tick: rgb(81,148,213);
 
   --color-card-title: var(--color-muted-foreground);
 
-  --body-bg: oklch(0.13 0.005 260);
+  --body-bg: rgb(6,7,9);
   --body-overlay-opacity: 0;
   --body-grid-opacity: 0;
-  --card-bg: oklch(0.20 0.01 260 / 0.72);
-  --card-border: oklch(0.30 0.01 260 / 0.45);
-  --card-shadow: 0 8px 32px oklch(0 0 0 / 0.28);
+  --card-bg: rgba(19,22,27,0.72);
+  --card-border: rgba(43,46,51,0.45);
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.28);
   --card-blur: 20px;
-  --table-header-bg: oklch(0.17 0.01 260);
-  --table-row-bg: oklch(0.15 0.005 260);
-  --table-row-even-bg: oklch(0.18 0.008 260);
-  --table-border: oklch(0.28 0.01 260 / 0.6);
+  --table-header-bg: rgb(13,16,20);
+  --table-row-bg: rgb(10,11,13);
+  --table-row-even-bg: rgb(16,18,21);
+  --table-border: rgba(38,41,46,0.6);
 }
