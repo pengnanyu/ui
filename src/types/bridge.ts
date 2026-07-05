@@ -38,7 +38,7 @@ export interface ThemeChangePayload {
 }
 
 export interface FrameSendPayload {
-  frame: number[];
+  frame: string;
   requestId?: string;
 }
 

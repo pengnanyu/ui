@@ -239,11 +239,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sendFrame = useCallback((frame: number[]) => {
-    console.log('sendFrame called, hasRef=' + !!sendMessageRef.current + ' frame=' + frame.length + 'B');
+    const hex = frame.map(b => b.toString(16).padStart(2, '0')).join('');
     if (sendMessageRef.current) {
-      sendMessageRef.current({ type: 'bms:frame-send', payload: { frame } });
-    } else {
-      console.log('sendFrame: sendMessageRef.current is null!');
+      sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex } });
     }
   }, []);
 
@@ -954,10 +952,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, [parsedFields, addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery, sendFrame]);
 
   const handleRawData = useCallback((payload: unknown) => {
-    const p = payload as { data: number[] };
-    if (!p.data || p.data.length === 0) return;
+    const p = payload as { data: string | number[] };
+    const rawData = typeof p.data === 'string' ? Array.from({ length: p.data.length / 2 }, (_, i) => parseInt(p.data.substring(i * 2, i * 2 + 2), 16)) : p.data;
+    if (!rawData || rawData.length === 0) return;
 
-    for (const b of p.data) rawBufRef.current.push(b);
+    for (const b of rawData) rawBufRef.current.push(b);
 
     let loopGuard = 0;
     while (rawBufRef.current.length > 0 && loopGuard++ < 20) {
