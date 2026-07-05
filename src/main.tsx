@@ -9,7 +9,15 @@ import './styles/themes/light.css';
 import './styles/themes/dark.css';
 import './i18n';
 
-document.documentElement.setAttribute('data-theme', 'light');
+(function() {
+  try {
+    var p = new URLSearchParams(window.location.search);
+    var t = p.get('theme');
+    if (t !== 'light' && t !== 'dark') t = localStorage.getItem('bms-theme');
+    if (t !== 'light' && t !== 'dark') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch(e) { document.documentElement.setAttribute('data-theme', 'light'); }
+})();
 
 function setupViewportUnit() {
   const update = () => {
