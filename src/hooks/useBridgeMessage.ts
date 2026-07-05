@@ -24,10 +24,11 @@ function dispatchBridgeMessage(data: unknown, handlers: Partial<Record<BridgeMes
 function setupAppBridge(handlersRef: { current: Partial<Record<BridgeMessageType, MessageHandler>> | null | undefined }): () => void {
   const bridge = (window as unknown as Record<string, unknown>).__APP_BRIDGE__;
   if (bridge && typeof bridge === 'object') {
-    const onMessage = (bridge as Record<string, unknown>).onMessage;
+    const onMessage = (bridge as { onMessage?: (cb: (data: BridgeMessage) => void) => void }).onMessage;
     if (typeof onMessage === 'function') {
       const handler = (data: BridgeMessage) => dispatchBridgeMessage(data, handlersRef.current ?? {});
-      (onMessage as (cb: (data: BridgeMessage) => void) => void)(handler);
+      // 使用 call 保持 this 上下文，确保 _handler 正确注册到 bridge 对象上
+      onMessage.call(bridge, handler);
       return () => { };
     }
   }
