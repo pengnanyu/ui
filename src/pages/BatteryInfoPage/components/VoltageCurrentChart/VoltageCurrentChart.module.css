@@ -9,6 +9,7 @@
   backdrop-filter: blur(var(--card-blur));
   -webkit-backdrop-filter: blur(var(--card-blur));
   overflow: hidden;
+  touch-action: none;
 }
 
 .empty {

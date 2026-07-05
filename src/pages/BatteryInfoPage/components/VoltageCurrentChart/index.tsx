@@ -28,7 +28,7 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
     grid: { left: 30, right: 30, top: 18, bottom: 24 },
     tooltip: {
       trigger: 'axis',
-      triggerOn: 'mousemove',
+      triggerOn: 'mousemove|click',
       axisPointer: { type: 'cross', label: { backgroundColor: getThemeColor('--color-background') } },
       formatter(params: unknown) {
         const ps = Array.isArray(params) ? params : [params];

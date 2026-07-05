@@ -30,6 +30,7 @@
   --color-success-foreground: rgb(6,6,6);
 
   --color-border: rgb(38,41,46);
+  --cell-border: rgb(85,92,103);
   --color-input: rgb(28,31,36);
   --color-ring: rgb(75,163,247);
 
@@ -49,6 +50,7 @@
   --body-overlay-opacity: 0;
   --body-grid-opacity: 0;
   --card-bg: rgba(19,22,27,0.72);
+  --cell-cap: rgb(85,92,103);
   --card-border: rgba(43,46,51,0.45);
   --card-shadow: 0 8px 32px rgba(0,0,0,0.28);
   --card-blur: 20px;

@@ -12,7 +12,7 @@
   width: 100%;
   max-width: 36px;
   aspect-ratio: 9 / 11;
-  border: 2.5px solid var(--color-border);
+  border: 2.5px solid var(--cell-border);
   border-radius: 4px;
   background: var(--color-muted);
 }
@@ -24,7 +24,7 @@
   transform: translateX(-50%);
   width: 14px;
   height: 4px;
-  background: var(--color-border);
+  background: var(--cell-cap);
   border-radius: 2px 2px 0 0;
 }
 

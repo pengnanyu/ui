@@ -6,7 +6,6 @@ interface GaugeConfig {
   value: number;
   max: number;
   soc?: number;
-  soh?: number;
 }
 
 function getComputedStyleVar(name: string): string {
@@ -44,7 +43,7 @@ export function useGaugeDraw(canvasRef: React.RefObject<HTMLCanvasElement | null
     } else if (config.type === 'voltage') {
       drawVoltageGauge(ctx, w, h, config.value, config.max);
     } else if (config.type === 'soc') {
-      drawSocGauge(ctx, w, h, config.value, config.max, config.soc ?? config.value, config.soh);
+      drawSocGauge(ctx, w, h, config.value, config.max, config.soc ?? config.value);
     }
   }, [canvasRef, config]);
 
@@ -57,8 +56,8 @@ export function useGaugeDraw(canvasRef: React.RefObject<HTMLCanvasElement | null
 
 function drawCurrentGauge(ctx: CanvasRenderingContext2D, w: number, h: number, value: number, max: number) {
   const cx = w / 2;
-  const cy = h * 0.58;
-  const r = Math.min(w * 0.32, h * 0.40);
+  const cy = h * 0.65;
+  const r = Math.min(w, h) * 0.38;
   const lineWidth = r * 0.12;
 
   const startAngle = (135 * Math.PI) / 180;
@@ -94,7 +93,7 @@ function drawCurrentGauge(ctx: CanvasRenderingContext2D, w: number, h: number, v
   }
 
   ctx.fillStyle = getComputedStyleVar('--color-foreground');
-  ctx.font = `bold ${r * 0.38}px -apple-system, sans-serif`;
+  ctx.font = `bold ${r * 0.35}px -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(Math.abs(value).toFixed(1), cx, cy - r * 0.05);
@@ -111,13 +110,13 @@ function getCurrentColor(current: number): string {
 }
 
 function drawVoltageGauge(ctx: CanvasRenderingContext2D, w: number, h: number, value: number, max: number) {
-  const cx = w * 0.25;
-  const cy = h * 0.50;
-  const r = Math.min(w * 0.38, h * 0.42);
-  const lineWidth = r * 0.12;
+  const cx = w * 0.6;
+  const cy = h * 0.85;
+  const r = Math.min(w * 0.5, h * 0.7);
+  const lineWidth = r * 0.1;
 
-  const startAngle = -Math.PI / 2;
-  const endAngle = Math.PI / 2;
+  const startAngle = (180 * Math.PI) / 180;
+  const endAngle = (360 * Math.PI) / 180;
 
   ctx.beginPath();
   ctx.arc(cx, cy, r, startAngle, endAngle);
@@ -151,24 +150,25 @@ function drawVoltageGauge(ctx: CanvasRenderingContext2D, w: number, h: number, v
   }
 
   ctx.fillStyle = getComputedStyleVar('--color-foreground');
-  ctx.font = `bold ${r * 0.30}px -apple-system, sans-serif`;
+  ctx.font = `bold ${r * 0.28}px -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(value.toFixed(1), cx + r * 0.30, cy - r * 0.05);
+  ctx.fillText(value.toFixed(1), cx - r * 0.1, cy - r * 0.15);
 
   ctx.fillStyle = getComputedStyleVar('--color-muted-foreground');
-  ctx.font = `${r * 0.16}px -apple-system, sans-serif`;
-  ctx.fillText('V', cx + r * 0.30, cy + r * 0.18);
+  ctx.font = `${r * 0.15}px -apple-system, sans-serif`;
+  ctx.fillText('V', cx - r * 0.1, cy + r * 0.1);
 }
 
-function drawSocGauge(ctx: CanvasRenderingContext2D, w: number, h: number, _value: number, _max: number, soc: number, soh?: number) {
-  const cx = w * 0.75;
-  const cy = h * 0.50;
-  const r = Math.min(w * 0.38, h * 0.42);
-  const lineWidth = r * 0.14;
+function drawSocGauge(ctx: CanvasRenderingContext2D, w: number, h: number, _value: number, _max: number, soc: number) {
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w, h) * 0.38;
+  const lineWidth = r * 0.18;
 
-  const startAngle = Math.PI / 2;
-  const endAngle = 3 * Math.PI / 2;
+  const startAngle = (135 * Math.PI) / 180;
+  const totalSweep = (270 * Math.PI) / 180;
+  const endAngle = startAngle + totalSweep;
 
   ctx.beginPath();
   ctx.arc(cx, cy, r, startAngle, endAngle);
@@ -179,8 +179,8 @@ function drawSocGauge(ctx: CanvasRenderingContext2D, w: number, h: number, _valu
 
   const ratio = Math.min(Math.max(soc, 0) / 100, 1);
   if (ratio > 0.005) {
-    const valueAngle = startAngle + ratio * (endAngle - startAngle);
-    const segments = Math.max(Math.ceil(ratio * 60), 4);
+    const valueAngle = startAngle + ratio * totalSweep;
+    const segments = Math.max(Math.ceil(ratio * 80), 4);
     const segmentAngle = (valueAngle - startAngle) / segments;
     const [cr, cg, cb] = getSocRgb(soc);
 
@@ -199,30 +199,38 @@ function drawSocGauge(ctx: CanvasRenderingContext2D, w: number, h: number, _valu
     }
 
     ctx.save();
-    ctx.shadowColor = `rgba(${cr},${cg},${cb},0.5)`;
-    ctx.shadowBlur = 12;
+    ctx.shadowColor = `rgba(${cr},${cg},${cb},0.6)`;
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
     ctx.beginPath();
     ctx.arc(cx, cy, r, startAngle, valueAngle);
-    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.4)`;
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.5)`;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
     ctx.stroke();
     ctx.restore();
+
+    const glowR = r + lineWidth * 0.5;
+    const glowGrad = ctx.createRadialGradient(cx, cy, r - lineWidth, cx, cy, glowR + 6);
+    glowGrad.addColorStop(0, `rgba(${cr},${cg},${cb},0)`);
+    glowGrad.addColorStop(0.5, `rgba(${cr},${cg},${cb},0.12)`);
+    glowGrad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, valueAngle);
+    ctx.strokeStyle = glowGrad;
+    ctx.lineWidth = lineWidth + 16;
+    ctx.lineCap = 'round';
+    ctx.stroke();
   }
 
   ctx.fillStyle = getComputedStyleVar('--color-foreground');
-  ctx.font = `bold ${r * 0.34}px -apple-system, sans-serif`;
+  ctx.font = `bold ${r * 0.42}px -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`${Math.round(soc)}%`, cx - r * 0.30, cy - r * 0.08);
+  ctx.fillText(`${Math.round(soc)}%`, cx, cy - r * 0.05);
 
   ctx.fillStyle = getComputedStyleVar('--color-muted-foreground');
   ctx.font = `${r * 0.14}px -apple-system, sans-serif`;
-  ctx.fillText('SOC', cx - r * 0.30, cy + r * 0.13);
-
-  if (soh !== undefined && soh !== null) {
-    ctx.fillStyle = getComputedStyleVar('--color-muted-foreground');
-    ctx.font = `${r * 0.12}px -apple-system, sans-serif`;
-    ctx.fillText(`SOH ${soh}%`, cx - r * 0.30, cy + r * 0.28);
-  }
+  ctx.fillText('SOC', cx, cy + r * 0.22);
 }

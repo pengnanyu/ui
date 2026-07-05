@@ -1,62 +1,89 @@
 .container {
+  position: relative;
+  min-height: 220px;
+  height: 100%;
+}
+
+.gaugeBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.gaugeBg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  min-height: 240px;
-  height: 100%;
-  gap: 2px;
+  justify-content: space-between;
+  padding: 12px 12px 0;
 }
 
-.currentGauge {
-  flex: 1;
-  min-height: 100px;
-  position: relative;
-}
-
-.bottomGauges {
-  flex: 1;
+.topRow {
   display: flex;
-  min-height: 90px;
-  position: relative;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
-.voltageGauge {
-  flex: 1;
-  position: relative;
-}
-
-.socGauge {
-  flex: 1;
-  position: relative;
-}
-
-.infoRow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  padding-top: 4px;
-}
-
-.infoCard {
+.sideCard {
   background: color-mix(in srgb, var(--color-card) 75%, transparent);
   backdrop-filter: blur(6px);
   border-radius: 8px;
-  padding: 4px 2px;
+  padding: 8px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1px;
 }
 
-.infoValue {
-  font-size: 13px;
+.sideValue {
+  font-size: 22px;
   font-weight: 700;
   color: var(--color-foreground);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
 
-.infoLabel {
-  font-size: 8px;
+.sideLabel {
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+  font-weight: 500;
+}
+
+.bottomCards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.bottomCard {
+  background: color-mix(in srgb, var(--color-card) 75%, transparent);
+  backdrop-filter: blur(6px);
+  border-radius: 8px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.bottomValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.bottomLabel {
+  font-size: 9px;
   color: var(--color-muted-foreground);
   font-weight: 500;
   text-align: center;
@@ -65,23 +92,21 @@
 
 @media (max-width: 480px) {
   .container {
-    min-height: 200px;
+    min-height: 180px;
   }
 
-  .currentGauge {
-    min-height: 80px;
+  .overlay {
+
+    padding: 8px;
   }
 
-  .bottomGauges {
-    min-height: 75px;
+  .sideValue {
+    font-size: 18px;
   }
 
-  .infoValue {
-    font-size: 12px;
-  }
 
-  .infoLabel {
-    font-size: 7px;
+  .bottomValue {
+    font-size: 13px;
   }
 }
 

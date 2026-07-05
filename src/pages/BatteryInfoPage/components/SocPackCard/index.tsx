@@ -66,8 +66,6 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
 
   const titleExtraContent = bmsTime ? <span>{bmsTime}</span> : undefined;
 
-  const voltageMax = 100;
-
   return (
     <CardShell
       title={titleContent}
@@ -75,47 +73,42 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
       className={styles.shell}
     >
       <div className={styles.container}>
-        <div className={styles.currentGauge}>
+        <div className={styles.gaugeBg}>
           <GaugeCanvas
-            type="current"
-            value={pack?.totalCurrent ?? 0}
+            type="soc"
+            value={soc?.soc ?? 0}
             max={100}
+            soc={soc?.soc ?? 0}
           />
         </div>
-        <div className={styles.bottomGauges}>
-          <div className={styles.voltageGauge}>
-            <GaugeCanvas
-              type="voltage"
-              value={pack?.totalVoltage ?? 0}
-              max={voltageMax}
-            />
+        <div className={styles.overlay}>
+          <div className={styles.topRow}>
+            <div className={styles.sideCard}>
+              <div className={styles.sideValue}>{(pack?.totalVoltage ?? 0).toFixed(1)}</div>
+              <div className={styles.sideLabel}>V</div>
+            </div>
+            <div className={styles.sideCard}>
+              <div className={styles.sideValue}>{(pack?.totalCurrent ?? 0).toFixed(1)}</div>
+              <div className={styles.sideLabel}>A</div>
+            </div>
           </div>
-          <div className={styles.socGauge}>
-            <GaugeCanvas
-              type="soc"
-              value={soc?.soc ?? 0}
-              max={100}
-              soc={soc?.soc ?? 0}
-              soh={soc?.soh}
-            />
-          </div>
-        </div>
-        <div className={styles.infoRow}>
-          <div className={styles.infoCard}>
-            <div className={styles.infoValue}>{dischargeTime ?? '--'}</div>
-            <div className={styles.infoLabel}>{t('battery.dischargeTime')}</div>
-          </div>
-          <div className={styles.infoCard}>
-            <div className={styles.infoValue}>{chargeTime ?? '--'}</div>
-            <div className={styles.infoLabel}>{t('battery.chargeTime')}</div>
-          </div>
-          <div className={styles.infoCard}>
-            <div className={styles.infoValue}>{(pack?.power ?? 0).toFixed(0)}</div>
-            <div className={styles.infoLabel}>{t('battery.powerW')}</div>
-          </div>
-          <div className={styles.infoCard}>
-            <div className={styles.infoValue}>{soc?.soh ?? '--'}</div>
-            <div className={styles.infoLabel}>{t('battery.sohPercent')}</div>
+          <div className={styles.bottomCards}>
+            <div className={styles.bottomCard}>
+              <div className={styles.bottomValue}>{dischargeTime ?? '--'}</div>
+              <div className={styles.bottomLabel}>{t('battery.dischargeTime')}</div>
+            </div>
+            <div className={styles.bottomCard}>
+              <div className={styles.bottomValue}>{chargeTime ?? '--'}</div>
+              <div className={styles.bottomLabel}>{t('battery.chargeTime')}</div>
+            </div>
+            <div className={styles.bottomCard}>
+              <div className={styles.bottomValue}>{(pack?.power ?? 0).toFixed(0)}</div>
+              <div className={styles.bottomLabel}>{t('battery.powerW')}</div>
+            </div>
+            <div className={styles.bottomCard}>
+              <div className={styles.bottomValue}>{soc?.soh ?? '--'}</div>
+              <div className={styles.bottomLabel}>{t('battery.sohPercent')}</div>
+            </div>
           </div>
         </div>
       </div>
