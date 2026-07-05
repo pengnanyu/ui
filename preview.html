@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BMS Android 预览</title>
+  <style>
+    :root {
+      --bg: #F8F9FA;
+      --surface: #fff;
+      --surface-conn: #ECFDF5;
+      --surface-conn-border: #A7F3D0;
+      --fg: #1A1A2E;
+      --fg2: #6B7280;
+      --fg3: #9CA3AF;
+      --border: #E5E7EB;
+      --primary: #3B82F6;
+      --primary-fg: #fff;
+      --track: #E5E7EB;
+      --shadow: rgba(0, 0, 0, 0.06);
+      --shadow2: rgba(0, 0, 0, 0.1);
+      --phone-border: #1a1a2e;
+      --notch-bg: #1a1a2e;
+      --nav-bg: #fff;
+      --webview-bg: #fff;
+      --danger: #EF4444;
+      --danger-bg: #FEF2F2;
+      --danger-border: #FECACA;
+      --swipe-bg: #EF4444;
+      --swipe-fg: #fff;
+      --section-label: #6B7280;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1A1B2E;
+        --surface: #252640;
+        --surface-conn: #0d2818;
+        --surface-conn-border: #166534;
+        --fg: #E5E5E5;
+        --fg2: #9CA3AF;
+        --fg3: #6B7280;
+        --border: #333450;
+        --primary: #60A5FA;
+        --primary-fg: #fff;
+        --track: #333450;
+        --shadow: rgba(0, 0, 0, 0.2);
+        --shadow2: rgba(0, 0, 0, 0.3);
+        --phone-border: #000;
+        --notch-bg: #000;
+        --nav-bg: #1E1F36;
+        --webview-bg: #1a1a1a;
+        --danger: #F87171;
+        --danger-bg: #2d1212;
+        --danger-border: #5c1e1e;
+        --swipe-bg: #DC2626;
+        --swipe-fg: #fff;
+        --section-label: #9CA3AF;
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #333;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .phone {
+      width: 375px;
+      height: 812px;
+      border-radius: 40px;
+      border: 8px solid var(--phone-border);
+      overflow: hidden;
+      position: relative;
+      background: var(--bg);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .notch {
+      width: 150px;
+      height: 28px;
+      background: var(--notch-bg);
+      border-radius: 0 0 16px 16px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+
+    .status-bar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg);
+      margin-top: -28px;
+    }
+
+    .status-bar .time {
+      margin-left: 150px;
+    }
+
+    .status-icons {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .status-icons svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .bottom-nav {
+      display: flex;
+      height: 64px;
+      background: var(--nav-bg);
+      border-top: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    .nav-item:not(.active) {
+      color: var(--fg2);
+    }
+
+    .nav-item svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .nav-item span {
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .page {
+      display: none;
+      padding: 16px;
+      min-height: 100%;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--section-label);
+      margin-bottom: 8px;
+      margin-top: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .section-label:first-of-type {
+      margin-top: 0;
+    }
+
+    .refresh-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--fg2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .refresh-btn.spinning svg {
+      animation: spin 1s linear infinite;
+      color: var(--primary);
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0)
+      }
+
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .progress-bar {
+      height: 3px;
+      background: var(--track);
+      border-radius: 2px;
+      margin: 8px 0;
+      overflow: hidden;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      background: var(--primary);
+      animation: progress 2s ease-in-out infinite;
+      width: 60%;
+    }
+
+    @keyframes progress {
+      0% {
+        transform: translateX(-100%)
+      }
+
+      100% {
+        transform: translateX(200%)
+      }
+    }
+
+    .device-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .swipe-wrapper {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .swipe-action {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 12px;
+      z-index: 0;
+    }
+
+    .swipe-action.forget {
+      background: var(--swipe-bg);
+      color: var(--swipe-fg);
+    }
+
+    .swipe-action.save {
+      background: var(--primary);
+      color: var(--primary-fg);
+    }
+
+    .swipe-content {
+      position: relative;
+      z-index: 1;
+      transition: transform 0.2s ease;
+      will-change: transform;
+    }
+
+    .device-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 1px 3px var(--shadow);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .device-card:active {
+      transform: scale(0.98);
+      box-shadow: 0 1px 2px var(--shadow2);
+    }
+
+    .device-card.connected-card {
+      background: var(--surface-conn);
+      border: 1px solid var(--surface-conn-border);
+      cursor: default;
+    }
+
+    .device-card .info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .name-row .name {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--fg);
+      white-space: nowrap;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+      font-size: 13px;
+      overflow: hidden;
+    }
+
+    .meta-v {
+      color: var(--fg);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .meta-a {
+      color: var(--fg);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .meta-sep {
+      width: 1px;
+      height: 12px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .safety-flags {
+      display: flex;
+      flex-shrink: 1;
+      min-width: 0;
+      overflow: hidden;
+
+    }
+
+    .safety-inner {
+      display: flex;
+      gap: 3px;
+    }
+
+    .safety-inner.scrolling {
+      animation: marquee 8s linear infinite;
+    }
+
+    @keyframes marquee {
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    .sflag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 3px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .rssi {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .rssi-bar {
+      width: 3px;
+      border-radius: 1.5px;
+      background: var(--track);
+    }
+
+    .rssi-bar.on-g {
+      background: #22C55E;
+    }
+
+    .rssi-bar.on-y {
+      background: #EAB308;
+    }
+
+    .rssi-bar.on-r {
+      background: #EF4444;
+    }
+
+    .rssi-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .rssi-db {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--fg2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 0;
+      color: var(--fg3);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      color: var(--fg3);
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .scan-btn {
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: none;
+      background: var(--primary);
+      color: var(--primary-fg);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .webview-page {
+      display: none;
+      height: 100%;
+      position: relative;
+    }
+
+    .webview-page.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .webview-header {
+      height: 44px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--fg);
+      gap: 8px;
+    }
+
+    .webview-header .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22C55E;
+    }
+
+    .webview-content {
+      flex: 1;
+      background: var(--webview-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--fg3);
+      font-size: 14px;
+    }
+
+    .webview-content iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .wide-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--fg);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .wide-layout {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      background: var(--bg);
+    }
+
+    body.wide .phone {
+      display: none;
+    }
+
+    body.wide .wide-layout {
+      display: flex;
+    }
+
+    body.wide .wide-toggle {
+      background: var(--fg);
+      color: var(--bg);
+      border-color: transparent;
+    }
+
+    .wide-sidebar {
+      width: 360px;
+      min-width: 360px;
+      height: 100%;
+      overflow-y: auto;
+      background: var(--bg);
+      padding: 16px;
+      border-right: 1px solid var(--border);
+    }
+
+    .wide-main {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--webview-bg);
+    }
+
+    .wide-main .webview-header {
+      display: none;
+    }
+
+    .wide-main .webview-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--fg3);
+      font-size: 14px;
+    }
+
+    .float-back {
+      display: none;
+    }
+
+    .ui-topbar {
+      display: none;
+      height: 44px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .ui-topbar.visible {
+      display: flex;
+    }
+
+    .ui-topbar-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ui-topbar-title {
+      flex: 1;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+
+    .ui-topbar-spacer {
+      width: 36px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <button class="wide-toggle" onclick="toggleWide()">宽屏模式</button>
+
+  <div class="wide-layout" id="wide-layout">
+    <div class="wide-sidebar" id="wide-sidebar"></div>
+    <div class="wide-main">
+
+      <div class="webview-content" id="wide-webview-content">
+        <iframe src="https://ui.bms.pub" style="width:100%;height:100%;border:none;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="status-icons">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16" />
+        </svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
+        </svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="6" width="18" height="12" rx="2" />
+          <line x1="23" y1="10" x2="23" y2="14" />
+        </svg>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+      <div class="page active" id="page-bt">
+        <div class="section-header">
+          <span class="section-title">附近设备</span>
+          <button class="refresh-btn" id="refresh-btn" onclick="toggleScan()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="progress-bar" id="scan-progress" style="display:none">
+          <div class="fill"></div>
+        </div>
+
+        <div id="device-sections"></div>
+
+        <div class="empty-state" id="empty-state" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polyline points="7 7 17 17" />
+            <polyline points="17 7 7 17" />
+          </svg>
+          <p>未发现设备</p>
+          <button class="scan-btn" onclick="toggleScan()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            开始扫描
+          </button>
+        </div>
+      </div>
+
+      <div class="webview-page" id="page-ui">
+        <div class="ui-topbar" id="ui-topbar">
+          <button class="ui-topbar-btn" onclick="switchTab(0)">‹</button>
+          <span class="ui-topbar-title" id="ui-title">BMS 控制台</span>
+          <div class="ui-topbar-spacer"></div>
+        </div>
+        <div class="webview-content" id="webview-content">
+          <iframe id="phone-iframe" style="width:100%;height:100%;border:none;display:none;"
+            src="https://ui.bms.pub"></iframe>
+          <p id="webview-placeholder">连接设备后加载控制台</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active" id="nav-bt" onclick="switchTab(0)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="7 7 17 17" />
+          <polyline points="17 7 7 17" />
+          <line x1="12" y1="2" x2="12" y2="22" />
+        </svg>
+        <span id="nav-bt-label">蓝牙</span>
+      </div>
+      <div class="nav-item" onclick="void(0)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="3" height="3" rx="0.5"/>
+          <line x1="21" y1="14" x2="21" y2="14.01"/>
+          <line x1="21" y1="21" x2="21" y2="21.01"/>
+          <line x1="14" y1="21" x2="14" y2="21.01"/>
+        </svg>
+        <span>扫码</span>
+      </div>
+      <div class="nav-item" id="nav-ui" onclick="switchTab(1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+        <span>控制台</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SAFETY_BITS = [
+      'CUV', 'OCD', 'SCD', 'DSG_OT',
+      'RCA', 'DSG_UT', '', '',
+      'COV', 'OCC', 'CHG_OT', 'CHG_UT',
+      'MOS_OT', 'COM_OUT', 'P_DSG', 'ALERT'
+    ];
+
+    function parseSafety(val) {
+      const flags = [];
+      for (let i = 0; i < 16; i++) {
+        if ((val >> i) & 1) { const name = SAFETY_BITS[i]; if (name) flags.push(name); }
+      }
+      return flags;
+    }
+
+    const allDevices = [
+      { name: 'DCSF 001', rssi: -42, soc: 85, voltage: 5230, current: 125, safety: 0x0003 },
+      { name: 'DCSF 002', rssi: -58, soc: 62, voltage: 4810, current: -52, safety: 0x0000 },
+      { name: 'DCSF BMS-Pro', rssi: -73, soc: 30, voltage: 4470, current: 0, safety: 0x0010 },
+      { name: 'DCSF 003', rssi: -35, soc: 100, voltage: 5460, current: 0, safety: 0x0000 },
+      { name: 'DCSF Lite', rssi: -85, soc: 15, voltage: 4120, current: -81, safety: 0x0103 },
+    ];
+
+    let remembered = new Set(['DCSF 001', 'DCSF 002']);
+    let scanning = false;
+    let connected = false;
+    let connData = null;
+    let activeSwipe = null;
+
+    function socCircle(soc, isConn) {
+      const sz = 44, cx = sz / 2, cy = sz / 2, r = 17, sw = 4;
+      const c = 2 * Math.PI * r;
+      const dash = c * soc / 100;
+      const gap = c - dash;
+      const color = soc > 50 ? '#22C55E' : soc > 20 ? '#EAB308' : '#EF4444';
+      const glow = isConn ? `filter="url(#glow)"` : '';
+      const filterDef = isConn ? `<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>` : '';
+      const clickAttr = isConn ? `onclick="doDisconnect();event.stopPropagation()" style="cursor:pointer"` : '';
+      return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0" ${clickAttr}>
+        ${filterDef}
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--track)" stroke-width="${sw}"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}"
+          stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${c * 0.25}" stroke-linecap="round" ${glow}/>
+        <text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="central"
+          fill="${color}" font-size="12" font-weight="700">${soc}</text>
+      </svg>`;
+    }
+
+    function rssiBlock(rssi) {
+      const count = rssi > -50 ? 4 : rssi > -60 ? 3 : rssi > -70 ? 2 : 1;
+      const cls = rssi > -50 ? 'g' : rssi > -70 ? 'y' : 'r';
+      let bars = '<div class="rssi">';
+      for (let i = 0; i < 4; i++) { const h = 6 + i * 3; bars += `<div class="rssi-bar ${i < count ? 'on-' + cls : ''}" style="height:${h}px"></div>`; }
+      bars += '</div>';
+      return `<div class="rssi-wrap">${bars}<span class="rssi-db">${rssi}dBm</span></div>`;
+    }
+
+    function safetyFlags(val) {
+      const items = parseSafety(val);
+      if (items.length === 0) return '';
+      const flagsHtml = items.map(f => {
+        const isAlarm = ['ALERT', 'P_DSG', 'COM_OUT'].includes(f);
+        const c = isAlarm ? '#EAB308' : '#EF4444';
+        return `<span class="sflag" style="background:${c}20;color:${c};border:1px solid ${c}40">${f}</span>`;
+      }).join('');
+      const doubled = flagsHtml + flagsHtml;
+      return `<span class="meta-sep"></span><div class="safety-flags" data-flags="${items.length}"><div class="safety-inner">${doubled}</div></div>`;
+    }
+
+    function fmtV(raw) { return (raw / 100).toFixed(1) + 'V'; }
+    function fmtA(raw) { return (raw > 0 ? '+' : '') + (raw / 10).toFixed(1) + 'A'; }
+
+    function deviceCardHtml(d, isConn, isRemembered) {
+      const click = isConn ? `onclick="switchTab(1)"` : `onclick="doConnect('${d.name}')"`;
+      const connClass = isConn ? ' connected-card' : '';
+      const cursorStyle = isConn ? 'cursor:pointer;' : '';
+      const inner = `<div class="device-card${connClass}" ${click} style="${cursorStyle}">
+        ${socCircle(d.soc, isConn)}
+        <div class="info">
+          <div class="name-row"><span class="name">${d.name}</span>${rssiBlock(d.rssi)}</div>
+          <div class="meta-row">
+            <span class="meta-v">${fmtV(d.voltage)}</span>
+            <span class="meta-a">${fmtA(d.current)}</span>
+            ${safetyFlags(d.safety)}
+          </div>
+        </div>
+      </div>`;
+
+      if (isConn && !isRemembered) {
+        return `<div class="swipe-wrapper" data-name="${d.name}">
+          <div class="swipe-action save" onclick="saveRemember('${d.name}')">保存记忆</div>
+          <div class="swipe-content">${inner}</div>
+        </div>`;
+      }
+      if (isRemembered && !isConn) {
+        return `<div class="swipe-wrapper" data-name="${d.name}">
+          <div class="swipe-action forget" onclick="unremember('${d.name}')">取消记忆</div>
+          <div class="swipe-content">${inner}</div>
+        </div>`;
+      }
+      return `<div class="swipe-wrapper">${inner}</div>`;
+    }
+
+    function renderDevices() {
+      const container = document.getElementById('device-sections');
+      const empty = document.getElementById('empty-state');
+      if (allDevices.length === 0 && !connected) {
+        container.innerHTML = '';
+        empty.style.display = 'flex';
+        return;
+      }
+      empty.style.display = 'none';
+
+      const rememberedDevs = allDevices.filter(d => remembered.has(d.name));
+      const newDevs = allDevices.filter(d => !remembered.has(d.name));
+
+      let html = '';
+
+      if (rememberedDevs.length > 0) {
+        const isConnRemembered = connected && connData && remembered.has(connData.name);
+        html += `<div class="section-label">记忆设备</div>`;
+        html += `<div class="device-list">`;
+        if (isConnRemembered) {
+          html += deviceCardHtml(connData, true, true);
+        }
+        rememberedDevs.filter(d => !isConnRemembered || d.name !== connData.name).forEach(d => {
+          html += deviceCardHtml(d, false, true);
+        });
+        html += `</div>`;
+      }
+
+      if (newDevs.length > 0) {
+        const isConnNew = connected && connData && !remembered.has(connData.name);
+        html += `<div class="section-label">新设备</div>`;
+        html += `<div class="device-list">`;
+        if (isConnNew) {
+          html += deviceCardHtml(connData, true, false);
+        }
+        newDevs.filter(d => !isConnNew || d.name !== connData.name).forEach(d => {
+          html += deviceCardHtml(d, false, false);
+        });
+        html += `</div>`;
+      }
+
+      container.innerHTML = html;
+      bindSwipe();
+      checkMarquee();
+    }
+
+    function checkMarquee() {
+      document.querySelectorAll('.safety-flags').forEach(el => {
+        const inner = el.querySelector('.safety-inner');
+        if (!inner) return;
+        if (inner.scrollWidth > el.clientWidth + 4) {
+          inner.classList.add('scrolling');
+        } else {
+          inner.classList.remove('scrolling');
+        }
+      });
+    }
+
+    function saveRemember(name) {
+      remembered.add(name);
+      closeSwipe();
+      renderDevices();
+    }
+
+    function unremember(name) {
+      remembered.delete(name);
+      closeSwipe();
+      renderDevices();
+    }
+
+    function closeSwipe() {
+      if (activeSwipe) {
+        activeSwipe.content.style.transform = '';
+        activeSwipe = null;
+      }
+    }
+
+    function bindSwipe() {
+      document.querySelectorAll('.swipe-wrapper').forEach(wrapper => {
+        const content = wrapper.querySelector('.swipe-content');
+        if (!content) return;
+
+        let startX = 0, startY = 0, currentX = 0, isDragging = false, isSwipe = false;
+        const threshold = 80;
+
+        content.addEventListener('touchstart', e => {
+          closeSwipe();
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          currentX = 0;
+          isDragging = true;
+          isSwipe = false;
+          content.style.transition = 'none';
+        }, { passive: true });
+
+        content.addEventListener('touchmove', e => {
+          if (!isDragging) return;
+          const dx = e.touches[0].clientX - startX;
+          const dy = e.touches[0].clientY - startY;
+          if (!isSwipe && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+            isSwipe = true;
+          }
+          if (!isSwipe) return;
+          currentX = Math.min(0, dx);
+          content.style.transform = `translateX(${currentX}px)`;
+        }, { passive: true });
+
+        content.addEventListener('touchend', e => {
+          if (!isDragging) return;
+          isDragging = false;
+          content.style.transition = 'transform 0.2s ease';
+          if (isSwipe && currentX < -threshold / 2) {
+            content.style.transform = `translateX(-${threshold}px)`;
+            activeSwipe = { wrapper, content };
+            e.preventDefault();
+          } else {
+            content.style.transform = '';
+          }
+          isSwipe = false;
+        });
+
+        content.addEventListener('mousedown', e => {
+          closeSwipe();
+          startX = e.clientX;
+          startY = e.clientY;
+          currentX = 0;
+          isDragging = true;
+          isSwipe = false;
+          content.style.transition = 'none';
+          e.preventDefault();
+        });
+
+        const onMouseMove = e => {
+          if (!isDragging) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          if (!isSwipe && Math.abs(dx) > 5 && Math.abs(dx) > Math.abs(dy)) {
+            isSwipe = true;
+          }
+          if (!isSwipe) return;
+          currentX = Math.min(0, dx);
+          content.style.transform = `translateX(${currentX}px)`;
+        };
+
+        const onMouseUp = e => {
+          if (!isDragging) return;
+          isDragging = false;
+          content.style.transition = 'transform 0.2s ease';
+          if (isSwipe && currentX < -threshold / 2) {
+            content.style.transform = `translateX(-${threshold}px)`;
+            activeSwipe = { wrapper, content };
+          } else {
+            content.style.transform = '';
+          }
+          isSwipe = false;
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        content.addEventListener('mousedown', () => {
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
+      });
+
+      document.addEventListener('click', e => {
+        if (activeSwipe && !e.target.closest('.swipe-action')) closeSwipe();
+      }, { passive: true });
+    }
+
+    function toggleScan() {
+      scanning = !scanning;
+      const btn = document.getElementById('refresh-btn');
+      const prog = document.getElementById('scan-progress');
+      if (scanning) { btn.classList.add('spinning'); prog.style.display = 'block'; renderDevices(); }
+      else { btn.classList.remove('spinning'); prog.style.display = 'none'; }
+    }
+
+    function doConnect(name) {
+      connected = true;
+      connData = allDevices.find(d => d.name === name);
+      scanning = false;
+      document.getElementById('refresh-btn').classList.remove('spinning');
+      document.getElementById('scan-progress').style.display = 'none';
+      document.getElementById('nav-bt-label').textContent = '已连接';
+      document.getElementById('ui-title').textContent = name;
+      const iframe = document.getElementById('phone-iframe');
+      const placeholder = document.getElementById('webview-placeholder');
+      placeholder.style.display = 'none';
+      iframe.style.display = 'block';
+      renderDevices();
+      if (isWide) syncWideSidebar();
+      setTimeout(() => switchTab(1), 600);
+    }
+
+    function doDisconnect() {
+      connected = false;
+      connData = null;
+      document.getElementById('nav-bt-label').textContent = '蓝牙';
+      const iframe = document.getElementById('phone-iframe');
+      const placeholder = document.getElementById('webview-placeholder');
+      iframe.style.display = 'none';
+      placeholder.style.display = 'block';
+      renderDevices();
+      if (isWide) syncWideSidebar();
+      switchTab(0);
+    }
+
+    function switchTab(idx) {
+      if (idx === 1 && !connected) return;
+      const bottomNav = document.querySelector('.bottom-nav');
+      const topbar = document.getElementById('ui-topbar');
+      if (connected && idx === 1) {
+        bottomNav.style.display = 'none';
+        topbar.classList.add('visible');
+      } else {
+        bottomNav.style.display = 'flex';
+        topbar.classList.remove('visible');
+      }
+      document.getElementById('page-bt').classList.toggle('active', idx === 0);
+      document.getElementById('page-bt').style.display = idx === 0 ? 'block' : 'none';
+      document.getElementById('page-ui').classList.toggle('active', idx === 1);
+      document.getElementById('page-ui').style.display = idx === 1 ? 'flex' : 'none';
+      document.getElementById('nav-bt').classList.toggle('active', idx === 0);
+      document.getElementById('nav-ui').classList.toggle('active', idx === 1);
+    }
+
+    let isWide = false;
+    function toggleWide() {
+      isWide = !isWide;
+      document.body.classList.toggle('wide', isWide);
+      document.querySelector('.wide-toggle').textContent = isWide ? '手机模式' : '宽屏模式';
+      if (isWide) syncWideSidebar();
+    }
+
+    function syncWideSidebar() {
+      const sidebar = document.getElementById('wide-sidebar');
+      const btPage = document.getElementById('page-bt');
+      sidebar.innerHTML = btPage.innerHTML;
+      bindSwipe();
+    }
+
+    renderDevices();
+  </script>
+</body>
+
+</html>
