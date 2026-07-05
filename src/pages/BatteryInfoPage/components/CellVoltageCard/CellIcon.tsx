@@ -13,7 +13,7 @@ export function CellIcon({ index, voltage, soc, isBalancing, compact }: CellIcon
   const isError = voltage === 0;
   const fillPercent = isError ? 5 : (soc !== undefined ? Math.max(soc, 5) : 50);
   const fillColor = getSocColor(soc ?? 50);
-  const voltageV = (voltage / 1000).toFixed(2) + 'V';
+  const voltageV = (voltage / 1000).toFixed(3) + 'V';
 
   return (
     <div className={`${styles.cell} ${compact ? styles.cellCompact : ''}`} title={`C${index}: ${voltage}mV`}>
