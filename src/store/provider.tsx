@@ -10,7 +10,7 @@ import type { ParsedProtocol, FieldValue, CalendarGroup, CalendarRecord } from '
 import i18n from '@/i18n';
 import { buildDataMemoryGroups, buildFieldValueMap } from './helpers';
 
-const PROTOCOL_API_URL = 'https://sql.hzxhhc.com/api/data/';
+
 const PROTOCOL_API_URLS = [
   'https://api.bms.pub/api/data',
   'https://sql.hzxhhc.com/api/data/',

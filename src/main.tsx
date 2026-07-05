@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
-import { isWeb, isApp, isMiniProgram } from './utils/platform';
+import { isApp, isMiniProgram } from './utils/platform';
 import './styles/globals.css';
 import './styles/breakpoints.css';
 import './styles/card.css';
