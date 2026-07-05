@@ -4,9 +4,10 @@ export function detectPlatform(): PlatformType {
   if (typeof window === 'undefined') return 'web';
   if (typeof wx !== 'undefined') return 'miniapp';
   if ((window as unknown as Record<string, unknown>).__APP_BRIDGE__) return 'app';
+  const ua = navigator.userAgent;
+  if (/;\s*wv/i.test(ua)) return 'app';
   try {
     if (window.self !== window.top) {
-      const ua = navigator.userAgent;
       if (/wv|app/i.test(ua)) return 'app';
       return 'embedded';
     }

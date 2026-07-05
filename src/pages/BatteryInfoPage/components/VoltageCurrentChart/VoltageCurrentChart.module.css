@@ -52,6 +52,11 @@
   font-weight: 600;
 }
 
+.arrowDiff {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
 
 .cellSection {
   margin-top: 6px;
