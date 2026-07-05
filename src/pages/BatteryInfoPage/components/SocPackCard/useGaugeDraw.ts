@@ -8,8 +8,31 @@ interface GaugeConfig {
   soc?: number;
 }
 
+// --- CSS variable cache (avoid repeated getComputedStyle calls) ---
+let cssVarCache: Record<string, string> = {};
+let cssVarCacheTick = 0;
+const CSS_VAR_CACHE_TTL = 2000; // refresh every 2s (catches theme changes)
+
+function refreshCssVarCache() {
+  const now = Date.now();
+  if (now - cssVarCacheTick < CSS_VAR_CACHE_TTL) return;
+  cssVarCacheTick = now;
+  const root = document.documentElement;
+  const names = [
+    '--color-muted', '--color-foreground', '--color-muted-foreground',
+    '--gauge-current-positive', '--gauge-current-negative', '--gauge-current-zero',
+    '--gauge-voltage-arc', '--gauge-voltage-tick',
+  ];
+  const fresh: Record<string, string> = {};
+  for (const n of names) {
+    fresh[n] = getComputedStyle(root).getPropertyValue(n).trim();
+  }
+  cssVarCache = fresh;
+}
+
 function getComputedStyleVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  refreshCssVarCache();
+  return cssVarCache[name] || '';
 }
 
 function getSocRgb(soc: number): [number, number, number] {
@@ -20,6 +43,8 @@ function getSocRgb(soc: number): [number, number, number] {
 
 export function useGaugeDraw(canvasRef: React.RefObject<HTMLCanvasElement | null>, config: GaugeConfig | null) {
   const rafRef = useRef<number>(0);
+  // Track canvas dimensions to avoid resetting width/height every frame
+  const canvasSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -30,12 +55,23 @@ export function useGaugeDraw(canvasRef: React.RefObject<HTMLCanvasElement | null
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    const cssW = rect.width;
+    const cssH = rect.height;
 
-    const w = rect.width;
-    const h = rect.height;
+    // Only reset canvas dimensions when size actually changes
+    // (setting canvas.width/height clears the canvas and allocates new backing store)
+    const targetW = Math.round(cssW * dpr);
+    const targetH = Math.round(cssH * dpr);
+    if (canvasSizeRef.current.w !== targetW || canvasSizeRef.current.h !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+      canvasSizeRef.current = { w: targetW, h: targetH };
+    }
+    // Always reset transform then scale (cheap, doesn't allocate)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const w = cssW;
+    const h = cssH;
     ctx.clearRect(0, 0, w, h);
 
     if (config.type === 'current') {
@@ -45,7 +81,8 @@ export function useGaugeDraw(canvasRef: React.RefObject<HTMLCanvasElement | null
     } else if (config.type === 'soc') {
       drawSocGauge(ctx, w, h, config.value, config.max, config.soc ?? config.value);
     }
-  }, [canvasRef, config]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasRef, config?.type, config?.value, config?.max, config?.soc]);
 
   useEffect(() => {
     cancelAnimationFrame(rafRef.current);

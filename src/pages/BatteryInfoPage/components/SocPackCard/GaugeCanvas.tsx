@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useGaugeDraw } from './useGaugeDraw';
 
 interface GaugeCanvasProps {
@@ -10,7 +10,9 @@ interface GaugeCanvasProps {
 
 export function GaugeCanvas({ type, value, max, soc }: GaugeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  useGaugeDraw(canvasRef, { type, value, max, soc });
+  // Memoize config so it only changes when primitive values actually change
+  const config = useMemo(() => ({ type, value, max, soc }), [type, value, max, soc]);
+  useGaugeDraw(canvasRef, config);
 
   return <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />;
 }

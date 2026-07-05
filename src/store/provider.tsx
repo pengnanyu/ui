@@ -82,6 +82,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const [protocolLoading, setProtocolLoading] = useState(false);
   const [deviceVersion, setDeviceVersion] = useState<string | null>(null);
   const [parsedFields, setParsedFields] = useState<Map<string, number>>(new Map());
+  const parsedFieldsRef = useRef<Map<string, number>>(new Map());
   const [parsedValues, setParsedValues] = useState<FieldValue[]>([]);
   const [parsedProtocol, setParsedProtocol] = useState<ParsedProtocol | null>(null);
   const [dataMemeryGroups, setDataMemeryGroups] = useState<DataMemeryGroup[]>([]);
@@ -95,11 +96,13 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const setParsedFieldsIfChanged = useCallback((next: Map<string, number>) => {
     setParsedFields(prev => {
       if (prev.size === next.size) {
+        let changed = false;
         for (const [key, value] of next) {
-          if (prev.get(key) !== value) return next;
+          if (prev.get(key) !== value) { changed = true; break; }
         }
-        return prev;
+        if (!changed) return prev;
       }
+      parsedFieldsRef.current = next;
       return next;
     });
   }, []);
@@ -467,7 +470,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const inst = p.instructions[instrIdx]!;
       const offsetInInstr = absAddr - inst.startAddr;
       const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
-      return parsedFields.get(key) ?? 0;
+      return parsedFieldsRef.current.get(key) ?? 0;
     };
 
     const groupMap = new Map<string, { field: FieldValue; newValue: number }[]>();
@@ -921,7 +924,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     if (!pendingFieldsUpdateRef.current) {
-      pendingFieldsUpdateRef.current = new Map(parsedFields);
+      pendingFieldsUpdateRef.current = new Map(parsedFieldsRef.current);
     }
     for (let i = 0; i < parsed.registers.length; i++) {
       pendingFieldsUpdateRef.current.set(makeRegisterKey(parsed.slaveAddr, parsed.funcCode, i), parsed.registers[i]!);
@@ -957,7 +960,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     errorCountRef.current = 0;
     advancePoll();
-  }, [parsedFields, addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery, sendFrame]);
+  }, [addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery, sendFrame]);
 
   const handleRawData = useCallback((payload: unknown) => {
     const p = payload as { data: string | number[] };
@@ -1102,7 +1105,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const inst = p.instructions[instrIdx]!;
       const offsetInInstr = absAddr - inst.startAddr;
       const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
-      return parsedFields.get(key) ?? 0;
+      return parsedFieldsRef.current.get(key) ?? 0;
     };
     const frame = buildFieldWriteFrame(fv, newValue, siblingFields, getLeRegisterValue);
     if (frame) {
