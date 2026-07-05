@@ -81,6 +81,7 @@ export function useBridgeMessage(options: UseBridgeMessageOptions = {}) {
       const bridge = (window as unknown as Record<string, unknown>).__APP_BRIDGE__;
       if (bridge && typeof (bridge as Record<string, unknown>).postMessage === 'function') {
         try { ((bridge as Record<string, unknown>).postMessage as (m: BridgeMessage) => void)(message); } catch (_e) { /* ignore */ }
+        return;
       }
     }
     if (window.parent && window.parent !== window) {
