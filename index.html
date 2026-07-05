@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 
 <head>
   <meta charset="UTF-8" />
@@ -12,7 +12,22 @@
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#3b82f6" />
   <title>锂卫士 LiSafety</title>
-
+  <style>
+    html[data-theme="dark"] { background: rgb(6,7,9); }
+    html[data-theme="light"] { background: rgb(243,245,249); }
+    html { background: rgb(243,245,249); }
+  </style>
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('bms-theme');
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch(e) {}
+    })();
+  </script>
 </head>
 
 <body>

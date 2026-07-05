@@ -35,11 +35,17 @@ function setupViewportUnit() {
 
 setupViewportUnit();
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+const rootEl = document.getElementById('root')!;
+if (isApp() || isMiniProgram()) {
+  // App/小程序模式下不用 StrictMode，避免双重渲染导致 WebView 性能问题
+  createRoot(rootEl).render(<App />);
+} else {
+  createRoot(rootEl).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
 
 // 注册 Service Worker：Web 独立访问和 iframe 嵌入模式都注册，Android WebView 和小程序不注册
 if (!isApp() && !isMiniProgram() && 'serviceWorker' in navigator) {
