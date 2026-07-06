@@ -46,8 +46,8 @@ function AppContent() {
               whiteSpace: 'nowrap',
               boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
               animation: 'toastIn 0.25s ease-out',
-              background: t.type === 'success' ? 'oklch(0.95 0.08 145)' : 'oklch(0.95 0.06 25)',
-              color: t.type === 'success' ? 'oklch(0.3 0.12 145)' : 'oklch(0.35 0.15 25)',
+              background: t.type === 'success' ? 'rgb(220,252,231)' : 'rgb(254,226,226)',
+              color: t.type === 'success' ? 'rgb(22,101,52)' : 'rgb(153,27,27)',
             }}>
               {t.message}
             </span>

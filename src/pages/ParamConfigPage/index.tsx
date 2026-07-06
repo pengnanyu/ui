@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBmsStore } from '@/store/context';
+import { isApp } from '@/utils/platform';
 
 import { ParamGroupCard } from './components/ParamGroupCard';
 import styles from './ParamConfigPage.module.css';
@@ -114,6 +115,16 @@ export function ParamConfigPage() {
     const defaultName = `bms-config-${deviceVersion ?? 'unknown'}.json`;
 
     const saveFile = async () => {
+      // In Android app, use native bridge to save file
+      if (isApp() && (window as unknown as Record<string, unknown>).__APP_BRIDGE__) {
+        const bridge = (window as unknown as { __APP_BRIDGE__: { postMessage: (msg: unknown) => void } }).__APP_BRIDGE__;
+        bridge.postMessage({
+          type: 'bms:download-file',
+          payload: { filename: defaultName, content: json, mimeType: 'application/json' },
+        });
+        showToast(isZh ? `已保存到下载目录: ${defaultName}` : `Saved to Downloads: ${defaultName}`, 'success');
+        return;
+      }
       if (window.showSaveFilePicker) {
         try {
           const handle = await window.showSaveFilePicker({

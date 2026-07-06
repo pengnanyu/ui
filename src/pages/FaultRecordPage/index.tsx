@@ -2,6 +2,7 @@ import { useCallback, useRef, useLayoutEffect, useState } from 'react';
 import { useBmsStore } from '@/store/context';
 import { useTranslation } from 'react-i18next';
 import type { CalendarRecord, CalendarGroup } from '@/utils/modbus';
+import { isApp } from '@/utils/platform';
 import styles from './FaultRecordPage.module.css';
 
 export function FaultRecordPage() {
@@ -47,6 +48,15 @@ export function FaultRecordPage() {
 
     const content = BOM + csv;
     const filename = `bms-fault-records-${Date.now()}.csv`;
+    // In Android app, use native bridge to save file
+    if (isApp() && (window as unknown as Record<string, unknown>).__APP_BRIDGE__) {
+      const bridge = (window as unknown as { __APP_BRIDGE__: { postMessage: (msg: unknown) => void } }).__APP_BRIDGE__;
+      bridge.postMessage({
+        type: 'bms:download-file',
+        payload: { filename, content, mimeType: 'text/csv;charset=utf-8' },
+      });
+      return;
+    }
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({
         type: 'bms:download-file',
