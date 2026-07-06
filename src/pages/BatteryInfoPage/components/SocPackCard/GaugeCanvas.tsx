@@ -18,7 +18,7 @@ export function GaugeCanvas({ type, value, max, soc }: GaugeCanvasProps) {
   const updateSize = useCallback(() => {
     if (wrapperRef.current) {
       const w = wrapperRef.current.clientWidth;
-      setSize(w);
+      setSize(Math.min(w, 200));
     }
   }, []);
 
@@ -30,7 +30,7 @@ export function GaugeCanvas({ type, value, max, soc }: GaugeCanvasProps) {
   }, [updateSize]);
 
   return (
-    <div ref={wrapperRef} style={{ width: '100%' }}>
+    <div ref={wrapperRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
       <canvas ref={canvasRef} style={{ width: size ? `${size}px` : '100%', height: size ? `${size}px` : '100%', display: 'block' }} />
     </div>
   );
