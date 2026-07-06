@@ -92,10 +92,6 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
               <div className={styles.sideLabel}>A</div>
             </div>
           </div>
-          <div className={styles.centerSoc}>
-            <span className={styles.socValue}>{Math.round(soc?.soc ?? 0)}%</span>
-            <span className={styles.socLabel}>SOC</span>
-          </div>
           <div className={styles.bottomCards}>
             <div className={styles.bottomCard}>
               <div className={styles.bottomValue}>{dischargeTime ?? '--'}</div>

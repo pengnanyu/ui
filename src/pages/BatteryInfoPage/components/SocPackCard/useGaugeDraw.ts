@@ -272,5 +272,13 @@ function drawSocGauge(ctx: CanvasRenderingContext2D, w: number, h: number, _valu
     ctx.stroke();
   }
 
-  // SOC text rendered in HTML overlay for WebView compatibility
+  ctx.fillStyle = getComputedStyleVar('--color-foreground');
+  ctx.font = `bold ${r * 0.42}px -apple-system, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`${Math.round(soc)}%`, cx, cy - r * 0.05);
+
+  ctx.fillStyle = getComputedStyleVar('--color-muted-foreground');
+  ctx.font = `${r * 0.14}px -apple-system, sans-serif`;
+  ctx.fillText('SOC', cx, cy + r * 0.22);
 }
