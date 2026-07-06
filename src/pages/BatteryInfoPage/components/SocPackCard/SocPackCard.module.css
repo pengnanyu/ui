@@ -70,6 +70,35 @@
   font-weight: 500;
 }
 
+.centerSoc {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-flex: 1;
+  flex: 1;
+  pointer-events: none;
+}
+
+.socValue {
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.socLabel {
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
 .bottomCards {
   display: -webkit-flex;
   display: flex;
