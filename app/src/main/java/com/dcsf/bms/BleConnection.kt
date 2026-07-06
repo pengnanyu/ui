@@ -162,15 +162,9 @@ class BleConnection(
         if (txLogCounter++ % 10 == 0) {
             LogCollector.log("BLE", "TX ${data.size}B: ${data.joinToString("") { "%02x".format(it) }.take(40)}")
         }
-        synchronized(idleBuffer) {
-            if (idleBuffer.isNotEmpty()) {
-                val chunk = idleBuffer.toByteArray()
-                idleBuffer.clear()
-                handler.post { onDataReceived?.invoke(chunk) }
-            } else {
-                idleBuffer.clear()
-            }
-        }
+        // Clear any pending stale data before sending new frame
+        // (don't flush - stale data could be misinterpreted as a response)
+        synchronized(idleBuffer) { idleBuffer.clear() }
         idleTimer?.let { handler.removeCallbacks(it) }
         idleTimer = null
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {

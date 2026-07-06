@@ -386,6 +386,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     currentSentInstrIdxRef.current = instrIdx;
     waitingResponseRef.current = true;
     errorCountRef.current = 0;
+    if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
+    rawBufRef.current = [];
     sendFrame(frame);
 
     responseTimerRef.current = setTimeout(() => {
@@ -853,10 +855,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (!waitingResponseRef.current && !isWritingRef.current) {
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `unexpected data (not waiting, discarded)`, rawHex });
+      return;
+    }
+
     if (data.length >= 5 && verifyCrc(data) && (data[1]! & 0x80)) {
       if (isVerifyReadRef.current) {
         addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read exception func=0x${(data[1]!).toString(16).padStart(2, '0')}`, rawHex });
       }
+      waitingResponseRef.current = false;
+      if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
       rawBufRef.current = [];
       advancePoll();
       return;
@@ -865,9 +874,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const parsed = parseModbusResponse(data);
 
     if (!parsed) {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `invalid frame (CRC/length error, resync)`, rawHex });
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `invalid frame (CRC/length error, waiting for timeout)`, rawHex });
       rawBufRef.current = [];
-      advancePoll();
       return;
     }
 
@@ -875,6 +883,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       if (isVerifyReadRef.current) {
         addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read exception func=0x${parsed.funcCode.toString(16).padStart(2, '0')}`, rawHex });
       }
+      waitingResponseRef.current = false;
+      if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
       rawBufRef.current = [];
       advancePoll();
       return;
@@ -963,6 +973,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     errorCountRef.current = 0;
+    waitingResponseRef.current = false;
+    if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     advancePoll();
   }, [addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery, sendFrame]);
 
