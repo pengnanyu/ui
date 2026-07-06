@@ -414,7 +414,7 @@ class BleManager {
     val connected = mutableStateOf(false)
     val connectedDevice = mutableStateOf<BleDevice?>(null)
     val connectionError = mutableStateOf(false)
-    val rememberedAddresses = mutableStateListOf<String>()
+    val rememberedDevices = mutableStateListOf<BleDevice>()
     val scanStatus = mutableStateOf("")
 
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -429,17 +429,20 @@ class BleManager {
         const val MAX_DEVICES = 30
     }
 
-    fun rememberDevice(address: String) {
-        if (!rememberedAddresses.contains(address)) {
-            rememberedAddresses.add(address)
+    fun rememberDevice(device: BleDevice) {
+        val idx = rememberedDevices.indexOfFirst { it.address == device.address }
+        if (idx >= 0) {
+            rememberedDevices[idx] = device
+        } else {
+            rememberedDevices.add(device)
         }
     }
 
     fun forgetDevice(address: String) {
-        rememberedAddresses.remove(address)
+        rememberedDevices.removeAll { it.address == address }
     }
 
-    fun isRemembered(address: String): Boolean = rememberedAddresses.contains(address)
+    fun isRemembered(address: String): Boolean = rememberedDevices.any { it.address == address }
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -493,6 +496,12 @@ class BleManager {
 
             val existing = devices.indexOfFirst { it.address == result.device.address }
             val device = BleDevice(name, result.device.address, result.rssi, soc, voltage, current, safety, System.currentTimeMillis())
+
+            // Update remembered device info if this device is remembered
+            val remIdx = rememberedDevices.indexOfFirst { it.address == device.address }
+            if (remIdx >= 0) {
+                rememberedDevices[remIdx] = device
+            }
 
             if (existing >= 0) {
                 devices[existing] = device
@@ -575,8 +584,16 @@ class BleManager {
         val adapter = bluetoothAdapter ?: return onResult(false)
         val btDevice = adapter.getRemoteDevice(device.address) ?: return onResult(false)
 
+        // Clear old connection's callback to prevent race conditions
+        bleConnection?.onDisconnected = null
         bleConnection?.disconnect()
         bleConnection = null
+
+        // Force disconnected state to trigger UI cleanup when switching devices
+        if (connected.value) {
+            connected.value = false
+            connectedDevice.value = null
+        }
 
         bleConnection = BleConnection(btDevice, SERVICE_UUID, NOTIFY_UUID, WRITE_UUID)
         pendingDataCallback?.let { bleConnection?.onDataReceived = it }
@@ -676,6 +693,14 @@ fun BmsApp(
             if (!uiReady.value) return@setOnDataReceived
             val hexStr = data.joinToString("") { "%02x".format(it) }
             pushToUi(webView, "bms:raw-data", """{"data":"$hexStr"}""")
+        }
+    }
+
+    // Scan cycle - runs at BmsApp level so it continues even when BluetoothPage is not visible
+    LaunchedEffect(bleManager.scanning.value) {
+        while (bleManager.scanning.value) {
+            kotlinx.coroutines.delay(2000L)
+            bleManager.cleanupStaleDevices(5000L)
         }
     }
 
@@ -853,14 +878,16 @@ fun BmsApp(
 
 
 
+    val showBottomBar = !(bleManager.connected.value && selectedTab == 1)
+
     Box(modifier = Modifier.fillMaxSize()) {
-    if (isWideScreen) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(colors.bg)
-        ) {
-            if (sidebarVisible) {
+        // ===== Sidebar (wide screen only) =====
+        if (isWideScreen && sidebarVisible) {
+            Row(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .align(Alignment.CenterStart)
+            ) {
                 Box(
                     modifier = Modifier
                         .width(360.dp)
@@ -883,179 +910,172 @@ fun BmsApp(
                         .background(colors.border)
                 )
             }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                AndroidView(
-                    factory = createWebView,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                if (!bleManager.connected.value) {
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(colors.bg),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.BluetoothDisabled, contentDescription = null, modifier = Modifier.size(48.dp), tint = colors.fg3)
-                            Spacer(Modifier.height(8.dp))
-                            Text("请先连接蓝牙设备", color = colors.fg3, fontSize = 14.sp)
-                        }
-                    }
-                }
-            }
         }
-        Card(
-            shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+
+        // ===== WebView (always in composition, never disposed on configuration change) =====
+        Box(
             modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(width = 24.dp, height = 48.dp)
-                .clickable { sidebarVisible = !sidebarVisible },
+                .fillMaxSize()
+                .padding(start = if (isWideScreen && sidebarVisible) 361.dp else 0.dp)
+                .padding(bottom = if (!isWideScreen && showBottomBar) 80.dp else 0.dp)
         ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Icon(
-                    if (sidebarVisible) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
-                    contentDescription = if (sidebarVisible) "隐藏侧栏" else "显示侧栏",
-                    tint = colors.fg2,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-    } else {
-        val showBottomBar = !(bleManager.connected.value && selectedTab == 1)
-        Scaffold(
-            containerColor = colors.bg,
-            bottomBar = {
-                if (showBottomBar) {
-                    NavigationBar(
-                        containerColor = colors.navBg,
-                        tonalElevation = 2.dp,
-                    ) {
-                        NavigationBarItem(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            icon = {
-                                Icon(
-                                    if (bleManager.connected.value) Icons.Default.BluetoothConnected
-                                    else Icons.Default.Bluetooth,
-                                    contentDescription = null,
-                                    tint = if (selectedTab == 0) colors.primary else colors.fg2
-                                )
-                            },
-                            label = {
-                                Text(
-                                    if (bleManager.connected.value) "已连接" else "蓝牙",
-                                    color = if (selectedTab == 0) colors.primary else colors.fg2,
-                                    fontSize = 12.sp
-                                )
-                            },
-                        )
-                        NavigationBarItem(
-                            selected = false,
-                            onClick = { },
-                            icon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(colors.primary, RoundedCornerShape(20.dp)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        Icons.Default.QrCodeScanner,
-                                        contentDescription = "扫码",
-                                        tint = colors.primaryFg,
-                                        modifier = Modifier.size(22.dp),
-                                    )
-                                }
-                            },
-                            label = {
-                                Text(
-                                    "扫码",
-                                    color = colors.fg2,
-                                    fontSize = 12.sp
-                                )
-                            },
-                        )
-                        NavigationBarItem(
-                            selected = selectedTab == 1,
-                            onClick = { if (bleManager.connected.value) selectedTab = 1 },
-                            icon = {
-                                Icon(
-                                    Icons.Default.BluetoothDisabled,
-                                    contentDescription = null,
-                                    tint = if (selectedTab == 1) colors.primary else colors.fg2
-                                )
-                            },
-                            label = {
-                                Text(
-                                    "控制台",
-                                    color = if (selectedTab == 1) colors.primary else colors.fg2,
-                                    fontSize = 12.sp
-                                )
-                            },
-                        )
+            AndroidView(
+                factory = createWebView,
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            // "Not connected" overlay
+            if (!bleManager.connected.value) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(colors.bg),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.BluetoothDisabled, contentDescription = null, modifier = Modifier.size(48.dp), tint = colors.fg3)
+                        Spacer(Modifier.height(8.dp))
+                        Text("请先连接蓝牙设备", color = colors.fg3, fontSize = 14.sp)
                     }
                 }
             }
-        ) { padding ->
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Always render WebView page when connected (prevents recreation on tab switch)
-                if (bleManager.connected.value) {
-                    Column(modifier = Modifier.fillMaxSize().padding(if (showBottomBar) padding else PaddingValues())) {
-                        if (!showBottomBar) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(40.dp)
-                                    .background(colors.bg.copy(alpha = 0.85f))
-                                    .clickable { selectedTab = 0 }
-                                    .padding(horizontal = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    Icons.Default.BluetoothConnected,
-                                    contentDescription = null,
-                                    tint = colors.primary,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    bleManager.connectedDevice.value?.name ?: "BMS",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.fg,
-                                )
-                            }
-                        }
-                        UiPage(
-                            bleManager = bleManager,
-                            colors = colors,
-                            webView = webView,
-                            darkTheme = darkTheme,
-                            modifier = Modifier.fillMaxSize().weight(1f),
-                            createWebView = createWebView,
-                            pushToUi = { type, payload -> pushToUi(webView, type, payload) },
-                        )
-                    }
-                }
-                // Overlay BluetoothPage on top when selectedTab == 0
-                if (selectedTab == 0 || !bleManager.connected.value) {
-                    BluetoothPage(
-                        bleManager = bleManager,
-                        colors = colors,
-                        onRequestPermissions = onRequestPermissions,
-                        onConnectDevice = onConnectDevice,
-                        onDisconnect = onDisconnect,
-                        onConnectedClick = { selectedTab = 1 },
-                        modifier = Modifier.padding(padding).fillMaxSize(),
+
+            // Portrait header bar (when connected, no bottom bar)
+            if (!isWideScreen && bleManager.connected.value && !showBottomBar) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .background(colors.bg.copy(alpha = 0.85f))
+                        .clickable { selectedTab = 0 }
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Default.BluetoothConnected,
+                        contentDescription = null,
+                        tint = colors.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        bleManager.connectedDevice.value?.name ?: "BMS",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.fg,
                     )
                 }
             }
         }
-    }
+
+        // ===== Portrait: BluetoothPage overlay =====
+        if (!isWideScreen && (selectedTab == 0 || !bleManager.connected.value)) {
+            BluetoothPage(
+                bleManager = bleManager,
+                colors = colors,
+                onRequestPermissions = onRequestPermissions,
+                onConnectDevice = onConnectDevice,
+                onDisconnect = onDisconnect,
+                onConnectedClick = { selectedTab = 1 },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = if (showBottomBar) 80.dp else 0.dp),
+            )
+        }
+
+        // ===== Sidebar toggle button (wide screen only) - centered on divider =====
+        if (isWideScreen) {
+            Card(
+                shape = RoundedCornerShape(4.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset(x = if (sidebarVisible) 349.dp else 0.dp)
+                    .size(width = 24.dp, height = 48.dp)
+                    .clickable { sidebarVisible = !sidebarVisible },
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        if (sidebarVisible) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
+                        contentDescription = if (sidebarVisible) "隐藏侧栏" else "显示侧栏",
+                        tint = colors.fg2,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+
+        // ===== Bottom navigation bar (portrait only) =====
+        if (!isWideScreen && showBottomBar) {
+            NavigationBar(
+                containerColor = colors.navBg,
+                tonalElevation = 2.dp,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            ) {
+                NavigationBarItem(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    icon = {
+                        Icon(
+                            if (bleManager.connected.value) Icons.Default.BluetoothConnected
+                            else Icons.Default.Bluetooth,
+                            contentDescription = null,
+                            tint = if (selectedTab == 0) colors.primary else colors.fg2
+                        )
+                    },
+                    label = {
+                        Text(
+                            if (bleManager.connected.value) "已连接" else "蓝牙",
+                            color = if (selectedTab == 0) colors.primary else colors.fg2,
+                            fontSize = 12.sp
+                        )
+                    },
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { },
+                    icon = {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(colors.primary, RoundedCornerShape(20.dp)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Default.QrCodeScanner,
+                                contentDescription = "扫码",
+                                tint = colors.primaryFg,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    },
+                    label = {
+                        Text(
+                            "扫码",
+                            color = colors.fg2,
+                            fontSize = 12.sp
+                        )
+                    },
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { if (bleManager.connected.value) selectedTab = 1 },
+                    icon = {
+                        Icon(
+                            Icons.Default.BluetoothDisabled,
+                            contentDescription = null,
+                            tint = if (selectedTab == 1) colors.primary else colors.fg2
+                        )
+                    },
+                    label = {
+                        Text(
+                            "控制台",
+                            color = if (selectedTab == 1) colors.primary else colors.fg2,
+                            fontSize = 12.sp
+                        )
+                    },
+                )
+            }
+        }
 
     // Floating debug panel
     var showDebug by remember { mutableStateOf(false) }
@@ -1157,13 +1177,7 @@ fun BluetoothPage(
         }
     }
 
-    // Periodic cleanup of stale devices (>5 seconds not seen)
-    LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(2000L)
-            bleManager.cleanupStaleDevices(5000L)
-        }
-    }
+    // Scan cycle is handled at BmsApp level for reliability
 
     Column(
         modifier = modifier
@@ -1221,8 +1235,10 @@ fun BluetoothPage(
             }
         } else {
             val connAddr = bleManager.connectedDevice.value?.address
-            val remembered = bleManager.devices.filter { bleManager.isRemembered(it.address) }
-                .sortedByDescending { it.address == connAddr }
+            // Merge remembered devices with scan data: show remembered devices even if not currently scanned
+            val remembered = bleManager.rememberedDevices.map { rd ->
+                bleManager.devices.find { it.address == rd.address } ?: rd
+            }.sortedByDescending { it.address == connAddr }
             val newDevs = bleManager.devices.filter { !bleManager.isRemembered(it.address) }
                 .sortedByDescending { it.address == connAddr }
 
@@ -1251,7 +1267,7 @@ fun BluetoothPage(
                             colors = colors,
                             onClick = { onConnectDevice(device) },
                             onForget = { bleManager.forgetDevice(device.address) },
-                            onSaveRemember = { bleManager.rememberDevice(device.address) },
+                            onSaveRemember = { bleManager.rememberDevice(device) },
                             onDisconnect = onDisconnect,
                             onConnectedClick = onConnectedClick,
                         )
@@ -1276,7 +1292,7 @@ fun BluetoothPage(
                             colors = colors,
                             onClick = { onConnectDevice(device) },
                             onForget = { bleManager.forgetDevice(device.address) },
-                            onSaveRemember = { bleManager.rememberDevice(device.address) },
+                            onSaveRemember = { bleManager.rememberDevice(device) },
                             onDisconnect = onDisconnect,
                             onConnectedClick = onConnectedClick,
                         )
