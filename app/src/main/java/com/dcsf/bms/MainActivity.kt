@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -332,6 +333,7 @@ class BleManager {
 
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bleConnection: BleConnection? = null
+    private var pendingDataCallback: ((ByteArray) -> Unit)? = null
 
     companion object {
         const val SERVICE_UUID = "0000ff00-0000-1000-8000-00805f9b34fb"
@@ -454,6 +456,11 @@ class BleManager {
         val btDevice = adapter.getRemoteDevice(device.address) ?: return onResult(false)
 
         bleConnection = BleConnection(btDevice, SERVICE_UUID, NOTIFY_UUID, WRITE_UUID)
+        pendingDataCallback?.let { bleConnection?.onDataReceived = it }
+        bleConnection?.onDisconnected = {
+            connected.value = false
+            connectedDevice.value = null
+        }
         bleConnection?.connect(context) { success ->
             if (success) {
                 connectedDevice.value = device
@@ -475,6 +482,7 @@ class BleManager {
     }
 
     fun setOnDataReceived(callback: (ByteArray) -> Unit) {
+        pendingDataCallback = callback
         bleConnection?.onDataReceived = callback
     }
 }
@@ -489,7 +497,7 @@ fun BmsApp(
     onConnectDevice: (BleDevice) -> Unit,
     onDisconnect: () -> Unit,
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val webView = remember { mutableStateOf<WebView?>(null) }
     val configuration = LocalConfiguration.current
     val isWideScreen = configuration.screenWidthDp >= 600
@@ -518,6 +526,10 @@ fun BmsApp(
             settings.databaseEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
             settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
+            val bgHex = if (darkTheme) "#060709" else "#F3F5F9"
+            setBackgroundColor(android.graphics.Color.parseColor(bgHex))
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     Log.d("BMS_UI", "Page finished: $url")
@@ -546,6 +558,11 @@ fun BmsApp(
                         };
                     """
                     view?.evaluateJavascript(shim, null)
+                }
+                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                    super.onPageStarted(view, url, favicon)
+                    val bg = if (darkTheme) "#060709" else "#F3F5F9"
+                    view?.setBackgroundColor(android.graphics.Color.parseColor(bg))
                 }
             }
             webChromeClient = object : android.webkit.WebChromeClient() {
@@ -726,50 +743,56 @@ fun BmsApp(
                 }
             }
         ) { padding ->
-            when (selectedTab) {
-                0 -> BluetoothPage(
-                    bleManager = bleManager,
-                    colors = colors,
-                    onRequestPermissions = onRequestPermissions,
-                    onConnectDevice = onConnectDevice,
-                    onDisconnect = onDisconnect,
-                    onConnectedClick = { selectedTab = 1 },
-                    modifier = Modifier.padding(padding),
-                )
-                1 -> Column(modifier = Modifier.fillMaxSize().padding(if (showBottomBar) padding else PaddingValues())) {
-                    if (!showBottomBar) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(40.dp)
-                                .background(colors.bg.copy(alpha = 0.85f))
-                                .clickable { selectedTab = 0 }
-                                .padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Default.BluetoothConnected,
-                                contentDescription = null,
-                                tint = colors.primary,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                bleManager.connectedDevice.value?.name ?: "BMS",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.fg,
-                            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Always render WebView page when connected (prevents recreation on tab switch)
+                if (bleManager.connected.value) {
+                    Column(modifier = Modifier.fillMaxSize().padding(if (showBottomBar) padding else PaddingValues())) {
+                        if (!showBottomBar) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .background(colors.bg.copy(alpha = 0.85f))
+                                    .clickable { selectedTab = 0 }
+                                    .padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    Icons.Default.BluetoothConnected,
+                                    contentDescription = null,
+                                    tint = colors.primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    bleManager.connectedDevice.value?.name ?: "BMS",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.fg,
+                                )
+                            }
                         }
+                        UiPage(
+                            bleManager = bleManager,
+                            colors = colors,
+                            webView = webView,
+                            darkTheme = darkTheme,
+                            modifier = Modifier.fillMaxSize().weight(1f),
+                            createWebView = createWebView,
+                            pushToUi = { type, payload -> pushToUi(webView, type, payload) },
+                        )
                     }
-                    UiPage(
+                }
+                // Overlay BluetoothPage on top when selectedTab == 0
+                if (selectedTab == 0 || !bleManager.connected.value) {
+                    BluetoothPage(
                         bleManager = bleManager,
                         colors = colors,
-                        webView = webView,
-                        darkTheme = darkTheme,
-                        modifier = Modifier.fillMaxSize().weight(1f),
-                        createWebView = createWebView,
-                        pushToUi = { type, payload -> pushToUi(webView, type, payload) },
+                        onRequestPermissions = onRequestPermissions,
+                        onConnectDevice = onConnectDevice,
+                        onDisconnect = onDisconnect,
+                        onConnectedClick = { selectedTab = 1 },
+                        modifier = Modifier.padding(padding).fillMaxSize(),
                     )
                 }
             }

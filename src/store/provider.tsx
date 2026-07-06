@@ -78,6 +78,7 @@ export function parseRegisterKey(key: string): RegisterKey | null {
 
 export function BmsProvider({ children }: { children: ReactNode }) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const connectionStatusRef = useRef<ConnectionStatus>('disconnected');
   const [protocolDb, setProtocolDb] = useState<ProtocolDatabase | null>(null);
   const [protocolLoading, setProtocolLoading] = useState(false);
   const [deviceVersion, setDeviceVersion] = useState<string | null>(null);
@@ -788,7 +789,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const rawHex = fmtHex(data);
 
     if (isWritingRef.current) {
-      if (data.length < 5 || !verifyCrc(data) || data[1] !== 0x10) {
+      if (data.length < 5 || !verifyCrc(data) || (data[1]! & 0x7F) !== 0x10) {
         if (isVerifyReadRef.current) {
           addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read invalid response (skipped)`, rawHex });
         }
@@ -963,6 +964,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, [addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery, sendFrame]);
 
   const handleRawData = useCallback((payload: unknown) => {
+    if (connectionStatusRef.current !== 'connected') return;
     const p = payload as { data: string | number[] };
     const d = p.data;
     const rawData = typeof d === 'string' ? Array.from({ length: d.length / 2 }, (_, i) => parseInt(d.substring(i * 2, i * 2 + 2), 16)) : d;
@@ -998,8 +1000,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
 
       if (fc === 0x10) {
-        processFrame(buf.slice(0, 5));
-        rawBufRef.current = buf.slice(5);
+        if (buf.length < 8) break;
+        processFrame(buf.slice(0, 8));
+        rawBufRef.current = buf.slice(8);
         continue;
       }
 
@@ -1011,6 +1014,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const handleConnectionStatus = useCallback((payload: unknown) => {
     const p = payload as { status: ConnectionStatus };
     console.log('handleConnectionStatus: ' + p.status);
+    connectionStatusRef.current = p.status;
     setConnectionStatus(p.status);
   }, []);
 
@@ -1054,6 +1058,15 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       isWritingRef.current = false;
       isVerifyReadRef.current = false;
       pendingWriteRef.current = [];
+      calendarPollingRef.current = false;
+      pendingCalendarReadRef.current = false;
+      errorCountRef.current = 0;
+      calendarErrorCountRef.current = 0;
+      isBatchWritingRef.current = false;
+      batchWriteQueueRef.current = [];
+      batchVerifyInstrIdxRef.current = -1;
+      skippedInstrIndicesRef.current = [];
+      setIsBatchWriting(false);
 
       rawBufRef.current = [];
       setDeviceVersion(null);
@@ -1062,6 +1075,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       setParsedValuesIfChanged([]);
       setParsedProtocol(null);
       setDataMemeryGroupsIfChanged([]);
+      setCalendarGroupsIfChanged([]);
+      setCalendarRecordsIfChanged([]);
       parsedValuesMapRef.current = new Map();
 
     }

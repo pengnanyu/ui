@@ -7,28 +7,6 @@
   cursor: default;
 }
 
-.cellCompact .cellVoltage {
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-  position: absolute;
-  bottom: -16px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  padding: 1px 4px;
-  white-space: nowrap;
-  z-index: 10;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-}
-
-.cellCompact:hover .cellVoltage,
-.cellCompact:active .cellVoltage {
-  opacity: 1;
-}
-
 .battery {
   position: relative;
   width: 100%;

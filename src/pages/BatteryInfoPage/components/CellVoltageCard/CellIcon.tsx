@@ -16,7 +16,7 @@ export function CellIcon({ index, voltage, soc, isBalancing, compact }: CellIcon
   const voltageV = (voltage / 1000).toFixed(3) + 'V';
 
   return (
-    <div className={`${styles.cell} ${compact ? styles.cellCompact : ''}`} title={`C${index}: ${voltage}mV`}>
+    <div className={`${styles.cell} ${compact ? styles.cellCompact : ''}`}>
       <div className={styles.battery}>
         <div className={styles.inner}>
           <div
