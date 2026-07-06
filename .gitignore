@@ -4,3 +4,4 @@ tsconfig.tsbuildinfo
 .arts/
 .codeartsdoer/
 *.local
+bun.lock

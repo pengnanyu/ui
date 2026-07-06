@@ -3,7 +3,7 @@
     "directory": "dist"
   },
   "install": {
-    "command": "npm install",
+    "command": "npm install"
   },
   "build": {
     "command": "npm run build",
