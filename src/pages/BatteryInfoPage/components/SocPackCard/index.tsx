@@ -72,16 +72,13 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
       titleExtra={titleExtraContent}
       className={styles.shell}
     >
-      <div className={styles.container}>
-        <div className={styles.gaugeBg}>
+      <div className={styles.overlay}>
           <GaugeCanvas
             type="soc"
             value={soc?.soc ?? 0}
             max={100}
             soc={soc?.soc ?? 0}
           />
-        </div>
-        <div className={styles.overlay}>
           <div className={styles.topRow}>
             <div className={styles.sideCard}>
               <div className={styles.sideValue}>{(pack?.totalVoltage ?? 0).toFixed(3)}</div>
@@ -115,7 +112,6 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
             </div>
           </div>
         </div>
-      </div>
     </CardShell>
   );
 }

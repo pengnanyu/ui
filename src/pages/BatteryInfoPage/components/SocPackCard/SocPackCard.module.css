@@ -1,25 +1,6 @@
-.container {
+.overlay {
   position: relative;
   min-height: 220px;
-  height: 100%;
-}
-
-.gaugeBg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-.gaugeBg canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -27,7 +8,19 @@
   pointer-events: none;
 }
 
+.overlay canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .topRow {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -56,6 +49,8 @@
 }
 
 .centerSoc {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -80,6 +75,8 @@
 }
 
 .bottomCards {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
@@ -109,7 +106,7 @@
 }
 
 @media (max-width: 480px) {
-  .container {
+  .overlay {
     min-height: 200px;
   }
 
