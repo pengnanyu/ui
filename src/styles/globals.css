@@ -1,3 +1,5 @@
+@import './page.css';
+
 *,
 *::before,
 *::after {
@@ -48,7 +50,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-@import './page.css';
 
 @keyframes toastIn {
   from {
