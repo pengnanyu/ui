@@ -17,7 +17,8 @@ const PROTOCOL_API_URLS = [
 ];
 const VERSION_QUERY_INTERVAL = 1000;
 const RESPONSE_TIMEOUT = 3000;
-const TARGET_CYCLE_MS = 500;
+const TARGET_CYCLE_MS = 1000;
+const EXTRA_DELAY_AFTER_CYCLE = 500;
 
 function fmtHex(bytes: number[]): string {
   return '[' + bytes.map(b => b.toString(16).padStart(2, '0')).join(' ') + ']';
@@ -221,6 +222,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const cycleStartRef = useRef(0);
   const waitingResponseRef = useRef(false);
   const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const responseTimeoutCbRef = useRef<(() => void) | null>(null);
   const parsedProtocolRef = useRef<ParsedProtocol | null>(null);
   const allInstrIndicesRef = useRef<number[]>([]);
   const registerInstrIndicesRef = useRef<number[]>([]);
@@ -390,7 +392,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     rawBufRef.current = [];
     sendFrame(frame);
 
-    responseTimerRef.current = setTimeout(() => {
+    const timeoutCb = () => {
       if (!waitingResponseRef.current) return;
       if (connectionStatusRef.current !== 'connected') { waitingResponseRef.current = false; return; }
       errorCountRef.current++;
@@ -415,7 +417,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           resetToVersionQuery();
         }
       }
-    }, RESPONSE_TIMEOUT);
+    };
+    responseTimeoutCbRef.current = timeoutCb;
+    responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
   }, [sendFrame, addLog, resetToVersionQuery]);
 
   const sendNextBatchFrame = useCallback(() => {
@@ -779,7 +783,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
             return;
           }
           sendInstructionFrame(regIndices[0]!);
-        }, Math.max(0, TARGET_CYCLE_MS - (Date.now() - cycleStartRef.current)));
+        }, (() => {
+          const elapsed = Date.now() - cycleStartRef.current;
+          return elapsed >= TARGET_CYCLE_MS ? EXTRA_DELAY_AFTER_CYCLE : Math.max(0, TARGET_CYCLE_MS - elapsed);
+        })());
       }
     }
   }, [sendInstructionFrame, startPeriodicPoll, flushUpdates]);
@@ -984,6 +991,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const d = p.data;
     const rawData = typeof d === 'string' ? Array.from({ length: d.length / 2 }, (_, i) => parseInt(d.substring(i * 2, i * 2 + 2), 16)) : d;
     if (!rawData || rawData.length === 0) return;
+
+    // Reset response timer on data receipt (per spec: clear timer on each data received)
+    if (responseTimerRef.current && waitingResponseRef.current && responseTimeoutCbRef.current) {
+      clearTimeout(responseTimerRef.current);
+      responseTimerRef.current = setTimeout(responseTimeoutCbRef.current, RESPONSE_TIMEOUT);
+    }
 
     for (const b of rawData) rawBufRef.current.push(b);
 

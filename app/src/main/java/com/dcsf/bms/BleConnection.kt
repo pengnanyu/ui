@@ -162,11 +162,17 @@ class BleConnection(
         if (txLogCounter++ % 10 == 0) {
             LogCollector.log("BLE", "TX ${data.size}B: ${data.joinToString("") { "%02x".format(it) }.take(40)}")
         }
-        // Clear any pending stale data before sending new frame
-        // (don't flush - stale data could be misinterpreted as a response)
-        synchronized(idleBuffer) { idleBuffer.clear() }
+        // Flush any pending data before sending new frame
+        // (idle timer mechanism handles normal delivery; this ensures no data is lost)
         idleTimer?.let { handler.removeCallbacks(it) }
         idleTimer = null
+        synchronized(idleBuffer) {
+            if (idleBuffer.isNotEmpty()) {
+                val chunk = idleBuffer.toByteArray()
+                idleBuffer.clear()
+                handler.post { onDataReceived?.invoke(chunk) }
+            }
+        }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             val result = g.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
             return result == android.bluetooth.BluetoothGatt.GATT_SUCCESS

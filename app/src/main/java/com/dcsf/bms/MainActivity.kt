@@ -440,7 +440,7 @@ class BleManager {
         // Don't use ScanFilter.setDeviceName - it does exact match, not prefix match.
         // We filter by name prefix in the scan callback instead.
         val settings = android.bluetooth.le.ScanSettings.Builder()
-            .setScanMode(android.bluetooth.le.ScanSettings.SCAN_MODE_BALANCED)
+            .setScanMode(android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
         try {
             scanner.startScan(emptyList(), settings, scanCallback)
