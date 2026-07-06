@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import type { ConnectionStatus, ProtocolDatabase, BridgeMessage } from '@/types';
-import type { BmsStore, DataMemeryGroup, Toast } from './context';
+import type { BmsStore, DataMemeryGroup, Toast, DebugLogEntry } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
@@ -245,7 +245,21 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const stopVersionRetryRef = useRef<() => void>(() => { });
   const stopAllTimersRef = useRef<() => void>(() => { });
 
-  const addLog = useCallback((_entry: Omit<{ id: string; timestamp: number; direction: 'TX' | 'RX'; configType?: string; parsedInfo?: string; rawHex: string }, 'id'>) => {
+  const [debugLogs, setDebugLogs] = useState<DebugLogEntry[]>([]);
+  const debugLogIdRef = useRef(0);
+
+  const addLog = useCallback((entry: Omit<DebugLogEntry, 'id'>) => {
+    const id = `log${debugLogIdRef.current++}`;
+    const fullEntry: DebugLogEntry = { ...entry, id };
+    setDebugLogs(prev => {
+      const next = [...prev, fullEntry];
+      if (next.length > 500) return next.slice(next.length - 500);
+      return next;
+    });
+  }, []);
+
+  const clearLogs = useCallback(() => {
+    setDebugLogs([]);
   }, []);
 
   const sendFrame = useCallback((frame: number[]) => {
@@ -307,8 +321,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const sendVersionQuery = useCallback(() => {
     const frame = appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]);
+    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `version query (init phase=${initPhaseRef.current})`, rawHex: fmtHex(frame) });
     sendFrame(frame);
-  }, [sendFrame]);
+  }, [sendFrame, addLog]);
 
   const startVersionRetry = useCallback(() => {
     if (versionRetryRef.current) return;
@@ -350,6 +365,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           setProtocolDb(entry);
           setCachedProtocol(entry);
           setProtocolLoading(false);
+          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol DB loaded: version=${version}, ${data.rows.length} rows`, rawHex: '' });
           return;
         }
       } catch (_e) {
@@ -862,7 +878,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!waitingResponseRef.current && !isWritingRef.current) {
+    if (!waitingResponseRef.current && !isWritingRef.current && initPhaseRef.current !== 'version') {
       addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `unexpected data (not waiting, discarded)`, rawHex });
       return;
     }
@@ -902,6 +918,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const verHex = registerToVersionHex(parsed.registers[0]!);
       versionRef.current = verHex;
       setDeviceVersion(verHex);
+      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `version detected: ${verHex}, loading protocol DB...`, rawHex });
       stopVersionRetry();
       loadProtocolDb(verHex);
       return;
@@ -1264,14 +1281,16 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     calendarRecords,
     toasts,
     isBatchWriting,
+    debugLogs,
     sendFrame,
     autoRead,
     writeField,
     showToast,
+    clearLogs,
     startBatchWrite,
     readCalendar,
     writeBatch,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, sendFrame, autoRead, writeField, showToast, startBatchWrite, readCalendar, writeBatch]);
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, debugLogs, sendFrame, autoRead, writeField, showToast, clearLogs, startBatchWrite, readCalendar, writeBatch]);
 
   return (
     <BmsContext.Provider value={store}>
