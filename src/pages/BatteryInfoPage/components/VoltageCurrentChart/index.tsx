@@ -26,7 +26,7 @@ interface VoltageCurrentChartProps {
 function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
   return {
     animation: false,
-    grid: { left: 36, right: 36, top: 36, bottom: 28 },
+    grid: { left: 24, right: 24, top: 28, bottom: 28 },
     tooltip: {
       trigger: 'axis',
       triggerOn: 'mousemove|click',
@@ -70,8 +70,9 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         type: 'value',
         name: 'V',
         nameLocation: 'end',
-        nameGap: 8,
-        nameTextStyle: { fontSize: 10, color: '#6366f1' },
+        nameGap: 4,
+        nameRotate: 0,
+        nameTextStyle: { fontSize: 10, color: '#6366f1', align: 'left' },
         axisLabel: { fontSize: 10, color: '#6366f1' },
         axisLine: { lineStyle: { color: '#6366f1' } },
         splitLine: { lineStyle: { type: 'dashed', color: getThemeColor('--color-border') } },
@@ -80,8 +81,9 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         type: 'value',
         name: 'A',
         nameLocation: 'end',
-        nameGap: 8,
-        nameTextStyle: { fontSize: 10, color: '#f59e0b' },
+        nameGap: 4,
+        nameRotate: 0,
+        nameTextStyle: { fontSize: 10, color: '#f59e0b', align: 'right' },
         axisLabel: { fontSize: 10, color: '#f59e0b' },
         axisLine: { lineStyle: { color: '#f59e0b' } },
         splitLine: { show: false },
