@@ -221,7 +221,7 @@ export function BatteryInfoPage() {
       {cols === 1 ? (
         <>
           <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} />
-          <VoltageCurrentChart history={chartHistory} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} compact />
+          <VoltageCurrentChart history={chartHistory} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
           {detailContent}
         </>
       ) : (
