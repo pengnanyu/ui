@@ -1179,7 +1179,7 @@ fun ConnectedCard(device: BleDevice, colors: AppColors, onDisconnect: () -> Unit
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text("%.3fV".format(device.voltageV()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Text("${if (device.currentA() > 0) "+" else ""}${device.currentA()}A", color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("${if (device.currentA() > 0) "+" else ""}%.3fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
                 SafetyFlagRow(device.safety, colors)
             }
@@ -1213,7 +1213,7 @@ fun DeviceCard(device: BleDevice, colors: AppColors, onClick: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text("%.3fV".format(device.voltageV()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Text("${if (device.currentA() > 0) "+" else ""}${device.currentA()}A", color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("${if (device.currentA() > 0) "+" else ""}%.3fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
                 SafetyFlagRow(device.safety, colors)
             }
@@ -1263,25 +1263,7 @@ fun RssiIndicator(rssi: Int, showDbm: Boolean = false, trackColor: Color = Color
         rssi > -70 -> Color(0xFFEAB308)
         else -> Color(0xFFEF4444)
     }
-    val bars = when {
-        rssi > -50 -> 4
-        rssi > -60 -> 3
-        rssi > -70 -> 2
-        else -> 1
-    }
-    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        repeat(4) { i ->
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height((6 + i * 3).dp)
-                    .background(if (i < bars) color else trackColor, RoundedCornerShape(1.dp)),
-            )
-        }
-        if (showDbm) {
-            Text("${rssi}dBm", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = fg2Color)
-        }
-    }
+    Text("${rssi}dBm", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = color)
 }
 
 @Composable

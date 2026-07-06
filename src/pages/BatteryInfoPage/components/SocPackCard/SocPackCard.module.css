@@ -45,7 +45,7 @@
 }
 
 .sideValue {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-foreground);
   font-variant-numeric: tabular-nums;
@@ -102,7 +102,7 @@
   }
 
   .sideValue {
-    font-size: 18px;
+    font-size: 20px;
   }
 
 

@@ -277,6 +277,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (versionRetryRef.current) { clearInterval(versionRetryRef.current); versionRetryRef.current = null; }
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
+    responseTimeoutCbRef.current = null;
     waitingResponseRef.current = false;
     currentSentInstrIdxRef.current = -1;
   }, []);
@@ -314,7 +315,13 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
     versionRetryRef.current = setInterval(() => {
       if (!versionRef.current) {
+        if (connectionStatusRef.current !== 'connected') {
+          if (versionRetryRef.current) { clearInterval(versionRetryRef.current); versionRetryRef.current = null; }
+          return;
+        }
         sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
+      } else {
+        if (versionRetryRef.current) { clearInterval(versionRetryRef.current); versionRetryRef.current = null; }
       }
     }, VERSION_QUERY_INTERVAL);
   }, [stopAllTimers, sendFrame]);

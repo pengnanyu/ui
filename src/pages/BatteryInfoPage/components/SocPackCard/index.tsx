@@ -84,11 +84,11 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
         <div className={styles.overlay}>
           <div className={styles.topRow}>
             <div className={styles.sideCard}>
-              <div className={styles.sideValue}>{(pack?.totalVoltage ?? 0).toFixed(1)}</div>
+              <div className={styles.sideValue}>{(pack?.totalVoltage ?? 0).toFixed(3)}</div>
               <div className={styles.sideLabel}>V</div>
             </div>
             <div className={styles.sideCard}>
-              <div className={styles.sideValue}>{(pack?.totalCurrent ?? 0).toFixed(1)}</div>
+              <div className={styles.sideValue}>{(pack?.totalCurrent ?? 0).toFixed(3)}</div>
               <div className={styles.sideLabel}>A</div>
             </div>
           </div>

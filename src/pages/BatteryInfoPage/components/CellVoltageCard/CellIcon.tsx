@@ -13,7 +13,7 @@ export function CellIcon({ index, voltage, soc, isBalancing, compact }: CellIcon
   const isError = voltage === 0;
   const fillPercent = isError ? 5 : (soc !== undefined ? Math.max(soc, 5) : 50);
   const fillColor = getSocColor(soc ?? 50);
-  const voltageV = (voltage / 1000).toFixed(3) + 'V';
+  const voltageStr = (voltage / 1000).toFixed(3);
 
   return (
     <div className={`${styles.cell} ${compact ? styles.cellCompact : ''}`}>
@@ -21,14 +21,14 @@ export function CellIcon({ index, voltage, soc, isBalancing, compact }: CellIcon
         <div className={styles.inner}>
           <div
             className={styles.fill}
-            style={{ height: `calc(${fillPercent}% - 4px)`, background: fillColor }}
+            style={{ height: `calc(${fillPercent}% - 4px)`, background: fillColor, opacity: 0.5 }}
           />
         </div>
         <span className={styles.cellName}>C{index}</span>
         <div className={styles.cap} />
       </div>
       {isBalancing && <span className={styles.balancing}>⚡</span>}
-      <span className={styles.cellVoltage}>{voltageV}</span>
+      <span className={styles.cellVoltage}>{voltageStr}</span>
     </div>
   );
 }
