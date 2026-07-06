@@ -29,7 +29,18 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
     tooltip: {
       trigger: 'axis',
       triggerOn: 'mousemove|click',
-      axisPointer: { type: 'cross', label: { backgroundColor: getThemeColor('--color-background') } },
+      backgroundColor: getThemeColor('--color-card'),
+      borderColor: getThemeColor('--color-border'),
+      textStyle: { color: getThemeColor('--color-foreground') },
+      axisPointer: {
+        type: 'cross',
+        lineStyle: { color: getThemeColor('--color-muted-foreground') },
+        label: {
+          backgroundColor: getThemeColor('--color-card'),
+          color: getThemeColor('--color-foreground'),
+          borderColor: getThemeColor('--color-border'),
+        },
+      },
       formatter(params: unknown) {
         const ps = Array.isArray(params) ? params : [params];
         const p0 = ps[0] as { axisValue?: string | number; marker?: string; seriesName?: string; value?: unknown };

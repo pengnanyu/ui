@@ -431,14 +431,13 @@ class BleManager {
         devices.clear()
         scanning.value = true
         scanStatus.value = "Scanning..."
-        val filter = ScanFilter.Builder()
-            .setDeviceName(NAME_PREFIX)
-            .build()
+        // Don't use ScanFilter.setDeviceName - it does exact match, not prefix match.
+        // We filter by name prefix in the scan callback instead.
         val settings = android.bluetooth.le.ScanSettings.Builder()
             .setScanMode(android.bluetooth.le.ScanSettings.SCAN_MODE_BALANCED)
             .build()
         try {
-            scanner.startScan(listOf(filter), settings, scanCallback)
+            scanner.startScan(emptyList(), settings, scanCallback)
         } catch (e: SecurityException) {
             scanStatus.value = "SecurityException: ${e.message}"
             scanning.value = false
