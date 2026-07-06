@@ -1,11 +1,11 @@
 .overlay {
   position: relative;
-  min-height: 220px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 8px 8px 4px;
   pointer-events: none;
+  height: 100%;
 }
 
 .overlay canvas {
@@ -106,9 +106,6 @@
 }
 
 @media (max-width: 480px) {
-  .overlay {
-    min-height: 200px;
-  }
 
   .sideValue {
     font-size: 20px;
