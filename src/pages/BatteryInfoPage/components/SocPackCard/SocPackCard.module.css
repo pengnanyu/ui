@@ -1,7 +1,6 @@
 .container {
   position: relative;
-  height: 220px;
-  overflow: hidden;
+  min-height: 220px;
 }
 
 .gaugeBg {
@@ -21,12 +20,9 @@
 }
 
 .overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  position: relative;
   z-index: 1;
+  min-height: 220px;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
@@ -140,7 +136,11 @@
 
 @media (max-width: 480px) {
   .container {
-    height: 200px;
+    min-height: 200px;
+  }
+
+  .overlay {
+    min-height: 200px;
   }
 
   .sideValue {
