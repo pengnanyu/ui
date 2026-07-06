@@ -55,6 +55,30 @@
   font-weight: 500;
 }
 
+.centerSoc {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.socValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.socLabel {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
 .bottomCards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
