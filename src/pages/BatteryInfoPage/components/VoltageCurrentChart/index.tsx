@@ -20,7 +20,7 @@ interface VoltageCurrentChartProps {
   voltageMin?: number;
   balanceFlags?: boolean[];
   soc?: number;
-  compact?: boolean;
+
 }
 
 function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
@@ -138,7 +138,7 @@ function readZoomRange(chart: echarts.ECharts): { start: number; end: number } |
   return null;
 }
 
-export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltageMin, balanceFlags, soc, compact }: VoltageCurrentChartProps) {
+export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltageMin, balanceFlags, soc }: VoltageCurrentChartProps) {
   const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
