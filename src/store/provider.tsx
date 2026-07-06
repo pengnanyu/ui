@@ -16,8 +16,8 @@ const PROTOCOL_API_URLS = [
   'https://sql.hzxhhc.com/api/data/',
 ];
 const VERSION_QUERY_INTERVAL = 1000;
-const RESPONSE_TIMEOUT = 5000;
-const TARGET_CYCLE_MS = 1000;
+const RESPONSE_TIMEOUT = 3000;
+const TARGET_CYCLE_MS = 500;
 
 function fmtHex(bytes: number[]): string {
   return '[' + bytes.map(b => b.toString(16).padStart(2, '0')).join(' ') + ']';
@@ -247,6 +247,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sendFrame = useCallback((frame: number[]) => {
+    if (connectionStatusRef.current !== 'connected') return;
     const hex = frame.map(b => b.toString(16).padStart(2, '0')).join('');
     if (sendMessageRef.current) {
       sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex } });
@@ -370,6 +371,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, [addLog]);
 
   const sendInstructionFrame = useCallback((instrIdx: number) => {
+    if (connectionStatusRef.current !== 'connected') return;
     const protocol = parsedProtocolRef.current;
     if (!protocol || instrIdx >= protocol.instructions.length) return;
     const inst = protocol.instructions[instrIdx]!;
@@ -388,6 +390,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     responseTimerRef.current = setTimeout(() => {
       if (!waitingResponseRef.current) return;
+      if (connectionStatusRef.current !== 'connected') { waitingResponseRef.current = false; return; }
       errorCountRef.current++;
       if (errorCountRef.current < 3) {
         if (isVerifyReadRef.current) {
@@ -1016,6 +1019,34 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     console.log('handleConnectionStatus: ' + p.status);
     connectionStatusRef.current = p.status;
     setConnectionStatus(p.status);
+    if (p.status !== 'connected') {
+      stopAllTimersRef.current();
+      stopVersionRetryRef.current();
+      versionRef.current = null;
+      initPhaseRef.current = 'idle';
+      isWritingRef.current = false;
+      isVerifyReadRef.current = false;
+      pendingWriteRef.current = [];
+      calendarPollingRef.current = false;
+      pendingCalendarReadRef.current = false;
+      errorCountRef.current = 0;
+      calendarErrorCountRef.current = 0;
+      isBatchWritingRef.current = false;
+      batchWriteQueueRef.current = [];
+      batchVerifyInstrIdxRef.current = -1;
+      skippedInstrIndicesRef.current = [];
+      setIsBatchWriting(false);
+      rawBufRef.current = [];
+      setDeviceVersion(null);
+      setProtocolDb(null);
+      setParsedFieldsIfChanged(new Map());
+      setParsedValuesIfChanged([]);
+      setParsedProtocol(null);
+      setDataMemeryGroupsIfChanged([]);
+      setCalendarGroupsIfChanged([]);
+      setCalendarRecordsIfChanged([]);
+      parsedValuesMapRef.current = new Map();
+    }
   }, []);
 
   const handleThemeChange = useCallback((payload: unknown) => {

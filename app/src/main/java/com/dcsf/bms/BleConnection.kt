@@ -32,7 +32,7 @@ class BleConnection(
 
     private val idleBuffer = mutableListOf<Byte>()
     private var idleTimer: Runnable? = null
-    private var idleMs = 50L
+    private var idleMs = 30L
     private val MAX_BUFFER_BEFORE_FLUSH = 512
 
     fun connect(context: Context, onResult: (Boolean) -> Unit) {
