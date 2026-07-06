@@ -43,19 +43,29 @@ function getSocRgb(soc: number): [number, number, number] {
 
 export function useGaugeDraw(canvasRef: React.RefObject<HTMLCanvasElement | null>, config: GaugeConfig | null) {
   const rafRef = useRef<number>(0);
-  // Track canvas dimensions to avoid resetting width/height every frame
   const canvasSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
-  // Track theme changes to force redraw when data-theme attribute changes
   const [themeTick, setThemeTick] = useState(0);
+  const [sizeTick, setSizeTick] = useState(0);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
-      cssVarCacheTick = 0; // invalidate cache
+      cssVarCacheTick = 0;
       setThemeTick(t => t + 1);
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ro = new ResizeObserver(() => {
+      canvasSizeRef.current = { w: 0, h: 0 };
+      setSizeTick(t => t + 1);
+    });
+    ro.observe(canvas);
+    return () => ro.disconnect();
+  }, [canvasRef]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -93,7 +103,7 @@ export function useGaugeDraw(canvasRef: React.RefObject<HTMLCanvasElement | null
       drawSocGauge(ctx, w, h, config.value, config.max, config.soc ?? config.value);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasRef, config?.type, config?.value, config?.max, config?.soc, themeTick]);
+  }, [canvasRef, config?.type, config?.value, config?.max, config?.soc, themeTick, sizeTick]);
 
   useEffect(() => {
     cancelAnimationFrame(rafRef.current);
