@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import * as echarts from 'echarts';
 import { useTranslation } from 'react-i18next';
 import type { VoltageCurrentDataPoint, CellVoltage } from '@/types';
+import { CardShell } from '@/components/shared/CardShell';
 import { CellIcon } from '../CellVoltageCard/CellIcon';
 import cellStyles from '../CellVoltageCard/CellVoltageCard.module.css';
 import styles from './VoltageCurrentChart.module.css';
@@ -250,18 +251,11 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
   }, [restoreToFull]);
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
-          <span className={styles.headerTitle}>{t('battery.viChart')}</span>
-        </div>
-        {titleExtra}
-      </div>
+    <CardShell title={<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>{t('battery.viChart')}</>} titleExtra={titleExtra}>
       {history.length === 0 ? (
-        <div className={`${styles.empty} ${compact ? styles.emptyCompact : ''}`}>--</div>
+        <div className={styles.empty}>--</div>
       ) : (
-        <div ref={chartRef} className={`${styles.chartContainer} ${compact ? styles.chartCompact : ''}`} />
+        <div ref={chartRef} className={styles.chartContainer} />
       )}
       {cellVoltages && cellVoltages.length > 0 && (
         <div className={styles.cellSection}>
@@ -279,6 +273,6 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
           </div>
         </div>
       )}
-    </div>
+    </CardShell>
   );
 }
