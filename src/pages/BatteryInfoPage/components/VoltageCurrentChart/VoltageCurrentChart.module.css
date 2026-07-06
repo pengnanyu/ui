@@ -28,8 +28,8 @@
 
 .chartContainer {
   width: 100%;
-  min-height: 220px;
-  height: 260px;
+  min-height: 160px;
+  height: 180px;
   position: relative;
   overflow: hidden;
   touch-action: pan-y;
@@ -72,8 +72,8 @@
   justify-content: center;
   color: var(--color-muted-foreground);
   font-size: 14px;
-  min-height: 220px;
-  height: 260px;
+  min-height: 160px;
+  height: 180px;
 }
 
 .emptyCompact {

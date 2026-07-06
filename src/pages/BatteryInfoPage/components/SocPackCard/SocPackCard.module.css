@@ -6,6 +6,7 @@
   padding: 8px 8px 4px;
   pointer-events: none;
   height: 100%;
+  min-height: 260px;
 }
 
 .overlay canvas {
@@ -106,6 +107,10 @@
 }
 
 @media (max-width: 480px) {
+
+  .overlay {
+    min-height: 240px;
+  }
 
   .sideValue {
     font-size: 20px;
