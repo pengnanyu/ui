@@ -1084,6 +1084,16 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       batchWriteQueueRef.current = [];
       batchVerifyInstrIdxRef.current = -1;
       skippedInstrIndicesRef.current = [];
+      allInstrIndicesRef.current = [];
+      registerInstrIndicesRef.current = [];
+      pollIdxRef.current = 0;
+      currentSentInstrIdxRef.current = -1;
+      writeInstrIdxRef.current = -1;
+      writeFieldNameRef.current = '';
+      writeVerifyAddrRef.current = -1;
+      writeVerifyQtyRef.current = 0;
+      calendarPollGroupIdxRef.current = 0;
+      calendarPollRecordIdxRef.current = 0;
       setIsBatchWriting(false);
       rawBufRef.current = [];
       setDeviceVersion(null);
@@ -1095,6 +1105,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       setCalendarGroupsIfChanged([]);
       setCalendarRecordsIfChanged([]);
       parsedValuesMapRef.current = new Map();
+      parsedFieldsRef.current = new Map();
+      calendarGroupsRef.current = [];
+      calendarRecordsRef.current = [];
+      pendingFieldsUpdateRef.current = null;
+      pendingValuesUpdateRef.current = false;
+      pendingDmUpdateRef.current = false;
     }
   }, []);
 
