@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 export function formatDisplayValue(value: number): string {
   if (Number.isInteger(value) && Math.abs(value) < 1e6) {
     return value.toString();

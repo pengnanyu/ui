@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import type { TempData } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { CardShell } from '@/components/shared/CardShell';
@@ -22,10 +25,10 @@ export function TemperatureCard({ temperatures, mosTemperature, temperMax, tempe
   const titleExtra = (temperMax !== undefined || temperMin !== undefined) ? (
     <div className={styles.headerInfo}>
       {temperMax !== undefined && (
-        <span className={styles.headerItem}>↑ {temperMax.toFixed(1)}℃</span>
+        <span className={styles.headerItem}>鈫?{temperMax.toFixed(1)}鈩?/span>
       )}
       {temperMin !== undefined && (
-        <span className={styles.headerItem}>↓ {temperMin.toFixed(1)}℃</span>
+        <span className={styles.headerItem}>鈫?{temperMin.toFixed(1)}鈩?/span>
       )}
     </div>
   ) : undefined;

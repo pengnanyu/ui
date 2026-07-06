@@ -1,7 +1,10 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ * Helper functions for BMS data processing
+ */
 import type { DataMemeryGroup } from './context';
 import type { FieldValue } from '@/utils/modbus';
 
-// 统一把字段按 rowIndex 建索引，后续写入/回填逻辑可以直接命中，不再依赖线性扫描。
 export function buildFieldValueMap(values: FieldValue[]): Map<number, FieldValue> {
   const map = new Map<number, FieldValue>();
   for (const value of values) {
@@ -10,7 +13,6 @@ export function buildFieldValueMap(values: FieldValue[]): Map<number, FieldValue
   return map;
 }
 
-// 把 Data Memory 字段按配置名分组，方便页面按组渲染并减少重复计算。
 export function buildDataMemoryGroups(values: FieldValue[]): DataMemeryGroup[] {
   const groupsByKey = new Map<string, FieldValue[]>();
   for (const value of values) {

@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { HashRouter, Routes, Route, Navigate } from 'react-router';
 import { BatteryInfoPage } from '@/pages/BatteryInfoPage';
 import { ParamConfigPage } from '@/pages/ParamConfigPage';

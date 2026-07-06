@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { isMiniProgram } from './platform';
 
 const DB_NAME = 'bms-protocol-cache';

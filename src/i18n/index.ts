@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import zh from './zh.json';

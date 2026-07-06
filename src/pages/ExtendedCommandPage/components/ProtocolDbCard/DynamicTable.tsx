@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { useMemo, memo } from 'react';
 import type { ProtocolDatabase } from '@/types';
 import type { FieldValue } from '@/utils/modbus';

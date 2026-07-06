@@ -80,10 +80,7 @@
     "loadDb": "加载数据库",
     "autoRead": "自动读取",
     "invalidHex": "HEX 格式错误",
-    "debugLog": "调试日志",
-    "clearLogs": "清空",
-    "autoScroll": "自动滚动",
-    "noLogs": "暂无日志"
+    "autoScroll": "自动滚动"
   },
   "common": {
     "loading": "加载中...",

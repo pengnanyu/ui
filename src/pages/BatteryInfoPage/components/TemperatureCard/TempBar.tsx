@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import styles from './TempBar.module.css';
 
 interface TempBarProps {
@@ -35,7 +38,7 @@ export function TempBar({ index, temperature, name }: TempBarProps) {
           <div className={styles.barFill} style={{ width: `${fillPercent}%`, background: getTempGradient(temperature) }} />
         )}
       </div>
-      <span className={styles.barValue}>{isAbnormal ? 'ERR' : `${temperature.toFixed(1)}℃`}</span>
+      <span className={styles.barValue}>{isAbnormal ? 'ERR' : `${temperature.toFixed(1)}鈩僠}</span>
     </div>
   );
 }

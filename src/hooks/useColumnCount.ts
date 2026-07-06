@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { useState, useEffect, useRef } from 'react';
 
 export function useColumnCount(breakpoints: [number, number, number] = [640, 1024, 1400]): { ref: React.RefObject<HTMLDivElement>; cols: number } {

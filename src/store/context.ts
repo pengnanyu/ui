@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ * BMS Context - 全局状态上下文定义
+ */
 import { createContext, useContext } from 'react';
 import type { ConnectionStatus, ProtocolDatabase } from '@/types';
 import type { FieldValue, ParsedProtocol, CalendarGroup, CalendarRecord } from '@/utils/modbus';
@@ -14,15 +18,6 @@ export interface Toast {
   type: 'success' | 'error';
 }
 
-export interface DebugLogEntry {
-  id: string;
-  timestamp: number;
-  direction: 'TX' | 'RX';
-  configType?: string;
-  parsedInfo?: string;
-  rawHex: string;
-}
-
 export interface BmsState {
   connectionStatus: ConnectionStatus;
   protocolDb: ProtocolDatabase | null;
@@ -36,7 +31,6 @@ export interface BmsState {
   calendarRecords: CalendarRecord[];
   toasts: Toast[];
   isBatchWriting: boolean;
-  debugLogs: DebugLogEntry[];
 }
 
 export interface BmsActions {
@@ -44,7 +38,6 @@ export interface BmsActions {
   autoRead: () => void;
   writeField: (fieldRowIndex: number, newValue: number) => void;
   showToast: (message: string, type: 'success' | 'error') => void;
-  clearLogs: () => void;
   startBatchWrite: (count: number) => void;
   readCalendar: () => void;
   writeBatch: (fields: { fieldRowIndex: number; newValue: number }[]) => void;

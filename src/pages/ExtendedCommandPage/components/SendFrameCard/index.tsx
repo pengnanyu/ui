@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CardShell } from '@/components/shared/CardShell';

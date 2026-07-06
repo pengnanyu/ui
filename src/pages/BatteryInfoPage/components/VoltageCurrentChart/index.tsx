@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { useRef, useEffect, useCallback } from 'react';
 import * as echarts from 'echarts';
 import { useTranslation } from 'react-i18next';
@@ -167,9 +170,9 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
 
   const titleExtra = (
     <div className={styles.titleLegend}>
-      {voltageMax !== undefined && <span className={styles.legendItem}><span className={styles.arrowUp}>↑</span>{(voltageMax / 1000).toFixed(3)}V</span>}
-      {voltageMin !== undefined && <span className={styles.legendItem}><span className={styles.arrowDown}>↓</span>{(voltageMin / 1000).toFixed(3)}V</span>}
-      {voltageDiff !== undefined && <span className={styles.legendItem}><span className={styles.legendDiff}>Δ</span>{(voltageDiff / 1000).toFixed(3)}V</span>}
+      {voltageMax !== undefined && <span className={styles.legendItem}><span className={styles.arrowUp}>鈫?/span>{(voltageMax / 1000).toFixed(3)}V</span>}
+      {voltageMin !== undefined && <span className={styles.legendItem}><span className={styles.arrowDown}>鈫?/span>{(voltageMin / 1000).toFixed(3)}V</span>}
+      {voltageDiff !== undefined && <span className={styles.legendItem}><span className={styles.legendDiff}>螖</span>{(voltageDiff / 1000).toFixed(3)}V</span>}
     </div>
   );
 

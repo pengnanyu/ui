@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { useTranslation } from 'react-i18next';
 import type { ParamItem } from '@/types';
 import { ParamRow } from './ParamRow';
@@ -24,10 +27,9 @@ export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBac
           <button
             className={styles.backBtn}
             onClick={(e) => { e.stopPropagation(); onBack(); }}
-            aria-label="返回"
+            aria-label="杩斿洖"
           >
-            ‹
-          </button>
+            鈥?          </button>
         )}
         <span className={styles.groupTitle}>{groupName}</span>
       </div>

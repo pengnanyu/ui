@@ -1,3 +1,6 @@
+# Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+# ProGuard rules for BMS Android App
+
 # Compose
 -keep class androidx.compose.** { *; }
 -dontwarn androidx.compose.**
@@ -18,3 +21,11 @@
 -keep class * {
     @androidx.compose.runtime.Composable <methods>;
 }
+
+# WebView JavaScript interface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
+# R8 full mode
+-fullvisibility

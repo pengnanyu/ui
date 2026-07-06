@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ParamItem } from '@/types';
 import styles from './ParamInput.module.css';
@@ -136,7 +139,7 @@ export function ParamInput({ param, onValueChange, onBlur, hasPendingDiff }: Par
   }, [localValue, dt, onValueChange, onBlur]);
 
   if (param.readonly) {
-    return <span className={styles.dash}>—</span>;
+    return <span className={styles.dash}>鈥?/span>;
   }
 
   if (param.options && param.options.length > 0) {

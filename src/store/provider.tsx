@@ -1,15 +1,18 @@
+/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ * BMS Provider - 管理BLE通信、协议解析、参数读写
+ */
 import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import type { ConnectionStatus, ProtocolDatabase, BridgeMessage } from '@/types';
-import type { BmsStore, DataMemeryGroup, Toast, DebugLogEntry } from './context';
+import type { BmsStore, DataMemeryGroup, Toast } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
-import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, buildBatchWriteFrames, verifyCrc, reverseOperation, parseCalendarGroups, parseCalendarRecord, initDefaultFieldValues } from '@/utils/modbus';
+import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, buildBatchWriteFrames, verifyCrc, parseCalendarGroups, parseCalendarRecord, initDefaultFieldValues } from '@/utils/modbus';
 import { getCachedProtocol, setCachedProtocol } from '@/utils/protocol-cache';
 import type { ParsedProtocol, FieldValue, CalendarGroup, CalendarRecord } from '@/utils/modbus';
 import i18n from '@/i18n';
 import { buildDataMemoryGroups, buildFieldValueMap } from './helpers';
-
 
 const PROTOCOL_API_URLS = [
   'https://api.bms.pub/api/data',
@@ -19,10 +22,6 @@ const VERSION_QUERY_INTERVAL = 1000;
 const RESPONSE_TIMEOUT = 3000;
 const TARGET_CYCLE_MS = 1000;
 const EXTRA_DELAY_AFTER_CYCLE = 500;
-
-function fmtHex(bytes: number[]): string {
-  return '[' + bytes.map(b => b.toString(16).padStart(2, '0')).join(' ') + ']';
-}
 
 function registerToVersionHex(register: number): string {
   return bigEndianHex(register);
@@ -157,8 +156,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const pendingValuesUpdateRef = useRef(false);
   const pendingDmUpdateRef = useRef(false);
 
-
-
   const sendMessageRef = useRef<((msg: BridgeMessage) => void) | null>(null);
   const versionRef = useRef<string | null>(null);
   const versionRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -174,7 +171,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
-    // 批量写入期间，把所有子步骤的结果先累计，最后只显示一条汇总提示。
     if (isBatchWritingRef.current) {
       if (type === 'error') batchWriteErrorRef.current = true;
       batchWriteDoneRef.current += 1;
@@ -234,33 +230,18 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const pendingCalendarReadRef = useRef(false);
   const writeInstrIdxRef = useRef(-1);
   const writeFieldNameRef = useRef('');
-  const writeVerifyAddrRef = useRef(-1);
-  const writeVerifyQtyRef = useRef(0);
   const pendingWriteRef = useRef<{ fieldRowIndex: number; newValue: number }[]>([]);
   const isVerifyReadRef = useRef(false);
   const errorCountRef = useRef(0);
   const calendarErrorCountRef = useRef(0);
 
+  // Verify-read expected values for comparison
+  const writeExpectedValueRef = useRef<{ rowIndex: number; expectedValue: number; fieldName: string } | null>(null);
+  const batchExpectedValuesRef = useRef<Map<number, number>>(new Map());
+
   const startVersionRetryRef = useRef<() => void>(() => { });
   const stopVersionRetryRef = useRef<() => void>(() => { });
   const stopAllTimersRef = useRef<() => void>(() => { });
-
-  const [debugLogs, setDebugLogs] = useState<DebugLogEntry[]>([]);
-  const debugLogIdRef = useRef(0);
-
-  const addLog = useCallback((entry: Omit<DebugLogEntry, 'id'>) => {
-    const id = `log${debugLogIdRef.current++}`;
-    const fullEntry: DebugLogEntry = { ...entry, id };
-    setDebugLogs(prev => {
-      const next = [...prev, fullEntry];
-      if (next.length > 500) return next.slice(next.length - 500);
-      return next;
-    });
-  }, []);
-
-  const clearLogs = useCallback(() => {
-    setDebugLogs([]);
-  }, []);
 
   const sendFrame = useCallback((frame: number[]) => {
     if (connectionStatusRef.current !== 'connected') return;
@@ -273,6 +254,15 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const executePendingWriteOrPollRef = useRef<() => void>(() => { });
   const writeFieldRef = useRef<(fieldRowIndex: number, newValue: number) => void>(() => { });
 
+  /** Clear injected command timers without killing periodic poll state */
+  const clearInjectedTimers = useCallback(() => {
+    if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
+    if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
+    responseTimeoutCbRef.current = null;
+    waitingResponseRef.current = false;
+    errorCountRef.current = 0;
+  }, []);
+
   const stopAllTimers = useCallback(() => {
     if (versionRetryRef.current) { clearInterval(versionRetryRef.current); versionRetryRef.current = null; }
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
@@ -283,54 +273,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, []);
   stopAllTimersRef.current = stopAllTimers;
 
-  const resetToVersionQuery = useCallback(() => {
-    stopAllTimers();
-    versionRef.current = null;
-    initPhaseRef.current = 'version';
-    isWritingRef.current = false;
-    isVerifyReadRef.current = false;
-    pendingWriteRef.current = [];
-    calendarPollingRef.current = false;
-    pendingCalendarReadRef.current = false;
-    errorCountRef.current = 0;
-    calendarErrorCountRef.current = 0;
-    isBatchWritingRef.current = false;
-    batchWriteQueueRef.current = [];
-    batchVerifyInstrIdxRef.current = -1;
-    skippedInstrIndicesRef.current = [];
-    setIsBatchWriting(false);
-
-    rawBufRef.current = [];
-    addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `communication-error, resetting to version query`, rawHex: '' });
-    setDeviceVersion(null);
-    setProtocolDb(null);
-    setParsedFieldsIfChanged(new Map());
-    setParsedValuesIfChanged([]);
-    setParsedProtocol(null);
-    setDataMemeryGroupsIfChanged([]);
-    setCalendarGroupsIfChanged([]);
-    setCalendarRecordsIfChanged([]);
-    parsedValuesMapRef.current = new Map();
-
-    sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
-    versionRetryRef.current = setInterval(() => {
-      if (!versionRef.current) {
-        if (connectionStatusRef.current !== 'connected') {
-          if (versionRetryRef.current) { clearInterval(versionRetryRef.current); versionRetryRef.current = null; }
-          return;
-        }
-        sendFrame(appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]));
-      } else {
-        if (versionRetryRef.current) { clearInterval(versionRetryRef.current); versionRetryRef.current = null; }
-      }
-    }, VERSION_QUERY_INTERVAL);
-  }, [stopAllTimers, sendFrame]);
-
   const sendVersionQuery = useCallback(() => {
     const frame = appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]);
-    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `version query (init phase=${initPhaseRef.current})`, rawHex: fmtHex(frame) });
     sendFrame(frame);
-  }, [sendFrame, addLog]);
+  }, [sendFrame]);
 
   const startVersionRetry = useCallback(() => {
     if (versionRetryRef.current) return;
@@ -355,7 +301,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const loadProtocolDb = useCallback(async (version: string) => {
     setProtocolLoading(true);
     initPhaseRef.current = 'protocol';
-    // 尝试多个 API 源（新 ESA API 优先，旧 API 回退）
     for (const apiUrl of PROTOCOL_API_URLS) {
       try {
         const res = await fetch(`${apiUrl}?search=${encodeURIComponent(version)}`);
@@ -372,28 +317,24 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           setProtocolDb(entry);
           setCachedProtocol(entry);
           setProtocolLoading(false);
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol DB loaded: version=${version}, ${data.rows.length} rows`, rawHex: '' });
           return;
         }
       } catch (_e) {
-        // 尝试下一个 API 源
+        // try next API source
       }
     }
-    addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db online failed: version=${version}, trying cache`, rawHex: '' });
     try {
       const cached = await getCachedProtocol(version);
       if (cached && cached.columns && cached.rows) {
         setProtocolDb(cached);
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db loaded from cache: version=${version}`, rawHex: '' });
         setProtocolLoading(false);
         return;
       }
     } catch (_e) {
       // ignore cache read error
     }
-    addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `protocol-db failed: version=${version} (no online, no cache)`, rawHex: '' });
     setProtocolLoading(false);
-  }, [addLog]);
+  }, []);
 
   const sendInstructionFrame = useCallback((instrIdx: number, isRetry = false) => {
     if (connectionStatusRef.current !== 'connected') return;
@@ -422,24 +363,14 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       if (connectionStatusRef.current !== 'connected') { waitingResponseRef.current = false; return; }
       errorCountRef.current++;
       if (errorCountRef.current < 3) {
-        if (isVerifyReadRef.current) {
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read timeout, retry ${errorCountRef.current}/3`, rawHex: '' });
-        } else {
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `response timeout, retry ${errorCountRef.current}/3`, rawHex: '' });
-        }
         waitingResponseRef.current = false;
         sendInstructionFrame(instrIdx, true);
       } else {
-        if (isVerifyReadRef.current) {
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read timeout, max retries`, rawHex: '' });
-        }
         if (initPhaseRef.current === 'initial-poll') {
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `initial-poll timeout, skipping instruction`, rawHex: '' });
           skippedInstrIndicesRef.current.push(instrIdx);
           waitingResponseRef.current = false;
           advancePoll();
         } else {
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `connection lost (max retries exceeded)`, rawHex: '' });
           connectionStatusRef.current = 'disconnected';
           stopAllTimersRef.current();
           stopVersionRetryRef.current();
@@ -449,7 +380,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     };
     responseTimeoutCbRef.current = timeoutCb;
     responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
-  }, [sendFrame, addLog]);
+  }, [sendFrame]);
 
   const sendNextBatchFrame = useCallback((isRetry = false) => {
     if (batchWriteQueueRef.current.length === 0) {
@@ -479,8 +410,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       errorCountRef.current = 0;
     }
     batchVerifyInstrIdxRef.current = item.instrIdx;
+    // Clear response timer for injected command
+    if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     sendFrame(item.frame);
-    addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `batch-write frame ${batchWriteDoneRef.current + 1}/${batchWriteTotalRef.current}`, rawHex: fmtHex(item.frame) });
     responseTimerRef.current = setTimeout(() => {
       if (!isWritingRef.current) return;
       errorCountRef.current++;
@@ -493,11 +425,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         isWritingRef.current = false;
         batchWriteErrorRef.current = true;
         batchWriteDoneRef.current++;
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'batch-write timeout, max retries', rawHex: '' });
         sendNextBatchFrameRef.current();
       }
     }, RESPONSE_TIMEOUT);
-  }, [sendFrame, addLog, showToast, sendInstructionFrame]);
+  }, [sendFrame, showToast, sendInstructionFrame]);
 
   sendNextBatchFrameRef.current = sendNextBatchFrame;
 
@@ -513,6 +444,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const key = makeRegisterKey(inst.slaveAddr, inst.funcCode, offsetInInstr);
       return parsedFieldsRef.current.get(key) ?? 0;
     };
+
+    // Store expected values for verification
+    batchExpectedValuesRef.current = new Map();
+    for (const { fieldRowIndex, newValue } of fields) {
+      batchExpectedValuesRef.current.set(fieldRowIndex, newValue);
+    }
 
     const groupMap = new Map<string, { field: FieldValue; newValue: number }[]>();
     for (const { fieldRowIndex, newValue } of fields) {
@@ -535,8 +472,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
     if (allItems.length === 0) return;
 
-    stopAllTimers();
-    waitingResponseRef.current = false;
+    // Injection: clear timers but don't kill periodic poll state
+    clearInjectedTimers();
     isBatchWritingRef.current = true;
     setIsBatchWriting(true);
     batchWriteQueueRef.current = [...allItems];
@@ -544,7 +481,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     batchWriteDoneRef.current = 0;
     batchWriteErrorRef.current = false;
     sendNextBatchFrameRef.current();
-  }, [sendNextBatchFrame, stopAllTimers]);
+  }, [clearInjectedTimers]);
 
   const startInitialPoll = useCallback(() => {
     if (initPhaseRef.current !== 'protocol') return;
@@ -573,7 +510,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setCalendarGroupsIfChanged(calGroups);
 
     const defaultValues = initDefaultFieldValues(parsed);
-    // 统一从一个辅助函数生成字段索引，避免在多个地方重复构建 Map。
     parsedValuesMapRef.current = buildFieldValueMap(defaultValues);
     setParsedValuesIfChanged(defaultValues);
 
@@ -589,7 +525,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     pollIdxRef.current = 0;
 
     sendInstructionFrame(allIndices[0]!);
-  }, [protocolDb, sendFrame, addLog]);
+  }, [protocolDb, sendFrame]);
 
   const sendCalendarRecordFrame = useCallback((groupIdx: number, recordIdx: number) => {
     const groups = calendarGroupsRef.current;
@@ -606,34 +542,25 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     ]);
     waitingResponseRef.current = true;
     sendFrame(frame);
-    addLog({
-      timestamp: Date.now(),
-      direction: 'TX',
-      parsedInfo: `calendar-read group="${group.configNameEn}" record=${recordIdx + 1}/${group.recordCount} addr=0x${startAddr.toString(16)} regs=${group.recordLen}`,
-      rawHex: fmtHex(frame),
-    });
     responseTimerRef.current = setTimeout(() => {
       if (!calendarPollingRef.current) return;
       calendarErrorCountRef.current++;
       if (calendarErrorCountRef.current < 3) {
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `calendar-read timeout, retry ${calendarErrorCountRef.current}/3`, rawHex: '' });
         waitingResponseRef.current = false;
         sendCalendarRecordFrame(groupIdx, recordIdx);
       } else {
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `calendar-read timeout, max retries`, rawHex: '' });
         calendarPollingRef.current = false;
         pendingCalendarReadRef.current = false;
         showToast(i18n.language === 'zh' ? '读取失败' : 'Read failed', 'error');
         startPeriodicPollRef.current();
       }
     }, RESPONSE_TIMEOUT);
-  }, [sendFrame, addLog]);
+  }, [sendFrame, showToast]);
 
   const startCalendarPoll = useCallback(() => {
     const groups = calendarGroupsRef.current;
     if (groups.length === 0) return;
-    stopAllTimers();
-    waitingResponseRef.current = false;
+    clearInjectedTimers();
     calendarPollGroupIdxRef.current = 0;
     calendarPollRecordIdxRef.current = 0;
     calendarPollingRef.current = true;
@@ -641,7 +568,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     calendarRecordsRef.current = [];
     setCalendarRecordsIfChanged([]);
     sendCalendarRecordFrame(0, 0);
-  }, [sendCalendarRecordFrame, stopAllTimers]);
+  }, [sendCalendarRecordFrame, clearInjectedTimers]);
 
   const readCalendar = useCallback(() => {
     if (calendarPollingRef.current) return;
@@ -721,7 +648,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (regIndices.length === 0) return;
 
     sendInstructionFrame(regIndices[0]!);
-  }, [sendInstructionFrame, addLog]);
+  }, [sendInstructionFrame]);
 
   startPeriodicPollRef.current = startPeriodicPoll;
 
@@ -735,7 +662,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       pendingValuesUpdateRef.current = false;
     }
     if (pendingDmUpdateRef.current) {
-      // 只在真正需要刷新 Data Memory 分组时重新构建分组，避免重复计算。
       const dmValues = Array.from(parsedValuesMapRef.current.values()).filter(v => v.configType.toLowerCase() === 'data memery');
       setDataMemeryGroupsIfChanged(buildDataMemoryGroups(dmValues));
       pendingDmUpdateRef.current = false;
@@ -743,6 +669,31 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   flushUpdatesRef.current = flushUpdates;
+
+  /** Check if verify-read values match expected values */
+  const checkVerifyResult = useCallback((): boolean => {
+    if (isBatchWritingRef.current) {
+      // For batch write, check fields in the current verify instruction
+      const verifyIdx = batchVerifyInstrIdxRef.current;
+      const protocol = parsedProtocolRef.current;
+      if (!protocol || verifyIdx < 0 || verifyIdx >= protocol.instructions.length) return true;
+      // Check all expected values that belong to this instruction
+      for (const [rowIndex, expectedValue] of batchExpectedValuesRef.current) {
+        const fv = parsedValuesMapRef.current.get(rowIndex);
+        if (fv && fv.parentInstructionIndex === verifyIdx) {
+          if (Math.abs(fv.value - expectedValue) >= 1e-6) return false;
+        }
+      }
+      return true;
+    } else {
+      // For single write, check the specific field
+      if (!writeExpectedValueRef.current) return true;
+      const { rowIndex, expectedValue } = writeExpectedValueRef.current;
+      const fv = parsedValuesMapRef.current.get(rowIndex);
+      if (!fv) return false;
+      return Math.abs(fv.value - expectedValue) < 1e-6;
+    }
+  }, []);
 
   const advancePoll = useCallback(() => {
     if (responseTimerRef.current) {
@@ -753,15 +704,21 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     if (isVerifyReadRef.current) {
       isVerifyReadRef.current = false;
+      const verifyOk = checkVerifyResult();
       if (isBatchWritingRef.current) {
         batchWriteDoneRef.current++;
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `batch-write verify OK`, rawHex: '' });
+        if (!verifyOk) batchWriteErrorRef.current = true;
         flushUpdates();
         sendNextBatchFrameRef.current();
         return;
       }
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write OK`, rawHex: '' });
-      showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入成功` : `${writeFieldNameRef.current} write OK`, 'success');
+      const fieldName = writeExpectedValueRef.current?.fieldName ?? '';
+      if (verifyOk) {
+        showToast(i18n.language === 'zh' ? `${fieldName} 写入成功` : `${fieldName} write OK`, 'success');
+      } else {
+        showToast(i18n.language === 'zh' ? `${fieldName} 写入失败（数据不一致）` : `${fieldName} write failed (mismatch)`, 'error');
+      }
+      writeExpectedValueRef.current = null;
       flushUpdates();
       executePendingWriteOrPollRef.current();
       return;
@@ -820,7 +777,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         })());
       }
     }
-  }, [sendInstructionFrame, startPeriodicPoll, flushUpdates]);
+  }, [sendInstructionFrame, startPeriodicPoll, flushUpdates, checkVerifyResult, showToast, startCalendarPoll]);
 
 
   const rawBufRef = useRef<number[]>([]);
@@ -829,13 +786,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const processFrame = useCallback((data: number[]) => {
     if (data.length === 0) return;
 
-    const rawHex = fmtHex(data);
-
     if (isWritingRef.current) {
       if (data.length < 5 || !verifyCrc(data) || (data[1]! & 0x7F) !== 0x10) {
-        if (isVerifyReadRef.current) {
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read invalid response (skipped)`, rawHex });
-        }
         return;
       }
       isWritingRef.current = false;
@@ -845,9 +797,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         responseTimerRef.current = null;
       }
       const fc = data[1]!;
-      const addr = (data[0] ?? 0).toString(16).padStart(2, '0');
       if (fc & 0x80) {
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response addr=${addr} func=${fc.toString(16).padStart(2, '0')} FAILED`, rawHex });
         if (isBatchWritingRef.current) {
           batchWriteErrorRef.current = true;
           batchWriteDoneRef.current++;
@@ -858,18 +808,13 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         executePendingWriteOrPollRef.current();
         return;
       }
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response addr=${addr} func=10 crc=OK`, rawHex });
       if (isBatchWritingRef.current) {
         const verifyIdx = batchVerifyInstrIdxRef.current;
         if (verifyIdx >= 0) {
           isVerifyReadRef.current = true;
           writeInstrIdxRef.current = verifyIdx;
-          const protocol = parsedProtocolRef.current;
-          if (protocol && verifyIdx < protocol.instructions.length) {
-            const inst = protocol.instructions[verifyIdx]!;
-            const start = '0x' + inst.startAddr.toString(16).padStart(4, '0');
-            addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `batch-verify-read addr=00 func=${inst.funcCode.toString(16).padStart(2, '0')} start=${start} regs=${inst.quantity}`, rawHex: '' });
-          }
+          // Reset error count for injected verify-read
+          errorCountRef.current = 0;
           sendInstructionFrame(verifyIdx);
         } else {
           batchWriteDoneRef.current++;
@@ -880,12 +825,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const writeInstrIdx = writeInstrIdxRef.current;
       if (writeInstrIdx >= 0) {
         isVerifyReadRef.current = true;
-        const protocol = parsedProtocolRef.current;
-        if (protocol && writeInstrIdx < protocol.instructions.length) {
-          const inst = protocol.instructions[writeInstrIdx]!;
-          const start = '0x' + inst.startAddr.toString(16).padStart(4, '0');
-          addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `verify-read addr=00 func=${inst.funcCode.toString(16).padStart(2, '0')} start=${start} regs=${inst.quantity}`, rawHex: '' });
-        }
+        // Reset error count for injected verify-read
+        errorCountRef.current = 0;
         sendInstructionFrame(writeInstrIdx);
       } else {
         executePendingWriteOrPollRef.current();
@@ -894,14 +835,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     if (!waitingResponseRef.current && !isWritingRef.current && initPhaseRef.current !== 'version') {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `unexpected data (not waiting, discarded)`, rawHex });
       return;
     }
 
     if (data.length >= 5 && verifyCrc(data) && (data[1]! & 0x80)) {
-      if (isVerifyReadRef.current) {
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read exception func=0x${(data[1]!).toString(16).padStart(2, '0')}`, rawHex });
-      }
       waitingResponseRef.current = false;
       if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
       rawBufRef.current = [];
@@ -912,15 +849,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const parsed = parseModbusResponse(data);
 
     if (!parsed) {
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `invalid frame (CRC/length error, waiting for timeout)`, rawHex });
       rawBufRef.current = [];
       return;
     }
 
     if (parsed.funcCode & 0x80) {
-      if (isVerifyReadRef.current) {
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read exception func=0x${parsed.funcCode.toString(16).padStart(2, '0')}`, rawHex });
-      }
       waitingResponseRef.current = false;
       if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
       rawBufRef.current = [];
@@ -933,7 +866,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const verHex = registerToVersionHex(parsed.registers[0]!);
       versionRef.current = verHex;
       setDeviceVersion(verHex);
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `version detected: ${verHex}, loading protocol DB...`, rawHex });
       stopVersionRetry();
       loadProtocolDb(verHex);
       return;
@@ -944,21 +876,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         clearTimeout(responseTimerRef.current);
         responseTimerRef.current = null;
       }
-      const gIdx = calendarPollGroupIdxRef.current;
-      const rIdx = calendarPollRecordIdxRef.current;
-      const groups = calendarGroupsRef.current;
-      const gName = gIdx < groups.length ? groups[gIdx]!.configNameEn : '?';
-      const dataHex = parsed.registers.map(r => {
-        const hi = (r >> 8) & 0xFF;
-        const lo = r & 0xFF;
-        return hi.toString(16).padStart(2, '0') + ' ' + lo.toString(16).padStart(2, '0');
-      }).join(' ');
-      addLog({
-        timestamp: Date.now(),
-        direction: 'RX',
-        parsedInfo: `calendar-response group="${gName}" record=${rIdx + 1} data=[${dataHex}]`,
-        rawHex,
-      });
       waitingResponseRef.current = false;
       calendarErrorCountRef.current = 0;
       advanceCalendarPoll(parsed.registers);
@@ -970,7 +887,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (protocol && instrIdx >= 0 && instrIdx < protocol.instructions.length) {
       const expectedFc = protocol.instructions[instrIdx]!.funcCode;
       if (parsed.funcCode !== expectedFc) {
-        addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `stale response (fc=0x${parsed.funcCode.toString(16)}, expected 0x${expectedFc.toString(16)}), discarded`, rawHex });
         rawBufRef.current = [];
         return;
       }
@@ -984,7 +900,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     if (protocol && instrIdx >= 0 && instrIdx < protocol.instructions.length) {
-
       const fieldValues = parseDataFields(parsed.registers, protocol.dataFields, instrIdx, protocol.instructions);
       if (fieldValues.length > 0) {
         const map = parsedValuesMapRef.current;
@@ -993,29 +908,16 @@ export function BmsProvider({ children }: { children: ReactNode }) {
             pendingDmUpdateRef.current = true;
           }
           map.set(fv.rowIndex, fv);
-
         }
         pendingValuesUpdateRef.current = true;
       }
-    }
-
-    if (isVerifyReadRef.current) {
-      const addr = parsed.slaveAddr.toString(16).padStart(2, '0');
-      const fc = parsed.funcCode.toString(16).padStart(2, '0');
-      const dataHex = parsed.registers.map(r => {
-        const hi = (r >> 8) & 0xFF;
-        const lo = r & 0xFF;
-        return hi.toString(16).padStart(2, '0') + ' ' + lo.toString(16).padStart(2, '0');
-      }).join(' ');
-      const crcOk = verifyCrc(data) ? 'OK' : 'ERR';
-      addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read-response addr=${addr} func=${fc} data=[${dataHex}] crc=${crcOk}`, rawHex });
     }
 
     errorCountRef.current = 0;
     waitingResponseRef.current = false;
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     advancePoll();
-  }, [addLog, stopVersionRetry, loadProtocolDb, advancePoll, resetToVersionQuery, sendFrame]);
+  }, [advancePoll, stopVersionRetry, loadProtocolDb]);
 
   const handleRawData = useCallback((payload: unknown) => {
     if (connectionStatusRef.current !== 'connected') return;
@@ -1024,7 +926,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const rawData = typeof d === 'string' ? Array.from({ length: d.length / 2 }, (_, i) => parseInt(d.substring(i * 2, i * 2 + 2), 16)) : d;
     if (!rawData || rawData.length === 0) return;
 
-    // Reset response timer on data receipt (per spec: clear timer on each data received)
+    // Reset response timer on data receipt
     if (responseTimerRef.current && waitingResponseRef.current && responseTimeoutCbRef.current) {
       clearTimeout(responseTimerRef.current);
       responseTimerRef.current = setTimeout(responseTimeoutCbRef.current, RESPONSE_TIMEOUT);
@@ -1073,7 +975,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const handleConnectionStatus = useCallback((payload: unknown) => {
     const p = payload as { status: ConnectionStatus };
-    console.log('handleConnectionStatus: ' + p.status);
     connectionStatusRef.current = p.status;
     setConnectionStatus(p.status);
     if (p.status !== 'connected') {
@@ -1098,8 +999,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       currentSentInstrIdxRef.current = -1;
       writeInstrIdxRef.current = -1;
       writeFieldNameRef.current = '';
-      writeVerifyAddrRef.current = -1;
-      writeVerifyQtyRef.current = 0;
       calendarPollGroupIdxRef.current = 0;
       calendarPollRecordIdxRef.current = 0;
       setIsBatchWriting(false);
@@ -1197,7 +1096,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, [protocolDb, connectionStatus, startInitialPoll]);
 
 
-
   const writeField = useCallback((fieldRowIndex: number, newValue: number, isRetry = false) => {
     if (isWritingRef.current) {
       pendingWriteRef.current.push({ fieldRowIndex, newValue });
@@ -1213,8 +1111,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    stopAllTimers();
-    waitingResponseRef.current = false;
+    // Injection: clear timers but don't kill periodic poll state
+    // Reset error count and response timer for injected command
+    clearInjectedTimers();
 
     const siblingFields = Array.from(parsedValuesMapRef.current.values());
     const getLeRegisterValue = (absAddr: number): number => {
@@ -1234,44 +1133,24 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
       writeInstrIdxRef.current = fv.parentInstructionIndex;
       writeFieldNameRef.current = fv.name;
-      writeVerifyAddrRef.current = fv.absAddr;
-      writeVerifyQtyRef.current = fv.regLen;
+      // Store expected value for verify-read comparison
+      writeExpectedValueRef.current = { rowIndex: fv.rowIndex, expectedValue: newValue, fieldName: fv.name };
       sendFrame(frame);
-      const start = '0x' + fv.absAddr.toString(16).padStart(4, '0');
-      if (fv.byteLen === 1) {
-        const rawVal = reverseOperation(newValue, fv.operation, fv.ratio);
-        const byteVal = Math.round(rawVal) & 0xFF;
-        const sibling = siblingFields.find(
-          (f: FieldValue) => f.absAddr === fv.absAddr && f.rowIndex !== fv.rowIndex && f.byteLen === 1
-        );
-        const sibInfo = sibling ? `sib=${sibling.name}=${sibling.rawValue}` : 'no-sib';
-        const curLeReg = getLeRegisterValue(fv.absAddr);
-        const curBeVal = ((curLeReg & 0xFF) << 8) | ((curLeReg >> 8) & 0xFF);
-        addLog({
-          timestamp: Date.now(), direction: 'TX',
-          parsedInfo: `1B write: "${fv.name}" newVal=${newValue} op=${fv.operation} ratio=${fv.ratio} rawVal=${rawVal} byteVal=0x${byteVal.toString(16).padStart(2, '0')} byteOff=${fv.byteOffset} ${sibInfo} curLeReg=0x${curLeReg.toString(16).padStart(4, '0')} curBeVal=0x${curBeVal.toString(16).padStart(4, '0')}`,
-          rawHex: fmtHex(frame)
-        });
-      } else {
-        addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `write-request addr=00 func=10 start=${start} regs=${fv.regLen} field="${fv.name}"=${newValue}`, rawHex: fmtHex(frame) });
-      }
       responseTimerRef.current = setTimeout(() => {
         if (!isWritingRef.current) return;
         errorCountRef.current++;
         if (errorCountRef.current < 3) {
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response timeout, retry ${errorCountRef.current}/3`, rawHex: '' });
           isWritingRef.current = false;
           waitingResponseRef.current = false;
           writeField(fieldRowIndex, newValue, true);
         } else {
           isWritingRef.current = false;
-          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'write-response timeout, max retries', rawHex: '' });
           showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入超时` : `${writeFieldNameRef.current} write timeout`, 'error');
           executePendingWriteOrPollRef.current();
         }
       }, RESPONSE_TIMEOUT);
     }
-  }, [sendFrame, addLog]);
+  }, [sendFrame, clearInjectedTimers, showToast]);
 
   writeFieldRef.current = writeField;
 
@@ -1314,16 +1193,14 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     calendarRecords,
     toasts,
     isBatchWriting,
-    debugLogs,
     sendFrame,
     autoRead,
     writeField,
     showToast,
-    clearLogs,
     startBatchWrite,
     readCalendar,
     writeBatch,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, debugLogs, sendFrame, autoRead, writeField, showToast, clearLogs, startBatchWrite, readCalendar, writeBatch]);
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, sendFrame, autoRead, writeField, showToast, startBatchWrite, readCalendar, writeBatch]);
 
   return (
     <BmsContext.Provider value={store}>

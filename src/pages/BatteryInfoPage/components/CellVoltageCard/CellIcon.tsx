@@ -1,3 +1,6 @@
+﻿/**
+ * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+ */
 import { getSocColor } from '@/utils/color';
 import styles from './CellIcon.module.css';
 
@@ -27,7 +30,7 @@ export function CellIcon({ index, voltage, soc, isBalancing, compact }: CellIcon
         <span className={styles.cellName}>C{index}</span>
         <div className={styles.cap} />
       </div>
-      {isBalancing && <span className={styles.balancing}>⚡</span>}
+      {isBalancing && <span className={styles.balancing}>鈿?/span>}
       <span className={styles.cellVoltage}>{voltageStr}</span>
     </div>
   );
