@@ -395,7 +395,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setProtocolLoading(false);
   }, [addLog]);
 
-  const sendInstructionFrame = useCallback((instrIdx: number) => {
+  const sendInstructionFrame = useCallback((instrIdx: number, isRetry = false) => {
     if (connectionStatusRef.current !== 'connected') return;
     const protocol = parsedProtocolRef.current;
     if (!protocol || instrIdx >= protocol.instructions.length) return;
@@ -410,7 +410,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     ]);
     currentSentInstrIdxRef.current = instrIdx;
     waitingResponseRef.current = true;
-    errorCountRef.current = 0;
+    if (!isRetry) {
+      errorCountRef.current = 0;
+    }
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     rawBufRef.current = [];
     sendFrame(frame);
@@ -426,7 +428,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `response timeout, retry ${errorCountRef.current}/3`, rawHex: '' });
         }
         waitingResponseRef.current = false;
-        sendInstructionFrame(instrIdx);
+        sendInstructionFrame(instrIdx, true);
       } else {
         if (isVerifyReadRef.current) {
           addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `verify-read timeout, max retries`, rawHex: '' });
@@ -437,15 +439,19 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           waitingResponseRef.current = false;
           advancePoll();
         } else {
-          resetToVersionQuery();
+          addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `connection lost (max retries exceeded)`, rawHex: '' });
+          connectionStatusRef.current = 'disconnected';
+          stopAllTimersRef.current();
+          stopVersionRetryRef.current();
+          setConnectionStatus('disconnected');
         }
       }
     };
     responseTimeoutCbRef.current = timeoutCb;
     responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
-  }, [sendFrame, addLog, resetToVersionQuery]);
+  }, [sendFrame, addLog]);
 
-  const sendNextBatchFrame = useCallback(() => {
+  const sendNextBatchFrame = useCallback((isRetry = false) => {
     if (batchWriteQueueRef.current.length === 0) {
       isBatchWritingRef.current = false;
       setIsBatchWriting(false);
@@ -469,7 +475,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
     const item = batchWriteQueueRef.current.shift()!;
     isWritingRef.current = true;
-    errorCountRef.current = 0;
+    if (!isRetry) {
+      errorCountRef.current = 0;
+    }
     batchVerifyInstrIdxRef.current = item.instrIdx;
     sendFrame(item.frame);
     addLog({ timestamp: Date.now(), direction: 'TX', parsedInfo: `batch-write frame ${batchWriteDoneRef.current + 1}/${batchWriteTotalRef.current}`, rawHex: fmtHex(item.frame) });
@@ -480,7 +488,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         isWritingRef.current = false;
         waitingResponseRef.current = false;
         batchWriteQueueRef.current.unshift(item);
-        sendNextBatchFrameRef.current();
+        sendNextBatchFrameRef.current(true);
       } else {
         isWritingRef.current = false;
         batchWriteErrorRef.current = true;
@@ -1190,7 +1198,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
 
 
-  const writeField = useCallback((fieldRowIndex: number, newValue: number) => {
+  const writeField = useCallback((fieldRowIndex: number, newValue: number, isRetry = false) => {
     if (isWritingRef.current) {
       pendingWriteRef.current.push({ fieldRowIndex, newValue });
       return;
@@ -1221,7 +1229,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const frame = buildFieldWriteFrame(fv, newValue, siblingFields, getLeRegisterValue);
     if (frame) {
       isWritingRef.current = true;
-      errorCountRef.current = 0;
+      if (!isRetry) {
+        errorCountRef.current = 0;
+      }
       writeInstrIdxRef.current = fv.parentInstructionIndex;
       writeFieldNameRef.current = fv.name;
       writeVerifyAddrRef.current = fv.absAddr;
@@ -1252,7 +1262,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: `write-response timeout, retry ${errorCountRef.current}/3`, rawHex: '' });
           isWritingRef.current = false;
           waitingResponseRef.current = false;
-          writeField(fieldRowIndex, newValue);
+          writeField(fieldRowIndex, newValue, true);
         } else {
           isWritingRef.current = false;
           addLog({ timestamp: Date.now(), direction: 'RX', parsedInfo: 'write-response timeout, max retries', rawHex: '' });

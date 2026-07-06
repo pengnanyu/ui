@@ -1,15 +1,19 @@
 .row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--color-border);
+  display: contents;
   font-size: 13px;
 }
 
-.rowPending {
+.row > * {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+  align-self: center;
+}
+
+.rowPending > * {
   background: rgba(255,235,194,0.5);
+}
+
+.rowPending > :first-child {
   border-left: 3px solid var(--color-primary);
   padding-left: 5px;
 }
