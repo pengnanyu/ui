@@ -12,6 +12,32 @@
   touch-action: none;
 }
 
+.chartOverlay {
+  position: absolute;
+  bottom: 4px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.overlayLeft {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.overlayRight {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
 .empty {
   display: flex;
   align-items: center;

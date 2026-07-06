@@ -25,8 +25,7 @@ function buildGroups(items: { name: string; nameZh: string; label: string; activ
 
 
 export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }: StatusCardProps) {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language === 'zh';
+  const { t } = useTranslation();
   const { statusItems } = useStatusItems(protocolDb, parsedProtocol, parsedValues);
 
   const statusGroups = useMemo(() => buildGroups(statusItems), [statusItems]);
@@ -49,7 +48,6 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
     Array.from(statusGroups.entries()).map(([name, items]) => {
       return (
         <div key={name} className={`${styles.group} ${styles.groupStatus}`}>
-          <div className={`${styles.groupName} ${styles.groupNameStatus}`}>{isZh ? (items[0]?.nameZh || name) : name}</div>
           <div className={styles.flagList}>
             {items.map((item, i) => (
               <span key={i} className={`${styles.flag} ${item.active ? styles.flagStatusActive : styles.flagStatusInactive}`}>

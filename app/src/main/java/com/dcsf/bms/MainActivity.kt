@@ -1258,22 +1258,37 @@ fun SocCircle(soc: Int, isGlowing: Boolean, trackColor: Color = Color(0xFFE5E7EB
         soc > 20 -> Color(0xFFEAB308)
         else -> Color(0xFFEF4444)
     }
-    val size = 44.dp
+    val size = 46.dp
+    val stroke = 5.dp
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(size)) {
-            val stroke = 4.dp.toPx()
-            val r = (size.toPx() - stroke) / 2
+            val strokePx = stroke.toPx()
+            val r = (size.toPx() - strokePx) / 2
             val center = Offset(size.toPx() / 2, size.toPx() / 2)
-            drawCircle(color = trackColor, radius = r, center = center, style = Stroke(width = stroke))
+            drawCircle(color = trackColor, radius = r, center = center, style = Stroke(width = strokePx))
             val sweep = 360f * soc / 100f
+            // Glow effect when connected
+            if (isGlowing) {
+                for (i in 1..3) {
+                    drawArc(
+                        color = color.copy(alpha = 0.08f * (4 - i)),
+                        startAngle = 90f + (360f - sweep) / 2f,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        topLeft = Offset(strokePx / 2 - i * 2, strokePx / 2 - i * 2),
+                        size = Size(size.toPx() - strokePx + i * 4, size.toPx() - strokePx + i * 4),
+                        style = Stroke(width = strokePx + i * 4, cap = StrokeCap.Round),
+                    )
+                }
+            }
             drawArc(
                 color = color,
                 startAngle = 90f + (360f - sweep) / 2f,
                 sweepAngle = sweep,
                 useCenter = false,
-                topLeft = Offset(stroke / 2, stroke / 2),
-                size = Size(size.toPx() - stroke, size.toPx() - stroke),
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
+                topLeft = Offset(strokePx / 2, strokePx / 2),
+                size = Size(size.toPx() - strokePx, size.toPx() - strokePx),
+                style = Stroke(width = strokePx, cap = StrokeCap.Round),
             )
         }
         Text("$soc", color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)

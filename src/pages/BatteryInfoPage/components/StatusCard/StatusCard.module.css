@@ -17,18 +17,6 @@
   border: 1px solid rgb(196,225,196);
 }
 
-.groupName {
-  font-size: 14px;
-  font-weight: 600;
-  padding-bottom: 2px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.groupNameStatus {
-  color: #16a34a;
-  border-bottom-color: rgb(196,225,196);
-}
-
 .flagList {
   display: grid;
   gap: 3px;
@@ -50,8 +38,9 @@
 }
 
 .flagStatusActive {
-  color: #fff;
-  background: #16a34a;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.15);
+  border: 1px solid rgba(22, 163, 74, 0.3);
   font-weight: 600;
 }
 

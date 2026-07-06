@@ -158,22 +158,6 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
 
   const voltageDiff = (voltageMax !== undefined && voltageMin !== undefined) ? voltageMax - voltageMin : undefined;
 
-  const titleExtra = (
-    <div className={styles.titleLegend}>
-      {voltageMax !== undefined && <span className={styles.legendItem}><span className={styles.arrowUp}>↑</span>{(voltageMax / 1000).toFixed(3)}V</span>}
-      {voltageMin !== undefined && <span className={styles.legendItem}><span className={styles.arrowDown}>↓</span>{(voltageMin / 1000).toFixed(3)}V</span>}
-      {voltageDiff !== undefined && <span className={styles.legendItem}><span className={styles.arrowDiff}>Δ</span>{(voltageDiff / 1000).toFixed(3)}V</span>}
-      <span className={styles.legendItem}>
-        <span className={styles.legendDot} style={{ background: '#6366f1' }} />
-        Voltage
-      </span>
-      <span className={styles.legendItem}>
-        <span className={styles.legendDot} style={{ background: '#f59e0b' }} />
-        Current
-      </span>
-    </div>
-  );
-
   useEffect(() => {
     const el = chartRef.current;
     if (!el || history.length === 0) return;
@@ -246,11 +230,30 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
   }, [restoreToFull]);
 
   return (
-    <CardShell title={<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>{t('battery.viChart')}</>} titleExtra={titleExtra}>
+    <CardShell title={<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>{t('battery.viChart')}</>}>
       {history.length === 0 ? (
         <div className={styles.empty}>--</div>
       ) : (
-        <div ref={chartRef} className={styles.chartContainer} />
+        <div className={styles.chartContainer}>
+          <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
+          <div className={styles.chartOverlay}>
+            <div className={styles.overlayLeft}>
+              {voltageMax !== undefined && <span className={styles.legendItem}><span className={styles.arrowUp}>↑</span>{(voltageMax / 1000).toFixed(3)}V</span>}
+              {voltageMin !== undefined && <span className={styles.legendItem}><span className={styles.arrowDown}>↓</span>{(voltageMin / 1000).toFixed(3)}V</span>}
+              {voltageDiff !== undefined && <span className={styles.legendItem}><span className={styles.arrowDiff}>Δ</span>{(voltageDiff / 1000).toFixed(3)}V</span>}
+            </div>
+            <div className={styles.overlayRight}>
+              <span className={styles.legendItem}>
+                <span className={styles.legendDot} style={{ background: '#6366f1' }} />
+                Voltage
+              </span>
+              <span className={styles.legendItem}>
+                <span className={styles.legendDot} style={{ background: '#f59e0b' }} />
+                Current
+              </span>
+            </div>
+          </div>
+        </div>
       )}
       {cellVoltages && cellVoltages.length > 0 && (
         <div className={styles.cellSection}>

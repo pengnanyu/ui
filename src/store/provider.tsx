@@ -169,7 +169,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 5000);
+    }, 2000);
   }, []);
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
