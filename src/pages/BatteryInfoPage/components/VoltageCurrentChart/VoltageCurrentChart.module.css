@@ -1,15 +1,43 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.headerTitle {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .chartContainer {
   width: 100%;
   min-height: 220px;
   height: 260px;
   position: relative;
-  border-radius: 12px;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-  backdrop-filter: blur(var(--card-blur));
-  -webkit-backdrop-filter: blur(var(--card-blur));
   overflow: hidden;
   touch-action: none;
+}
+
+.chartCompact {
+  min-height: 160px;
+  height: 180px;
 }
 
 .chartOverlay {
@@ -46,7 +74,11 @@
   font-size: 14px;
   min-height: 220px;
   height: 260px;
-  background: var(--color-muted);
+}
+
+.emptyCompact {
+  min-height: 160px;
+  height: 180px;
 }
 
 .titleLegend {

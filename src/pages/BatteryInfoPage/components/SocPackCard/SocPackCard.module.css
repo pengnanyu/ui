@@ -6,7 +6,10 @@
 
 .gaugeBg {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
 }
 
@@ -18,25 +21,37 @@
 
 .overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-direction: column;
   flex-direction: column;
+  -webkit-justify-content: space-between;
   justify-content: space-between;
   padding: 8px 8px 4px;
   pointer-events: none;
 }
 
 .topRow {
+  display: -webkit-flex;
   display: flex;
+  -webkit-justify-content: space-between;
   justify-content: space-between;
+  -webkit-align-items: flex-start;
   align-items: flex-start;
   padding: 0 4px;
 }
 
 .sideCard {
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-direction: column;
   flex-direction: column;
+  -webkit-align-items: center;
   align-items: center;
   gap: 1px;
 }
@@ -56,15 +71,22 @@
 }
 
 .bottomCards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: row;
+  flex-direction: row;
   gap: 6px;
 }
 
 .bottomCard {
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-direction: column;
   flex-direction: column;
+  -webkit-align-items: center;
   align-items: center;
+  -webkit-flex: 1;
+  flex: 1;
   gap: 1px;
 }
 
