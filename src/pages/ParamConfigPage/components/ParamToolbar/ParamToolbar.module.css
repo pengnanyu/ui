@@ -7,14 +7,18 @@
 }
 
 .btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
+  height: var(--btn-height);
+  padding: var(--btn-padding);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-size);
   cursor: pointer;
   border: 1px solid var(--color-border);
   background: var(--color-background);
   color: var(--color-foreground);
   transition: background-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn:hover {
@@ -32,14 +36,18 @@
 }
 
 .btnCancel {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
+  height: var(--btn-height);
+  padding: var(--btn-padding);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-size);
   cursor: pointer;
   border: 1px solid var(--color-border);
   background: var(--color-background);
   color: var(--color-foreground);
   transition: background-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btnCancel:hover {
@@ -47,9 +55,10 @@
 }
 
 .btnConfirm {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
+  height: var(--btn-height);
+  padding: var(--btn-padding);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-size);
   cursor: pointer;
   border: none;
   background: var(--color-primary);
@@ -58,6 +67,7 @@
   transition: opacity 0.15s;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
