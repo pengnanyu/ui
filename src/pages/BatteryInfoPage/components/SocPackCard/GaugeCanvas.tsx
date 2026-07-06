@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useGaugeDraw } from './useGaugeDraw';
 
 interface GaugeCanvasProps {
@@ -10,9 +10,28 @@ interface GaugeCanvasProps {
 
 export function GaugeCanvas({ type, value, max, soc }: GaugeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Memoize config so it only changes when primitive values actually change
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState(0);
   const config = useMemo(() => ({ type, value, max, soc }), [type, value, max, soc]);
   useGaugeDraw(canvasRef, config);
 
-  return <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />;
+  const updateSize = useCallback(() => {
+    if (wrapperRef.current) {
+      const w = wrapperRef.current.clientWidth;
+      setSize(w);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    if (wrapperRef.current) ro.observe(wrapperRef.current);
+    return () => ro.disconnect();
+  }, [updateSize]);
+
+  return (
+    <div ref={wrapperRef} style={{ width: '100%' }}>
+      <canvas ref={canvasRef} style={{ width: size ? `${size}px` : '100%', height: size ? `${size}px` : '100%', display: 'block' }} />
+    </div>
+  );
 }

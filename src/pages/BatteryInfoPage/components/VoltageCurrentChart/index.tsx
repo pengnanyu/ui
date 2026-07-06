@@ -96,7 +96,7 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         zoomOnMouseWheel: true,
         moveOnMouseMove: true,
         moveOnMouseDrag: true,
-        preventDefaultMouseMove: true,
+        preventDefaultMouseMove: false,
         filterMode: 'none',
       },
     ],
@@ -204,7 +204,7 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     chart.setOption({
       series: [{ data: vData }, { data: cData }],
       dataZoom: [
-        { type: 'inside', xAxisIndex: 0, ...zoomOption, zoomOnMouseWheel: true, moveOnMouseMove: true, moveOnMouseDrag: true, preventDefaultMouseMove: true, filterMode: 'none' },
+        { type: 'inside', xAxisIndex: 0, ...zoomOption, zoomOnMouseWheel: true, moveOnMouseMove: true, moveOnMouseDrag: true, preventDefaultMouseMove: false, filterMode: 'none' },
       ],
     });
   }, [history]);

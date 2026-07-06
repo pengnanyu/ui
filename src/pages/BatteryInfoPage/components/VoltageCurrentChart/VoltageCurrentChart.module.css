@@ -32,7 +32,7 @@
   height: 260px;
   position: relative;
   overflow: hidden;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .chartCompact {
