@@ -103,9 +103,7 @@ class BleConnection(
 
             private var rxLogCounter = 0
             fun handleCharacteristicChange(value: ByteArray) {
-                if (rxLogCounter++ % 10 == 0) {
-                    LogCollector.log("BLE", "RX ${value.size}B: ${value.joinToString("") { "%02x".format(it) }.take(40)}")
-                }
+                LogCollector.log("BLE", "RX ${value.size}B: ${value.joinToString("") { "%02x".format(it) }.take(40)}")
                 synchronized(idleBuffer) {
                     for (b in value) idleBuffer.add(b)
                 }
@@ -159,9 +157,7 @@ class BleConnection(
     fun write(data: ByteArray): Boolean {
         val char = writeChar ?: return false
         val g = gatt ?: return false
-        if (txLogCounter++ % 10 == 0) {
-            LogCollector.log("BLE", "TX ${data.size}B: ${data.joinToString("") { "%02x".format(it) }.take(40)}")
-        }
+        LogCollector.log("BLE", "TX ${data.size}B: ${data.joinToString("") { "%02x".format(it) }.take(40)}")
         // Flush any pending data before sending new frame
         // (idle timer mechanism handles normal delivery; this ensures no data is lost)
         idleTimer?.let { handler.removeCallbacks(it) }
