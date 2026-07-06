@@ -25,7 +25,7 @@ interface VoltageCurrentChartProps {
 function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
   return {
     animation: false,
-    grid: { left: 30, right: 30, top: 18, bottom: 24 },
+    grid: { left: 36, right: 36, top: 36, bottom: 28 },
     tooltip: {
       trigger: 'axis',
       triggerOn: 'mousemove|click',
@@ -60,25 +60,29 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
     },
     xAxis: {
       type: 'time',
-      axisLabel: { fontSize: 10, color: '#cbd5e1', formatter: '{mm}:{ss}' },
-      axisLine: { lineStyle: { color: '#334155' } },
+      axisLabel: { fontSize: 10, color: getThemeColor('--color-muted-foreground'), formatter: '{mm}:{ss}' },
+      axisLine: { lineStyle: { color: getThemeColor('--color-border') } },
       axisTick: { show: false },
     },
     yAxis: [
       {
         type: 'value',
         name: 'V',
-        nameTextStyle: { fontSize: 10, color: '#94a3b8' },
-        axisLabel: { fontSize: 10, color: '#cbd5e1' },
-        axisLine: { lineStyle: { color: '#334155' } },
-        splitLine: { lineStyle: { type: 'dashed', color: 'rgba(148,163,184,0.12)' } },
+        nameLocation: 'end',
+        nameGap: 8,
+        nameTextStyle: { fontSize: 10, color: getThemeColor('--color-muted-foreground') },
+        axisLabel: { fontSize: 10, color: getThemeColor('--color-muted-foreground') },
+        axisLine: { lineStyle: { color: getThemeColor('--color-border') } },
+        splitLine: { lineStyle: { type: 'dashed', color: getThemeColor('--color-border') } },
       },
       {
         type: 'value',
         name: 'A',
-        nameTextStyle: { fontSize: 10, color: '#94a3b8' },
-        axisLabel: { fontSize: 10, color: '#cbd5e1' },
-        axisLine: { lineStyle: { color: '#334155' } },
+        nameLocation: 'end',
+        nameGap: 8,
+        nameTextStyle: { fontSize: 10, color: getThemeColor('--color-muted-foreground') },
+        axisLabel: { fontSize: 10, color: getThemeColor('--color-muted-foreground') },
+        axisLine: { lineStyle: { color: getThemeColor('--color-border') } },
         splitLine: { show: false },
       },
     ],
@@ -158,6 +162,22 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
 
   const voltageDiff = (voltageMax !== undefined && voltageMin !== undefined) ? voltageMax - voltageMin : undefined;
 
+  const titleExtra = (
+    <div className={styles.titleLegend}>
+      {voltageMax !== undefined && <span className={styles.legendItem}><span className={styles.arrowUp}>↑</span>{(voltageMax / 1000).toFixed(3)}V</span>}
+      {voltageMin !== undefined && <span className={styles.legendItem}><span className={styles.arrowDown}>↓</span>{(voltageMin / 1000).toFixed(3)}V</span>}
+      {voltageDiff !== undefined && <span className={styles.legendItem}><span className={styles.arrowDiff}>Δ</span>{(voltageDiff / 1000).toFixed(3)}V</span>}
+      <span className={styles.legendItem}>
+        <span className={styles.legendDot} style={{ background: '#6366f1' }} />
+        Voltage
+      </span>
+      <span className={styles.legendItem}>
+        <span className={styles.legendDot} style={{ background: '#f59e0b' }} />
+        Current
+      </span>
+    </div>
+  );
+
   useEffect(() => {
     const el = chartRef.current;
     if (!el || history.length === 0) return;
@@ -230,30 +250,11 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
   }, [restoreToFull]);
 
   return (
-    <CardShell title={<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>{t('battery.viChart')}</>}>
+    <CardShell title={<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>{t('battery.viChart')}</>} titleExtra={titleExtra}>
       {history.length === 0 ? (
         <div className={styles.empty}>--</div>
       ) : (
-        <div className={styles.chartContainer}>
-          <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
-          <div className={styles.chartOverlay}>
-            <div className={styles.overlayLeft}>
-              {voltageMax !== undefined && <span className={styles.legendItem}><span className={styles.arrowUp}>↑</span>{(voltageMax / 1000).toFixed(3)}V</span>}
-              {voltageMin !== undefined && <span className={styles.legendItem}><span className={styles.arrowDown}>↓</span>{(voltageMin / 1000).toFixed(3)}V</span>}
-              {voltageDiff !== undefined && <span className={styles.legendItem}><span className={styles.arrowDiff}>Δ</span>{(voltageDiff / 1000).toFixed(3)}V</span>}
-            </div>
-            <div className={styles.overlayRight}>
-              <span className={styles.legendItem}>
-                <span className={styles.legendDot} style={{ background: '#6366f1' }} />
-                Voltage
-              </span>
-              <span className={styles.legendItem}>
-                <span className={styles.legendDot} style={{ background: '#f59e0b' }} />
-                Current
-              </span>
-            </div>
-          </div>
-        </div>
+        <div ref={chartRef} className={styles.chartContainer} />
       )}
       {cellVoltages && cellVoltages.length > 0 && (
         <div className={styles.cellSection}>

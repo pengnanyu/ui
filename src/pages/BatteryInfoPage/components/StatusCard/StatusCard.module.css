@@ -12,11 +12,6 @@
   gap: 4px;
 }
 
-.groupStatus {
-  background: rgb(237,249,237);
-  border: 1px solid rgb(196,225,196);
-}
-
 .flagList {
   display: grid;
   gap: 3px;
@@ -38,13 +33,12 @@
 }
 
 .flagStatusActive {
-  color: #16a34a;
-  background: rgba(22, 163, 74, 0.15);
-  border: 1px solid rgba(22, 163, 74, 0.3);
+  color: #fff;
+  background: #16a34a;
   font-weight: 600;
 }
 
 .flagStatusInactive {
-  color: var(--color-muted-foreground);
-  background: var(--color-muted);
+  color: #86efac;
+  background: rgba(22, 163, 74, 0.1);
 }

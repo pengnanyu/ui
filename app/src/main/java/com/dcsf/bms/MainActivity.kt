@@ -339,7 +339,7 @@ class BleManager {
         const val SERVICE_UUID = "0000ff00-0000-1000-8000-00805f9b34fb"
         const val NOTIFY_UUID = "0000ff01-0000-1000-8000-00805f9b34fb"
         const val WRITE_UUID = "0000ff02-0000-1000-8000-00805f9b34fb"
-        const val NAME_PREFIX = "DCSF+"
+        const val NAME_PREFIX = "DCSF"
         const val MAX_DEVICES = 30
     }
 

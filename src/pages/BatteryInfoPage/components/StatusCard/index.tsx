@@ -47,7 +47,7 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
   const renderGroups = () =>
     Array.from(statusGroups.entries()).map(([name, items]) => {
       return (
-        <div key={name} className={`${styles.group} ${styles.groupStatus}`}>
+        <div key={name} className={styles.group}>
           <div className={styles.flagList}>
             {items.map((item, i) => (
               <span key={i} className={`${styles.flag} ${item.active ? styles.flagStatusActive : styles.flagStatusInactive}`}>
