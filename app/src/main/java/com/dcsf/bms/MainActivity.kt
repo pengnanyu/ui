@@ -179,7 +179,7 @@ fun pushToUi(webView: MutableState<WebView?>, type: String, payloadJson: String)
     }
     try {
         val escapedType = type.replace("'", "\\'")
-        val js = "try{if(window.__APP_BRIDGE__&&window.__APP_BRIDGE__._handler){window.__APP_BRIDGE__._handler({type:'" + escapedType + "',payload:" + payloadJson + "})}}catch(e){console.log('BRIDGE:push_error:'+e.message)}"
+        val js = "try{if(window.__APP_BRIDGE__){if(window.__APP_BRIDGE__._handler){window.__APP_BRIDGE__._handler({type:'" + escapedType + "',payload:" + payloadJson + "})}else{console.log('BRIDGE:_handler_not_set for " + escapedType + "')}}else{console.log('BRIDGE:__APP_BRIDGE__ not found')}}catch(e){console.log('BRIDGE:push_error:'+e.message)}"
         wv.post { wv.evaluateJavascript(js, null) }
     } catch (e: Exception) {
         LogCollector.log("UI", "pushToUi error: ${e.message}")
@@ -314,7 +314,7 @@ class MainActivity : ComponentActivity() {
         LogCollector.log("BLE", "onResume: BLE status=$status")
         mainWebView?.let { wv ->
             wv.post {
-                val js = "try{if(window.__APP_BRIDGE__&&window.__APP_BRIDGE__._handler){window.__APP_BRIDGE__._handler({type:'bms:connection-status',payload:{\"status\":\"$status\"}})}}catch(e){console.log('BRIDGE:push_error:'+e.message)}"
+                val js = "try{if(window.__APP_BRIDGE__){if(window.__APP_BRIDGE__._handler){window.__APP_BRIDGE__._handler({type:'bms:connection-status',payload:{\"status\":\"$status\"}})}else{console.log('BRIDGE:_handler_not_set for bms:connection-status')}}else{console.log('BRIDGE:__APP_BRIDGE__ not found')}}catch(e){console.log('BRIDGE:push_error:'+e.message)}"
                 wv.evaluateJavascript(js, null)
             }
         }

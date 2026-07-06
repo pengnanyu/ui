@@ -488,7 +488,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         isWritingRef.current = false;
         waitingResponseRef.current = false;
         batchWriteQueueRef.current.unshift(item);
-        sendNextBatchFrameRef.current(true);
+        sendNextBatchFrameRef.current();
       } else {
         isWritingRef.current = false;
         batchWriteErrorRef.current = true;
