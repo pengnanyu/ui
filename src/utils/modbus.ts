@@ -902,7 +902,6 @@ export function buildWriteFrame(
   leRegs: number[]
 ): number[] {
   const quantity = leRegs.length;
-  const byteCount = quantity * 2;
   const bigEndianBytes = leRegsToBigEndianBytes(leRegs);
   return appendCrc([
     slaveAddr,
@@ -911,7 +910,6 @@ export function buildWriteFrame(
     startAddr & 0xFF,
     (quantity >> 8) & 0xFF,
     quantity & 0xFF,
-    byteCount & 0xFF,
     ...bigEndianBytes,
   ]);
 }
