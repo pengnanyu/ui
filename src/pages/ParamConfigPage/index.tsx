@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
@@ -125,7 +125,7 @@ export function ParamConfigPage() {
           type: 'bms:download-file',
           payload: { filename: defaultName, content: json, mimeType: 'application/json' },
         });
-        showToast(isZh ? `宸蹭繚瀛樺埌涓嬭浇鐩綍: ${defaultName}` : `Saved to Downloads: ${defaultName}`, 'success');
+        showToast(isZh ? `已保存到下载目录: ${defaultName}` : `Saved to Downloads: ${defaultName}`, 'success');
         return;
       }
       if (window.showSaveFilePicker) {
@@ -174,11 +174,11 @@ export function ParamConfigPage() {
         try {
           const data = JSON.parse(reader.result as string);
           if (!data.version || !data.params) {
-            showToast(isZh ? '鏃犳晥鐨勯厤缃枃浠舵牸寮? : 'Invalid config file format', 'error');
+            showToast(isZh ? '无效的配置文件格式' : 'Invalid config file format', 'error');
             return;
           }
           if (data.version !== deviceVersion) {
-            showToast(isZh ? `鐗堟湰涓嶅尮閰? 鏂囦欢=${data.version}, 褰撳墠=${deviceVersion}` : `Version mismatch: file=${data.version}, current=${deviceVersion}`, 'error');
+            showToast(isZh ? `版本不匹配: 文件=${data.version}, 当前=${deviceVersion}` : `Version mismatch: file=${data.version}, current=${deviceVersion}`, 'error');
             return;
           }
           const pending = new Map<number, number>();
@@ -201,10 +201,10 @@ export function ParamConfigPage() {
           }
           setPendingImport(pending);
           if (pending.size === 0) {
-            showToast(isZh ? '娌℃湁闇€瑕佸啓鍏ョ殑宸紓鍙傛暟' : 'No differences to write', 'error');
+            showToast(isZh ? '没有需要写入的差异参数' : 'No differences to write', 'error');
           }
         } catch {
-          showToast(isZh ? '瑙ｆ瀽鏂囦欢澶辫触' : 'Failed to parse file', 'error');
+          showToast(isZh ? '解析文件失败' : 'Failed to parse file', 'error');
         }
       };
       reader.readAsText(file);

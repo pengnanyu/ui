@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
 import { useEffect, useCallback, useRef } from 'react';
@@ -28,7 +28,8 @@ function setupAppBridge(handlersRef: { current: Partial<Record<BridgeMessageType
     const onMessage = (bridge as { onMessage?: (cb: (data: BridgeMessage) => void) => void }).onMessage;
     if (typeof onMessage === 'function') {
       const handler = (data: BridgeMessage) => dispatchBridgeMessage(data, handlersRef.current ?? {});
-      // 浣跨敤 call 淇濇寔 this 涓婁笅鏂囷紝纭繚 _handler 姝ｇ‘娉ㄥ唽鍒?bridge 瀵硅薄涓?      onMessage.call(bridge, handler);
+      // 使用 call 保持 this 上下文，确保 _handler 正确注册到 bridge 对象上
+      onMessage.call(bridge, handler);
       return () => { };
     }
   }

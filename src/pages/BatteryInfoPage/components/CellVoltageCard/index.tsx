@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
 import type { CellVoltage } from '@/types';
@@ -27,13 +27,13 @@ export function CellVoltageCard({
     <div className={styles.headerInfo}>
       {voltageMax !== undefined && (
         <span className={styles.headerItem}>
-          <span className={styles.arrowUp}>鈫?/span>
+          <span className={styles.arrowUp}>↑</span>
           {voltageMax}mV
         </span>
       )}
       {voltageMin !== undefined && (
         <span className={styles.headerItem}>
-          <span className={styles.arrowDown}>鈫?/span>
+          <span className={styles.arrowDown}>↓</span>
           {voltageMin}mV
         </span>
       )}
@@ -59,7 +59,7 @@ export function CellVoltageCard({
   if (noShell) return gridContent;
 
   return (
-    <CardShell title="鍗曚綋鐢靛帇" titleExtra={titleExtra}>
+    <CardShell title="单体电压" titleExtra={titleExtra}>
       {gridContent}
     </CardShell>
   );

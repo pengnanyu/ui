@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+// Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
 package com.dcsf.bms
 
 import android.Manifest
@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -75,7 +76,37 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Velocity
 
-// Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
+object LogCollector {
+    private val _buffer = ArrayDeque<String>()
+    private val _logs = mutableStateListOf<String>()
+    val logs: List<String> get() = _logs
+    private const val MAX = 200
+    private const val FLUSH_INTERVAL_MS = 500L
+    private var lastFlush = 0L
+    private val dateFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+
+    fun log(tag: String, msg: String) {
+        val ts = dateFormat.format(java.util.Date())
+        val entry = "$ts $tag $msg"
+        synchronized(_buffer) {
+            _buffer.addLast(entry)
+            if (_buffer.size > MAX) _buffer.removeFirst()
+        }
+        val now = System.currentTimeMillis()
+        if (now - lastFlush > FLUSH_INTERVAL_MS) {
+            lastFlush = now
+            synchronized(_buffer) {
+                _logs.clear()
+                _logs.addAll(_buffer)
+            }
+        }
+    }
+
+    fun clear() {
+        synchronized(_buffer) { _buffer.clear() }
+        _logs.clear()
+    }
+}
 
 data class AppColors(
     val bg: Color,
@@ -145,14 +176,14 @@ fun pushToUi(webView: MutableState<WebView?>, type: String, payloadJson: String)
     val wv = webView.value ?: return
     // Only log every 10th raw-data push to avoid flooding
     if (type != "bms:raw-data" || pushLogCounter++ % 10 == 0) {
-}")
+        LogCollector.log("UI", "push $type ${payloadJson.take(60)}")
     }
     try {
         val escapedType = type.replace("'", "\\'")
         val js = "try{if(window.__APP_BRIDGE__){if(window.__APP_BRIDGE__._handler){window.__APP_BRIDGE__._handler({type:'" + escapedType + "',payload:" + payloadJson + "})}else{console.log('BRIDGE:_handler_not_set for " + escapedType + "')}}else{console.log('BRIDGE:__APP_BRIDGE__ not found')}}catch(e){console.log('BRIDGE:push_error:'+e.message)}"
         wv.post { wv.evaluateJavascript(js, null) }
     } catch (e: Exception) {
-
+        LogCollector.log("UI", "pushToUi error: ${e.message}")
     }
 }
 
@@ -252,23 +283,23 @@ class MainActivity : ComponentActivity() {
 
     private fun connectDevice(device: BleDevice) {
         bleManager.stopScan()
-
+        LogCollector.log("BLE", "Connecting ${device.name} addr=${device.address}...")
         try {
             bleManager.connect(this, device) { connected ->
                 runOnUiThread {
                     bleManager.connected.value = connected
                     if (!connected) bleManager.connectionError.value = true
- "Connected OK" else "Connection failed")
+                    LogCollector.log("BLE", if (connected) "Connected OK" else "Connection failed")
                 }
             }
         } catch (e: Exception) {
-
+            LogCollector.log("BLE", "connectDevice error: ${e.message}")
             Log.e("BMS_BLE", "connectDevice crash", e)
         }
     }
 
     private fun disconnect() {
-
+        LogCollector.log("BLE", "Disconnecting...")
         bleManager.disconnect()
     }
 
@@ -281,7 +312,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         val status = if (bleManager.connected.value) "connected" else "disconnected"
-
+        LogCollector.log("BLE", "onResume: BLE status=$status")
         mainWebView?.let { wv ->
             wv.post {
                 val js = "try{if(window.__APP_BRIDGE__){if(window.__APP_BRIDGE__._handler){window.__APP_BRIDGE__._handler({type:'bms:connection-status',payload:{\"status\":\"$status\"}})}else{console.log('BRIDGE:_handler_not_set for bms:connection-status')}}else{console.log('BRIDGE:__APP_BRIDGE__ not found')}}catch(e){console.log('BRIDGE:push_error:'+e.message)}"
@@ -418,7 +449,7 @@ class BleManager {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val name = result.device.name ?: return
             if (!name.startsWith(NAME_PREFIX)) return
-
+            LogCollector.log("BLE", "Found $name RSSI=${result.rssi}")
 
             var soc = 0; var voltage = 0; var current = 0; var safety = 0
             val scanRecord = result.scanRecord
@@ -431,12 +462,12 @@ class BleManager {
                         val mfgData = mfgDataMap.valueAt(i)
                         val hexStr = mfgData.joinToString("") { "%02x".format(it) }
                         Log.d("BMS_BLE", "MfgData id=0x${mfgId.toString(16)} len=${mfgData.size} data=$hexStr")
-}: $hexStr")
+                        LogCollector.log("BLE", "Mfg 0x${mfgId.toString(16)}: $hexStr")
 
                         val parsed = parseMfgData(mfgData)
                         if (parsed != null) {
                             soc = parsed[0]; voltage = parsed[1]; current = parsed[2]; safety = parsed[3]
-}")
+                            LogCollector.log("BLE", "Adv: soc=$soc V=$voltage I=$current safety=0x${safety.toString(16)}")
                             break
                         }
                     }
@@ -451,17 +482,17 @@ class BleManager {
                         if (parsed != null) {
                             soc = parsed[0]; voltage = parsed[1]; current = parsed[2]; safety = parsed[3]
                             Log.d("BMS_BLE", "Parsed via raw: soc=$soc V=$voltage I=$current safety=$safety")
-: soc=$soc V=$voltage I=$current")
+                            LogCollector.log("BLE", "Adv(raw): soc=$soc V=$voltage I=$current")
                         } else {
                             Log.d("BMS_BLE", "parseAdData returned null")
-")
+                            LogCollector.log("BLE", "Adv parse failed (raw)")
                         }
                     } else {
-
+                        LogCollector.log("BLE", "No scan record bytes")
                     }
                 }
             } else {
-
+                LogCollector.log("BLE", "No scan record")
             }
 
             val existing = devices.indexOfFirst { it.address == result.device.address }
@@ -483,7 +514,7 @@ class BleManager {
         override fun onScanFailed(errorCode: Int) {
             scanning.value = false
             scanStatus.value = "Scan failed: $errorCode"
-
+            LogCollector.log("BLE", "Scan failed: $errorCode")
         }
     }
 
@@ -633,7 +664,7 @@ fun BmsApp(
                         context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     } catch (_e: SecurityException) { /* ignore */ }
                     callback.onReceiveValue(arrayOf(uri))
-
+                    LogCollector.log("UI", "File selected: $uri")
                 } else {
                     callback.onReceiveValue(null)
                 }
@@ -647,7 +678,7 @@ fun BmsApp(
     LaunchedEffect(bleManager.connected.value) {
         val status = if (bleManager.connected.value) "connected" else "disconnected"
         pushToUi(webView, "bms:connection-status", """{"status":"$status"}""")
-
+        LogCollector.log("BLE", "connection: $status")
         if (bleManager.connected.value) {
             selectedTab = 1
         }
@@ -655,7 +686,7 @@ fun BmsApp(
 
     LaunchedEffect(darkTheme) {
         pushToUi(webView, "bms:theme-change", """{"theme":"$themeStr"}""")
-
+        LogCollector.log("UI", "theme sync: $themeStr")
     }
 
     LaunchedEffect(Unit) {
@@ -690,7 +721,7 @@ fun BmsApp(
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     Log.d("BMS_UI", "Page finished: $url")
-
+                    LogCollector.log("UI", "Page loaded: $url")
                     super.onPageFinished(view, url)
                     uiReady.value = true
                     view?.evaluateJavascript("localStorage.setItem('bms-theme','$themeStr')", null)
@@ -728,7 +759,7 @@ fun BmsApp(
             webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage): Boolean {
                     Log.d("BMS_JS", "${consoleMessage.message()} -- ${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}")
-.take(80))
+                    LogCollector.log("JS", consoleMessage.message().take(80))
                     return true
                 }
                 override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?): Boolean {
@@ -741,7 +772,7 @@ fun BmsApp(
                     try {
                         fileChooserLauncher.launch(intent)
                     } catch (e: Exception) {
-
+                        LogCollector.log("UI", "File chooser error: ${e.message}")
                         filePathCallback?.onReceiveValue(null)
                     }
                     return true
@@ -754,7 +785,7 @@ fun BmsApp(
                         val msg = org.json.JSONObject(json)
                         val type = msg.optString("type", "")
                         val payload = msg.optJSONObject("payload")
-
+                        LogCollector.log("JS", "msg $type")
                         when (type) {
                             "bms:frame-send" -> {
                                 if (!bleManager.connected.value) {
@@ -762,7 +793,7 @@ fun BmsApp(
                                     return@postMessage
                                 }
                                 val frameVal = payload?.opt("frame")
-.take(40)}")
+                                LogCollector.log("JS", "frame-send frameVal type=${frameVal?.javaClass?.simpleName} val=${frameVal.toString().take(40)}")
                                 val frame: ByteArray? = when (frameVal) {
                                     is org.json.JSONArray -> {
                                         ByteArray(frameVal.length()) { frameVal.getInt(it).toByte() }
@@ -775,22 +806,22 @@ fun BmsApp(
                                 }
                                 if (frame != null) {
                                     bleManager.send(frame)
- { "%02x".format(it) }}")
+                                    LogCollector.log("UI", "TX ${frame.size}B: ${frame.joinToString("") { "%02x".format(it) }}")
                                 } else {
-
+                                    LogCollector.log("JS", "frame-send: frame is null or invalid")
                                 }
                             }
                             "bms:request-status" -> {
                                 val status = if (bleManager.connected.value) "connected" else "disconnected"
                                 pushToUi(webView, "bms:connection-status", """{"status":"$status"}""")
                                 pushToUi(webView, "bms:theme-change", """{"theme":"$themeStr"}""")
-
+                                LogCollector.log("UI", "request-status: theme=$themeStr status=$status")
                             }
                             "bms:ui-ready" -> {
                                 val status = if (bleManager.connected.value) "connected" else "disconnected"
                                 pushToUi(webView, "bms:connection-status", """{"status":"$status"}""")
                                 pushToUi(webView, "bms:theme-change", """{"theme":"$themeStr"}""")
-
+                                LogCollector.log("UI", "ui-ready: theme=$themeStr status=$status")
                             }
                             "bms:download-file" -> {
                                 val filename = payload?.optString("filename", "download.bin") ?: "download.bin"
@@ -800,16 +831,16 @@ fun BmsApp(
                                     val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                                     val file = File(downloadsDir, filename)
                                     FileOutputStream(file).use { it.write(content.toByteArray(Charsets.UTF_8)) }
-
+                                    LogCollector.log("UI", "File saved: ${file.absolutePath}")
                                     pushToUi(webView, "bms:file-saved", """{"path":"${file.absolutePath}","filename":"$filename"}""")
                                 } catch (e: Exception) {
-
+                                    LogCollector.log("UI", "File save error: ${e.message}")
                                     pushToUi(webView, "bms:file-save-error", """{"error":"${e.message?.replace("\"", "\\\"")}"}""")
                                 }
                             }
                         }
                     } catch (_e: Exception) {
-
+                        LogCollector.log("JS", "postMessage error: ${_e.message}")
                     }
                 }
 
@@ -832,10 +863,10 @@ fun BmsApp(
                         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                         val file = File(downloadsDir, filename)
                         FileOutputStream(file).use { it.write(content.toByteArray(Charsets.UTF_8)) }
-
+                        LogCollector.log("UI", "File saved: ${file.absolutePath}")
                         return file.absolutePath
                     } catch (e: Exception) {
-
+                        LogCollector.log("UI", "File save error: ${e.message}")
                         return ""
                     }
                 }
@@ -882,14 +913,13 @@ fun BmsApp(
             }
         }
 
-// ===== WebView (always in composition, never disposed on configuration change) =====
-Box(
-modifier = Modifier
-.fillMaxSize()
-.padding(start = if (isWideScreen && sidebarVisible) 361.dp else 0.dp)
-.padding(bottom = if (!isWideScreen && showBottomBar) 80.dp else 0.dp)
-.padding(top = if (!isWideScreen && bleManager.connected.value && !showBottomBar) 40.dp else 0.dp)
-) {
+        // ===== WebView (always in composition, never disposed on configuration change) =====
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = if (isWideScreen && sidebarVisible) 361.dp else 0.dp)
+                .padding(bottom = if (!isWideScreen && showBottomBar) 80.dp else 0.dp)
+        ) {
             AndroidView(
                 factory = createWebView,
                 modifier = Modifier.fillMaxSize(),
@@ -1048,6 +1078,79 @@ modifier = Modifier
             }
         }
 
+    // Floating debug panel
+    var showDebug by remember { mutableStateOf(false) }
+    if (showDebug) {
+        val logListState = rememberLazyListState()
+        val logsList = LogCollector.logs
+        LaunchedEffect(logsList.size) {
+            if (logsList.isNotEmpty()) {
+                logListState.animateScrollToItem(logsList.lastIndex)
+            }
+        }
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(8.dp)
+                .fillMaxWidth(0.92f)
+                .heightIn(max = 350.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Terminal, contentDescription = null, tint = colors.fg2, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("调试日志 (${logsList.size})", fontSize = 12.sp, color = colors.fg2, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { LogCollector.clear() }) { Text("清除", fontSize = 11.sp, color = colors.danger) }
+                    IconButton(onClick = { showDebug = false }, modifier = Modifier.size(24.dp)) {
+                        Text("✕", fontSize = 14.sp, color = colors.fg2)
+                    }
+                }
+                if (logsList.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("暂无日志", fontSize = 12.sp, color = colors.fg3)
+                    }
+                } else {
+                    LazyColumn(
+                        state = logListState,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(bottom = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        items(logsList.toList()) { log ->
+                            val tagColor = when {
+                                log.contains(" BLE ") -> Color(0xFF60A5FA)
+                                log.contains(" JS ") -> Color(0xFFA78BFA)
+                                log.contains(" UI ") -> Color(0xFF34D399)
+                                else -> colors.fg3
+                            }
+                            Text(log, fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = tagColor, lineHeight = 14.sp)
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(12.dp)
+                .size(40.dp)
+                .clickable { showDebug = true },
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(Icons.Default.Terminal, contentDescription = "调试", tint = colors.fg2, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1199,6 +1302,95 @@ fun BluetoothPage(
             }
         }
 
+        DebugLogPanel(colors)
+    }
+}
+
+@Composable
+fun DebugLogPanel(colors: AppColors) {
+    var expanded by remember { mutableStateOf(false) }
+    val logs = LogCollector.logs
+    val logListState = rememberLazyListState()
+    // Auto-scroll to bottom when new logs arrive
+    LaunchedEffect(logs.size) {
+        if (logs.isNotEmpty()) {
+            logListState.animateScrollToItem(logs.lastIndex)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Terminal,
+                contentDescription = null,
+                tint = colors.fg2,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                if (expanded) "调试日志 (${logs.size}) ▼" else "调试日志 ▶",
+                fontSize = 12.sp,
+                color = colors.fg2,
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.weight(1f))
+            if (expanded && logs.isNotEmpty()) {
+                TextButton(onClick = { LogCollector.clear() }) {
+                    Text("清除", fontSize = 11.sp, color = colors.danger)
+                }
+            }
+        }
+
+        if (expanded) {
+            Card(
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+            ) {
+                if (logs.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("暂无日志", fontSize = 12.sp, color = colors.fg3)
+                    }
+                } else {
+                    LazyColumn(
+                        state = logListState,
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        items(logs.toList()) { log ->
+                            val tagColor = when {
+                                log.contains(" BLE ") -> Color(0xFF60A5FA)
+                                log.contains(" JS ") -> Color(0xFFA78BFA)
+                                log.contains(" UI ") -> Color(0xFF34D399)
+                                else -> colors.fg3
+                            }
+                            Text(
+                                log,
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = tagColor,
+                                lineHeight = 14.sp,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

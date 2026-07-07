@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
 import { StrictMode } from 'react';
@@ -40,7 +40,7 @@ setupViewportUnit();
 
 const rootEl = document.getElementById('root')!;
 if (isApp() || isMiniProgram()) {
-  // App/灏忕▼搴忔ā寮忎笅涓嶇敤 StrictMode锛岄伩鍏嶅弻閲嶆覆鏌撳鑷?WebView 鎬ц兘闂
+  // App/小程序模式下不用 StrictMode，避免双重渲染导致 WebView 性能问题
   createRoot(rootEl).render(<App />);
 } else {
   createRoot(rootEl).render(
@@ -50,7 +50,8 @@ if (isApp() || isMiniProgram()) {
   );
 }
 
-// 娉ㄥ唽 Service Worker锛歐eb 鐙珛璁块棶鍜?iframe 宓屽叆妯″紡閮芥敞鍐岋紝Android WebView 鍜屽皬绋嬪簭涓嶆敞鍐?if (!isApp() && !isMiniProgram() && 'serviceWorker' in navigator) {
+// 注册 Service Worker：Web 独立访问和 iframe 嵌入模式都注册，Android WebView 和小程序不注册
+if (!isApp() && !isMiniProgram() && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => { });
   });
