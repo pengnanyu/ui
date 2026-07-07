@@ -1003,9 +1003,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
 
       if (fc === 0x10) {
-        if (buf.length < 8) break;
-        processFrame(buf.slice(0, 8));
-        rawBufRef.current = buf.slice(8);
+        // Write response: slaveAddr(1) + fc(1) + length(1) + CRC(2) = 5 bytes
+        if (buf.length < 5) break;
+        processFrame(buf.slice(0, 5));
+        rawBufRef.current = buf.slice(5);
         continue;
       }
 
