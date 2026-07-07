@@ -18,6 +18,14 @@ export interface Toast {
   type: 'success' | 'error';
 }
 
+export interface DebugLog {
+  id: string;
+  timestamp: number;
+  direction: 'send' | 'recv';
+  hex: string;
+  label?: string;
+}
+
 export interface BmsState {
   connectionStatus: ConnectionStatus;
   protocolDb: ProtocolDatabase | null;
@@ -31,6 +39,7 @@ export interface BmsState {
   calendarRecords: CalendarRecord[];
   toasts: Toast[];
   isBatchWriting: boolean;
+  debugLogs: DebugLog[];
 }
 
 export interface BmsActions {
@@ -41,6 +50,7 @@ export interface BmsActions {
   startBatchWrite: (count: number) => void;
   readCalendar: () => void;
   writeBatch: (fields: { fieldRowIndex: number; newValue: number }[]) => void;
+  clearDebugLogs: () => void;
 }
 
 export type BmsStore = BmsState & BmsActions;

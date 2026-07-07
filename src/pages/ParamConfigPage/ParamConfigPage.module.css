@@ -26,9 +26,9 @@
 }
 
 .nav {
-  width: 220px;
-  min-width: 180px;
-  max-width: 280px;
+  width: max-content;
+  min-width: 200px;
+  max-width: 320px;
   background: var(--card-bg);
   backdrop-filter: blur(var(--card-blur));
   -webkit-backdrop-filter: blur(var(--card-blur));
@@ -43,6 +43,7 @@
 
 .navToolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 8px 8px 6px;
   border-bottom: 1px solid var(--card-border);
@@ -50,7 +51,6 @@
 }
 
 .navBtn {
-  flex: 1;
   height: var(--btn-height);
   padding: var(--btn-padding);
   border-radius: var(--btn-radius);
@@ -72,7 +72,6 @@
 }
 
 .navBtnCancel {
-  flex: 1;
   height: var(--btn-height);
   padding: var(--btn-padding);
   border-radius: var(--btn-radius);
@@ -94,7 +93,6 @@
 }
 
 .navBtnConfirm {
-  flex: 1;
   height: var(--btn-height);
   padding: var(--btn-padding);
   border-radius: var(--btn-radius);

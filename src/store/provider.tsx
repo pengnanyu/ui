@@ -4,7 +4,7 @@
  */
 import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import type { ConnectionStatus, ProtocolDatabase, BridgeMessage } from '@/types';
-import type { BmsStore, DataMemeryGroup, Toast } from './context';
+import type { BmsStore, DataMemeryGroup, Toast, DebugLog } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
@@ -91,6 +91,22 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const [calendarRecords, setCalendarRecords] = useState<CalendarRecord[]>([]);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [debugLogs, setDebugLogs] = useState<DebugLog[]>([]);
+  const debugLogIdRef = useRef(0);
+  const MAX_DEBUG_LOGS = 200;
+
+  const addDebugLog = useCallback((direction: 'send' | 'recv', hex: string, label?: string) => {
+    const id = `d${debugLogIdRef.current++}`;
+    const entry: DebugLog = { id, timestamp: Date.now(), direction, hex, label };
+    setDebugLogs(prev => {
+      const next = [...prev, entry];
+      return next.length > MAX_DEBUG_LOGS ? next.slice(next.length - MAX_DEBUG_LOGS) : next;
+    });
+  }, []);
+
+  const clearDebugLogs = useCallback(() => {
+    setDebugLogs([]);
+  }, []);
 
   const parsedValuesMapRef = useRef<Map<number, FieldValue>>(new Map());
 
@@ -243,13 +259,14 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const stopVersionRetryRef = useRef<() => void>(() => { });
   const stopAllTimersRef = useRef<() => void>(() => { });
 
-  const sendFrame = useCallback((frame: number[]) => {
+  const sendFrame = useCallback((frame: number[], label?: string) => {
     if (connectionStatusRef.current !== 'connected') return;
-    const hex = frame.map(b => b.toString(16).padStart(2, '0')).join('');
+    const hex = frame.map(b => b.toString(16).padStart(2, '0')).join(' ');
+    addDebugLog('send', hex, label);
     if (sendMessageRef.current) {
-      sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex } });
+      sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex.replace(/ /g, '') } });
     }
-  }, []);
+  }, [addDebugLog]);
 
   const executePendingWriteOrPollRef = useRef<() => void>(() => { });
   const writeFieldRef = useRef<(fieldRowIndex: number, newValue: number) => void>(() => { });
@@ -412,7 +429,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     batchVerifyInstrIdxRef.current = item.instrIdx;
     // Clear response timer for injected command
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-    sendFrame(item.frame);
+    sendFrame(item.frame, `批量写入帧 ${batchWriteDoneRef.current + 1}/${batchWriteTotalRef.current}`);
     responseTimerRef.current = setTimeout(() => {
       if (!isWritingRef.current) return;
       errorCountRef.current++;
@@ -541,7 +558,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       group.recordLen & 0xFF,
     ]);
     waitingResponseRef.current = true;
-    sendFrame(frame);
+    sendFrame(frame, `读取异常记录 G${groupIdx}R${recordIdx}`);
     responseTimerRef.current = setTimeout(() => {
       if (!calendarPollingRef.current) return;
       calendarErrorCountRef.current++;
@@ -796,6 +813,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
       const fc = data[1]!;
       const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
+      addDebugLog('recv', respHex, isBatchWritingRef.current ? '批量写入响应' : `${writeFieldNameRef.current} 写入响应`);
       if (fc & 0x80) {
         if (isBatchWritingRef.current) {
           batchWriteErrorRef.current = true;
@@ -879,6 +897,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
       waitingResponseRef.current = false;
       calendarErrorCountRef.current = 0;
+      const calHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
+      addDebugLog('recv', calHex, `异常记录 G${calendarPollGroupIdxRef.current}R${calendarPollRecordIdxRef.current}`);
       advanceCalendarPoll(parsed.registers);
       return;
     }
@@ -918,7 +938,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     waitingResponseRef.current = false;
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     advancePoll();
-  }, [advancePoll, stopVersionRetry, loadProtocolDb]);
+  }, [advancePoll, stopVersionRetry, loadProtocolDb, addDebugLog]);
 
   const handleRawData = useCallback((payload: unknown) => {
     if (connectionStatusRef.current !== 'connected') return;
@@ -1136,7 +1156,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       writeFieldNameRef.current = fv.name;
       // Store expected value for verify-read comparison
       writeExpectedValueRef.current = { rowIndex: fv.rowIndex, expectedValue: newValue, fieldName: fv.name };
-      sendFrame(frame);
+      sendFrame(frame, `写入: ${fv.name}`);
       responseTimerRef.current = setTimeout(() => {
         if (!isWritingRef.current) return;
         errorCountRef.current++;
@@ -1194,6 +1214,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     calendarRecords,
     toasts,
     isBatchWriting,
+    debugLogs,
     sendFrame,
     autoRead,
     writeField,
@@ -1201,7 +1222,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     startBatchWrite,
     readCalendar,
     writeBatch,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, sendFrame, autoRead, writeField, showToast, startBatchWrite, readCalendar, writeBatch]);
+    clearDebugLogs,
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, debugLogs, sendFrame, autoRead, writeField, showToast, startBatchWrite, readCalendar, writeBatch, clearDebugLogs]);
 
   return (
     <BmsContext.Provider value={store}>

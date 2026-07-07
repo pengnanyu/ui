@@ -80,7 +80,11 @@
     "loadDb": "Load DB",
     "autoRead": "Auto Read",
     "invalidHex": "Invalid HEX format",
-    "autoScroll": "Auto Scroll"
+    "autoScroll": "Auto Scroll",
+    "debugLog": "Debug Log",
+    "clearLog": "Clear",
+    "recv": "Recv",
+    "noLogs": "No logs"
   },
   "common": {
     "loading": "Loading...",
