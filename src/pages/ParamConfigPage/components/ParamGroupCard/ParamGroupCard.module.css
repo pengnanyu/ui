@@ -62,13 +62,18 @@
   white-space: nowrap;
 }
 
-.groupContent {
+.tableWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.table {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr auto;
-  gap: 8px;
-  min-height: 0;
-  flex: 1;
-  overflow: hidden;
+  gap: 0;
+  padding: 0 12px;
 }
 
 .rowHeader {
@@ -76,16 +81,16 @@
   font-size: 13px;
   color: var(--color-muted-foreground);
   font-weight: 500;
-  flex-shrink: 0;
 }
 
 .rowHeader > span {
-  padding: 4px 0 6px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 6px 4px 8px;
+  border-bottom: 2px solid var(--color-border);
   background: var(--color-card);
   position: sticky;
   top: 0;
   z-index: 1;
+  white-space: nowrap;
 }
 
 .rowList {

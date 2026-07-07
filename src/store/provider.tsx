@@ -167,7 +167,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 2000);
+    }, 3000);
   }, []);
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -713,10 +713,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         return;
       }
       const fieldName = writeExpectedValueRef.current?.fieldName ?? '';
-      if (verifyOk) {
-        showToast(i18n.language === 'zh' ? `${fieldName} 写入成功` : `${fieldName} write OK`, 'success');
-      } else {
-        showToast(i18n.language === 'zh' ? `${fieldName} 写入失败（数据不一致）` : `${fieldName} write failed (mismatch)`, 'error');
+      if (!verifyOk) {
+        showToast(i18n.language === 'zh' ? `${fieldName} 写入验证失败（数据不一致）` : `${fieldName} verify failed (mismatch)`, 'error');
       }
       writeExpectedValueRef.current = null;
       flushUpdates();
@@ -797,6 +795,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         responseTimerRef.current = null;
       }
       const fc = data[1]!;
+      const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
       if (fc & 0x80) {
         if (isBatchWritingRef.current) {
           batchWriteErrorRef.current = true;
@@ -804,7 +803,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           sendNextBatchFrameRef.current();
           return;
         }
-        showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入失败` : `${writeFieldNameRef.current} write failed`, 'error');
+        showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入失败 [${respHex}]` : `${writeFieldNameRef.current} write failed [${respHex}]`, 'error');
         executePendingWriteOrPollRef.current();
         return;
       }
@@ -822,6 +821,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         }
         return;
       }
+      // Single write success - show response data immediately
+      showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入成功 [${respHex}]` : `${writeFieldNameRef.current} write OK [${respHex}]`, 'success');
       const writeInstrIdx = writeInstrIdxRef.current;
       if (writeInstrIdx >= 0) {
         isVerifyReadRef.current = true;

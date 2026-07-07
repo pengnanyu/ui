@@ -34,17 +34,19 @@ export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBac
         )}
         <span className={styles.groupTitle}>{groupName}</span>
       </div>
-      <div className={styles.groupContent}>
-        <div className={styles.rowHeader}>
-          <span>{t('param.name')}</span>
-          <span>{t('param.currentValue')}</span>
-          <span>{t('param.setValue')}</span>
-          <span>{t('param.unit')}</span>
-        </div>
-        <div className={styles.rowList}>
-          {params.map((param) => (
-            <ParamRow key={param.key} param={param} onValueChange={onValueChange} onBlur={onBlur} />
-          ))}
+      <div className={styles.tableWrap}>
+        <div className={styles.table}>
+          <div className={styles.rowHeader}>
+            <span>{t('param.name')}</span>
+            <span>{t('param.currentValue')}</span>
+            <span>{t('param.setValue')}</span>
+            <span>{t('param.unit')}</span>
+          </div>
+          <div className={styles.rowList}>
+            {params.map((param) => (
+              <ParamRow key={param.key} param={param} onValueChange={onValueChange} onBlur={onBlur} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

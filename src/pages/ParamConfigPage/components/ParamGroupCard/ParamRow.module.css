@@ -4,9 +4,11 @@
 }
 
 .row > * {
-  padding: 6px 0;
+  padding: 0 4px;
+  height: 36px;
+  display: flex;
+  align-items: center;
   border-bottom: 1px solid var(--color-border);
-  align-self: center;
 }
 
 .rowPending > * {
@@ -28,9 +30,12 @@
 .currentValue {
   color: var(--color-muted-foreground);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .unit {
   color: var(--color-muted-foreground);
   font-size: 13px;
+  white-space: nowrap;
+  padding-right: 8px;
 }
