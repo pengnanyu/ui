@@ -262,7 +262,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const sendFrame = useCallback((frame: number[], label?: string) => {
     if (connectionStatusRef.current !== 'connected') return;
     const hex = frame.map(b => b.toString(16).padStart(2, '0')).join(' ');
-    addDebugLog('send', hex, label);
+    // Only log write and calendar operations (when label is provided)
+    if (label) {
+      addDebugLog('send', hex, label);
+    }
     if (sendMessageRef.current) {
       sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex.replace(/ /g, '') } });
     }
@@ -563,8 +566,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       group.recordLen & 0xFF,
     ]);
     waitingResponseRef.current = true;
+    rawBufRef.current = [];
     sendFrame(frame, `读取异常记录 G${groupIdx}R${recordIdx}`);
-    responseTimerRef.current = setTimeout(() => {
+    const calTimeoutCb = () => {
       if (!calendarPollingRef.current) return;
       calendarErrorCountRef.current++;
       if (calendarErrorCountRef.current < 3) {
@@ -576,7 +580,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         showToast(i18n.language === 'zh' ? '读取失败' : 'Read failed', 'error');
         startPeriodicPollRef.current();
       }
-    }, RESPONSE_TIMEOUT);
+    };
+    responseTimeoutCbRef.current = calTimeoutCb;
+    responseTimerRef.current = setTimeout(calTimeoutCb, RESPONSE_TIMEOUT);
   }, [sendFrame, showToast]);
 
   const startCalendarPoll = useCallback(() => {
@@ -807,7 +813,15 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (data.length === 0) return;
 
     if (isWritingRef.current) {
-      if (data.length < 5 || !verifyCrc(data) || (data[1]! & 0x7F) !== 0x10) {
+      const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
+      // Log all received data during write for debugging
+      if (data.length < 5 || !verifyCrc(data)) {
+        addDebugLog('recv', respHex, `${writeFieldNameRef.current} 写入响应(CRC失败)`);
+        return;
+      }
+      const recvFc = data[1]! & 0x7F;
+      if (recvFc !== 0x10) {
+        addDebugLog('recv', respHex, `${writeFieldNameRef.current} 写入响应(非写入FC:0x${recvFc.toString(16)})`);
         return;
       }
       isWritingRef.current = false;
@@ -817,7 +831,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         responseTimerRef.current = null;
       }
       const fc = data[1]!;
-      const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
       addDebugLog('recv', respHex, isBatchWritingRef.current ? '批量写入响应' : `${writeFieldNameRef.current} 写入响应`);
       if (fc & 0x80) {
         if (isBatchWritingRef.current) {
@@ -952,8 +965,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const rawData = typeof d === 'string' ? Array.from({ length: d.length / 2 }, (_, i) => parseInt(d.substring(i * 2, i * 2 + 2), 16)) : d;
     if (!rawData || rawData.length === 0) return;
 
-    // Reset response timer on data receipt (for both reads and writes)
-    if (responseTimerRef.current && (waitingResponseRef.current || isWritingRef.current) && responseTimeoutCbRef.current) {
+    // Reset response timer on data receipt ONLY for read responses (not writes).
+    // For writes, the timer must NOT be reset by incoming data so invalid/dropped
+    // responses don't cause the write to hang indefinitely.
+    if (responseTimerRef.current && waitingResponseRef.current && !isWritingRef.current && responseTimeoutCbRef.current) {
       clearTimeout(responseTimerRef.current);
       responseTimerRef.current = setTimeout(responseTimeoutCbRef.current, RESPONSE_TIMEOUT);
     }
