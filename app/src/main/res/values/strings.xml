@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">锂卫士</string>
+    <string name="app_name">锂护卫</string>
     <color name="primary">#C8941E</color>
     <color name="primary_dark">#A07616</color>
     <color name="background">#F8F9FA</color>
