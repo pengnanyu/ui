@@ -227,7 +227,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const isBatchWritingRef = useRef(false);
   const batchVerifyInstrIdxRef = useRef(-1);
   const flushUpdatesRef = useRef<() => void>(() => { });
-  const sendNextBatchFrameRef = useRef<() => void>(() => { });
+  const sendNextBatchFrameRef = useRef<(isRetry?: boolean) => void>(() => { });
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollIdxRef = useRef(0);
@@ -271,13 +271,14 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const executePendingWriteOrPollRef = useRef<() => void>(() => { });
   const writeFieldRef = useRef<(fieldRowIndex: number, newValue: number) => void>(() => { });
 
-  /** Clear injected command timers without killing periodic poll state */
+  /** Clear injected command timers without killing periodic poll state.
+   * NOTE: Does NOT reset errorCountRef — caller manages retry count explicitly. */
   const clearInjectedTimers = useCallback(() => {
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     responseTimeoutCbRef.current = null;
     waitingResponseRef.current = false;
-    errorCountRef.current = 0;
+    rawBufRef.current = [];
   }, []);
 
   const stopAllTimers = useCallback(() => {
@@ -429,22 +430,25 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     batchVerifyInstrIdxRef.current = item.instrIdx;
     // Clear response timer for injected command
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
+    rawBufRef.current = [];
     sendFrame(item.frame, `批量写入帧 ${batchWriteDoneRef.current + 1}/${batchWriteTotalRef.current}`);
-    responseTimerRef.current = setTimeout(() => {
+    const batchTimeoutCb = () => {
       if (!isWritingRef.current) return;
       errorCountRef.current++;
       if (errorCountRef.current < 3) {
         isWritingRef.current = false;
         waitingResponseRef.current = false;
         batchWriteQueueRef.current.unshift(item);
-        sendNextBatchFrameRef.current();
+        sendNextBatchFrameRef.current(true);
       } else {
         isWritingRef.current = false;
         batchWriteErrorRef.current = true;
         batchWriteDoneRef.current++;
         sendNextBatchFrameRef.current();
       }
-    }, RESPONSE_TIMEOUT);
+    };
+    responseTimeoutCbRef.current = batchTimeoutCb;
+    responseTimerRef.current = setTimeout(batchTimeoutCb, RESPONSE_TIMEOUT);
   }, [sendFrame, showToast, sendInstructionFrame]);
 
   sendNextBatchFrameRef.current = sendNextBatchFrame;
@@ -491,6 +495,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     // Injection: clear timers but don't kill periodic poll state
     clearInjectedTimers();
+    errorCountRef.current = 0;
     isBatchWritingRef.current = true;
     setIsBatchWriting(true);
     batchWriteQueueRef.current = [...allItems];
@@ -947,8 +952,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const rawData = typeof d === 'string' ? Array.from({ length: d.length / 2 }, (_, i) => parseInt(d.substring(i * 2, i * 2 + 2), 16)) : d;
     if (!rawData || rawData.length === 0) return;
 
-    // Reset response timer on data receipt
-    if (responseTimerRef.current && waitingResponseRef.current && responseTimeoutCbRef.current) {
+    // Reset response timer on data receipt (for both reads and writes)
+    if (responseTimerRef.current && (waitingResponseRef.current || isWritingRef.current) && responseTimeoutCbRef.current) {
       clearTimeout(responseTimerRef.current);
       responseTimerRef.current = setTimeout(responseTimeoutCbRef.current, RESPONSE_TIMEOUT);
     }
@@ -1133,8 +1138,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     // Injection: clear timers but don't kill periodic poll state
-    // Reset error count and response timer for injected command
     clearInjectedTimers();
+    if (!isRetry) {
+      errorCountRef.current = 0;
+    }
 
     const siblingFields = Array.from(parsedValuesMapRef.current.values());
     const getLeRegisterValue = (absAddr: number): number => {
@@ -1157,7 +1164,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       // Store expected value for verify-read comparison
       writeExpectedValueRef.current = { rowIndex: fv.rowIndex, expectedValue: newValue, fieldName: fv.name };
       sendFrame(frame, `写入: ${fv.name}`);
-      responseTimerRef.current = setTimeout(() => {
+      const writeTimeoutCb = () => {
         if (!isWritingRef.current) return;
         errorCountRef.current++;
         if (errorCountRef.current < 3) {
@@ -1169,7 +1176,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入超时` : `${writeFieldNameRef.current} write timeout`, 'error');
           executePendingWriteOrPollRef.current();
         }
-      }, RESPONSE_TIMEOUT);
+      };
+      responseTimeoutCbRef.current = writeTimeoutCb;
+      responseTimerRef.current = setTimeout(writeTimeoutCb, RESPONSE_TIMEOUT);
     }
   }, [sendFrame, clearInjectedTimers, showToast]);
 

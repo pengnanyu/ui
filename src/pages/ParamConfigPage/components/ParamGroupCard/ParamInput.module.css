@@ -1,6 +1,6 @@
 .input {
   width: 100%;
-  max-width: 80px;
+  min-width: 60px;
   padding: 3px 6px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -31,7 +31,7 @@
 
 .select {
   width: 100%;
-  max-width: 80px;
+  min-width: 60px;
   padding: 3px 6px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
