@@ -18,7 +18,7 @@ const PROTOCOL_API_URLS = [
   'https://api.bms.pub/api/data',
   'https://sql.hzxhhc.com/api/data/',
 ];
-const VERSION_QUERY_INTERVAL = 1000;
+const VERSION_QUERY_INTERVAL = 500;
 const RESPONSE_TIMEOUT = 3000;
 const TARGET_CYCLE_MS = 1000;
 const EXTRA_DELAY_AFTER_CYCLE = 500;
@@ -296,7 +296,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const sendVersionQuery = useCallback(() => {
     const frame = appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]);
+    rawBufRef.current = [];
+    waitingResponseRef.current = true;
     sendFrame(frame);
+    if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); }
+    const timeoutCb = () => {
+      if (!waitingResponseRef.current) return;
+      if (connectionStatusRef.current !== 'connected') { waitingResponseRef.current = false; return; }
+      waitingResponseRef.current = false;
+    };
+    responseTimeoutCbRef.current = timeoutCb;
+    responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
   }, [sendFrame]);
 
   const startVersionRetry = useCallback(() => {
@@ -322,6 +332,42 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const loadProtocolDb = useCallback(async (version: string) => {
     setProtocolLoading(true);
     initPhaseRef.current = 'protocol';
+    // Try cache first for instant loading on reconnection
+    try {
+      const cached = await getCachedProtocol(version);
+      if (cached && cached.columns && cached.rows) {
+        setProtocolDb(cached);
+        setProtocolLoading(false);
+        // Refresh cache in background
+        (async () => {
+          for (const apiUrl of PROTOCOL_API_URLS) {
+            try {
+              const res = await fetch(`${apiUrl}?search=${encodeURIComponent(version)}`);
+              if (!res.ok) continue;
+              const data = await res.json();
+              if (data && data.columns && data.rows) {
+                const entry = {
+                  version,
+                  table: data.table || '',
+                  columns: data.columns,
+                  rows: data.rows,
+                  loadedAt: Date.now(),
+                };
+                setCachedProtocol(entry);
+                setProtocolDb(entry);
+                return;
+              }
+            } catch (_e) {
+              // try next API source
+            }
+          }
+        })();
+        return;
+      }
+    } catch (_e) {
+      // ignore cache read error
+    }
+    // No cache, fetch from API
     for (const apiUrl of PROTOCOL_API_URLS) {
       try {
         const res = await fetch(`${apiUrl}?search=${encodeURIComponent(version)}`);
@@ -343,16 +389,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       } catch (_e) {
         // try next API source
       }
-    }
-    try {
-      const cached = await getCachedProtocol(version);
-      if (cached && cached.columns && cached.rows) {
-        setProtocolDb(cached);
-        setProtocolLoading(false);
-        return;
-      }
-    } catch (_e) {
-      // ignore cache read error
     }
     setProtocolLoading(false);
   }, []);
@@ -878,7 +914,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (data.length >= 5 && verifyCrc(data) && (data[1]! & 0x80)) {
       waitingResponseRef.current = false;
       if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-      rawBufRef.current = [];
       advancePoll();
       return;
     }
@@ -886,14 +921,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const parsed = parseModbusResponse(data);
 
     if (!parsed) {
-      rawBufRef.current = [];
       return;
     }
 
     if (parsed.funcCode & 0x80) {
       waitingResponseRef.current = false;
       if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-      rawBufRef.current = [];
       advancePoll();
       return;
     }
@@ -926,7 +959,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (protocol && instrIdx >= 0 && instrIdx < protocol.instructions.length) {
       const expectedFc = protocol.instructions[instrIdx]!.funcCode;
       if (parsed.funcCode !== expectedFc) {
-        rawBufRef.current = [];
+        return;
+      }
+      // Verify byte count matches expected quantity to prevent stale response misalignment
+      const expectedBc = protocol.instructions[instrIdx]!.quantity * 2;
+      if (parsed.byteCount !== expectedBc) {
         return;
       }
     }

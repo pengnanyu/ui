@@ -15,7 +15,7 @@ export function FaultRecordPage() {
 
   const nonEmptyRecords = calendarRecords.filter(r => !r.isEmpty);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     if (calendarGroups.length === 0 || nonEmptyRecords.length === 0) return;
 
     const BOM = '\uFEFF';
@@ -51,7 +51,7 @@ export function FaultRecordPage() {
 
     const content = BOM + csv;
     const filename = `bms-fault-records-${Date.now()}.csv`;
-    // In Android app, use native bridge to save file
+    // In Android app, use native bridge to save file (shows system file save dialog)
     if (isApp() && (window as unknown as Record<string, unknown>).__APP_BRIDGE__) {
       const bridge = (window as unknown as { __APP_BRIDGE__: { postMessage: (msg: unknown) => void } }).__APP_BRIDGE__;
       bridge.postMessage({
@@ -59,6 +59,21 @@ export function FaultRecordPage() {
         payload: { filename, content, mimeType: 'text/csv;charset=utf-8' },
       });
       return;
+    }
+    // Use File System Access API for directory selection and filename editing
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        return;
+      } catch (e: unknown) {
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+      }
     }
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({
