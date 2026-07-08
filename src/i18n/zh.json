@@ -67,10 +67,8 @@
   },
   "command": {
     "sendFrame": "发送帧",
-    "hexInput": "HEX 输入",
+    "hexInput": "HEX 输入（不含地址和CRC）",
     "send": "发送",
-    "initFrame": "初始化帧",
-    "readOneReg": "读 1 寄存器",
     "receiveLog": "接收日志",
     "filterAll": "全部",
     "filterDataMemory": "Data Memory",

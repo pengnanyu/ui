@@ -92,32 +92,26 @@ export function ParamInput({ param, onValueChange, onBlur, hasPendingDiff }: Par
     if (param.pendingImportValue !== undefined) return formatImportValue(param.pendingImportValue);
     return param.displayValue ?? String(param.value);
   });
+  const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const paramKeyRef = useRef(param.key);
   paramKeyRef.current = param.key;
 
   useEffect(() => {
-    if (inputRef.current !== document.activeElement) {
+    if (!isEditing) {
       if (param.pendingImportValue !== undefined) {
         setLocalValue(formatImportValue(param.pendingImportValue));
       } else {
         setLocalValue(param.displayValue ?? String(param.value));
       }
     }
-  }, [param.displayValue, param.value, param.pendingImportValue, formatImportValue]);
+  }, [param.displayValue, param.value, param.pendingImportValue, formatImportValue, isEditing]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalValue(sanitize(e.target.value, dt));
   }, [dt]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      (e.target as HTMLInputElement).blur();
-    }
-  }, []);
-
-  const handleBlurInner = useCallback(() => {
+  const commitValue = useCallback(() => {
     const cleaned = sanitize(localValue, dt);
     let finalValue: string | number;
     if (isHexType(dt)) {
@@ -138,6 +132,35 @@ export function ParamInput({ param, onValueChange, onBlur, hasPendingDiff }: Par
     onBlur(paramKeyRef.current);
   }, [localValue, dt, onValueChange, onBlur]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitValue();
+      inputRef.current?.blur();
+    }
+  }, [commitValue]);
+
+  const handleBlur = useCallback(() => {
+    // On blur: revert to original value, do NOT write
+    if (isEditing) {
+      if (param.pendingImportValue !== undefined) {
+        setLocalValue(formatImportValue(param.pendingImportValue));
+      } else {
+        setLocalValue(param.displayValue ?? String(param.value));
+      }
+      setIsEditing(false);
+    }
+  }, [isEditing, param.displayValue, param.value, param.pendingImportValue, formatImportValue]);
+
+  const handleFocus = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    commitValue();
+    inputRef.current?.blur();
+  }, [commitValue]);
+
   if (param.readonly) {
     return <span className={styles.dash}>—</span>;
   }
@@ -147,8 +170,10 @@ export function ParamInput({ param, onValueChange, onBlur, hasPendingDiff }: Par
       <select
         className={styles.select}
         value={String(param.value)}
-        onChange={(e) => onValueChange(param.key, e.target.value)}
-        onBlur={() => onBlur(param.key)}
+        onChange={(e) => {
+          onValueChange(param.key, e.target.value);
+          onBlur(param.key);
+        }}
       >
         {param.options.map((opt) => (
           <option key={String(opt.value)} value={String(opt.value)}>
@@ -164,15 +189,28 @@ export function ParamInput({ param, onValueChange, onBlur, hasPendingDiff }: Par
     : undefined;
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      inputMode={inputMode}
-      className={`${styles.input} ${hasPendingDiff ? styles.inputPending : ''}`}
-      value={localValue}
-      onChange={handleChange}
-      onBlur={handleBlurInner}
-      onKeyDown={handleKeyDown}
-    />
+    <div className={styles.inputWrap}>
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode={inputMode}
+        enterKeyHint="done"
+        className={`${styles.input} ${hasPendingDiff ? styles.inputPending : ''}`}
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+        onKeyDown={handleKeyDown}
+      />
+      {isEditing && (
+        <button
+          className={styles.confirmBtn}
+          onMouseDown={(e) => { e.preventDefault(); handleConfirm(); }}
+          title="确认"
+        >
+          ✓
+        </button>
+      )}
+    </div>
   );
 }

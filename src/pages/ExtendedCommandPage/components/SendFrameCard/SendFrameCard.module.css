@@ -1,4 +1,4 @@
-.sendRow {
+.inputArea {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
@@ -14,6 +14,9 @@
   background: var(--color-background);
   color: var(--color-foreground);
   outline: none;
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
 }
 
 .hexInput:focus {
@@ -33,30 +36,34 @@
   background: var(--color-primary);
   color: var(--color-primary-foreground);
   transition: opacity 0.15s;
+  align-self: flex-start;
+  white-space: nowrap;
 }
 
 .sendBtn:hover {
   opacity: 0.9;
 }
 
-.quickBtns {
+.preview {
   display: flex;
+  align-items: flex-start;
   gap: 6px;
-}
-
-.quickBtn {
-  padding: 6px 12px;
+  padding: 6px 10px;
+  background: var(--color-muted);
   border-radius: 4px;
   font-size: 12px;
-  cursor: pointer;
-  border: 1px solid var(--color-border);
-  background: var(--color-muted);
-  color: var(--color-foreground);
-  transition: background-color 0.15s;
+  margin-bottom: 4px;
 }
 
-.quickBtn:hover {
-  background: var(--color-border);
+.previewLabel {
+  color: var(--color-muted-foreground);
+  flex-shrink: 0;
+}
+
+.previewCode {
+  font-family: monospace;
+  color: var(--color-foreground);
+  word-break: break-all;
 }
 
 .errorMsg {

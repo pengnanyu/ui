@@ -67,10 +67,8 @@
   },
   "command": {
     "sendFrame": "Send Frame",
-    "hexInput": "HEX Input",
+    "hexInput": "HEX Input (without addr and CRC)",
     "send": "Send",
-    "initFrame": "Init Frame",
-    "readOneReg": "Read 1 Reg",
     "receiveLog": "Receive Log",
     "filterAll": "All",
     "filterDataMemory": "Data Memory",
