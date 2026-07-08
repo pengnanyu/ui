@@ -262,10 +262,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const sendFrame = useCallback((frame: number[], label?: string) => {
     if (connectionStatusRef.current !== 'connected') return;
     const hex = frame.map(b => b.toString(16).padStart(2, '0')).join(' ');
-    // Only log write and calendar operations (when label is provided)
-    if (label) {
-      addDebugLog('send', hex, label);
-    }
+    addDebugLog('send', hex, label);
     if (sendMessageRef.current) {
       sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex.replace(/ /g, '') } });
     }
@@ -298,16 +295,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const frame = appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]);
     rawBufRef.current = [];
     waitingResponseRef.current = true;
-    sendFrame(frame);
+    sendFrame(frame, '版本查询');
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); }
     const timeoutCb = () => {
       if (!waitingResponseRef.current) return;
       if (connectionStatusRef.current !== 'connected') { waitingResponseRef.current = false; return; }
       waitingResponseRef.current = false;
+      addDebugLog('send', '', '⚠ 版本查询超时');
     };
     responseTimeoutCbRef.current = timeoutCb;
     responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
-  }, [sendFrame]);
+  }, [sendFrame, addDebugLog]);
 
   const startVersionRetry = useCallback(() => {
     if (versionRetryRef.current) return;
@@ -413,31 +411,28 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     rawBufRef.current = [];
-    sendFrame(frame);
+    sendFrame(frame, `读取 #${instrIdx} ${inst.configNameZh || inst.configNameEn}`);
 
     const timeoutCb = () => {
       if (!waitingResponseRef.current) return;
       if (connectionStatusRef.current !== 'connected') { waitingResponseRef.current = false; return; }
       errorCountRef.current++;
+      addDebugLog('send', '', `⚠ 指令#${instrIdx} 超时 (${errorCountRef.current}/3)`);
       if (errorCountRef.current < 3) {
         waitingResponseRef.current = false;
         sendInstructionFrame(instrIdx, true);
       } else {
+        // Both initial-poll and periodic: skip and continue instead of disconnecting
         if (initPhaseRef.current === 'initial-poll') {
           skippedInstrIndicesRef.current.push(instrIdx);
-          waitingResponseRef.current = false;
-          advancePoll();
-        } else {
-          connectionStatusRef.current = 'disconnected';
-          stopAllTimersRef.current();
-          stopVersionRetryRef.current();
-          setConnectionStatus('disconnected');
         }
+        waitingResponseRef.current = false;
+        advancePoll();
       }
     };
     responseTimeoutCbRef.current = timeoutCb;
     responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
-  }, [sendFrame]);
+  }, [sendFrame, addDebugLog]);
 
   const sendNextBatchFrame = useCallback((isRetry = false) => {
     if (batchWriteQueueRef.current.length === 0) {
@@ -607,6 +602,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const calTimeoutCb = () => {
       if (!calendarPollingRef.current) return;
       calendarErrorCountRef.current++;
+      addDebugLog('send', '', `⚠ 异常记录读取超时 G${groupIdx}R${recordIdx} (${calendarErrorCountRef.current}/3)`);
       if (calendarErrorCountRef.current < 3) {
         waitingResponseRef.current = false;
         sendCalendarRecordFrame(groupIdx, recordIdx);
@@ -918,9 +914,14 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
     const parsed = parseModbusResponse(data);
 
     if (!parsed) {
+      addDebugLog('recv', respHex, '⚠ CRC校验失败/数据解析失败');
+      waitingResponseRef.current = false;
+      if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
+      advancePoll();
       return;
     }
 
@@ -959,14 +960,24 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (protocol && instrIdx >= 0 && instrIdx < protocol.instructions.length) {
       const expectedFc = protocol.instructions[instrIdx]!.funcCode;
       if (parsed.funcCode !== expectedFc) {
+        addDebugLog('recv', respHex, `⚠ 功能码不匹配 期望:0x${expectedFc.toString(16)} 实际:0x${parsed.funcCode.toString(16)}`);
+        waitingResponseRef.current = false;
+        if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
+        advancePoll();
         return;
       }
       // Verify byte count matches expected quantity to prevent stale response misalignment
       const expectedBc = protocol.instructions[instrIdx]!.quantity * 2;
       if (parsed.byteCount !== expectedBc) {
+        addDebugLog('recv', respHex, `⚠ 字节计数不匹配 期望:${expectedBc} 实际:${parsed.byteCount}`);
+        waitingResponseRef.current = false;
+        if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
+        advancePoll();
         return;
       }
     }
+
+    addDebugLog('recv', respHex);
 
     if (!pendingFieldsUpdateRef.current) {
       pendingFieldsUpdateRef.current = new Map(parsedFieldsRef.current);
@@ -1001,14 +1012,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const d = p.data;
     const rawData = typeof d === 'string' ? Array.from({ length: d.length / 2 }, (_, i) => parseInt(d.substring(i * 2, i * 2 + 2), 16)) : d;
     if (!rawData || rawData.length === 0) return;
-
-    // Reset response timer on data receipt ONLY for read responses (not writes).
-    // For writes, the timer must NOT be reset by incoming data so invalid/dropped
-    // responses don't cause the write to hang indefinitely.
-    if (responseTimerRef.current && waitingResponseRef.current && !isWritingRef.current && responseTimeoutCbRef.current) {
-      clearTimeout(responseTimerRef.current);
-      responseTimerRef.current = setTimeout(responseTimeoutCbRef.current, RESPONSE_TIMEOUT);
-    }
 
     for (const b of rawData) rawBufRef.current.push(b);
 
@@ -1092,6 +1095,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       setCalendarRecordsIfChanged([]);
       parsedValuesMapRef.current = new Map();
       parsedFieldsRef.current = new Map();
+      parsedProtocolRef.current = null;
       calendarGroupsRef.current = [];
       calendarRecordsRef.current = [];
       pendingFieldsUpdateRef.current = null;
@@ -1160,6 +1164,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       setCalendarGroupsIfChanged([]);
       setCalendarRecordsIfChanged([]);
       parsedValuesMapRef.current = new Map();
+      parsedProtocolRef.current = null;
 
     }
     return () => {
@@ -1220,6 +1225,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const writeTimeoutCb = () => {
         if (!isWritingRef.current) return;
         errorCountRef.current++;
+        addDebugLog('send', '', `⚠ 写入超时 ${writeFieldNameRef.current} (${errorCountRef.current}/3)`);
         if (errorCountRef.current < 3) {
           isWritingRef.current = false;
           waitingResponseRef.current = false;
