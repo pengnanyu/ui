@@ -5,7 +5,7 @@ import { useCallback, useRef, useLayoutEffect, useState, useMemo } from 'react';
 import { useBmsStore } from '@/store/context';
 import { useTranslation } from 'react-i18next';
 import type { CalendarRecord, CalendarGroup, CalendarField } from '@/utils/modbus';
-import { isApp } from '@/utils/platform';
+import { isApp, isEmbedded } from '@/utils/platform';
 import styles from './FaultRecordPage.module.css';
 
 /** Format time display: split date and time, remove AM/PM and weekday */
@@ -156,7 +156,16 @@ export function FaultRecordPage() {
       });
       return;
     }
-    // Use File System Access API for directory selection and filename editing
+    // Embedded in webapp iframe: delegate to parent window for showSaveFilePicker
+    // (cross-origin iframe cannot use showSaveFilePicker directly)
+    if (isEmbedded()) {
+      window.parent.postMessage({
+        type: 'bms:download-file',
+        payload: { filename, content, mimeType: 'text/csv;charset=utf-8' },
+      }, '*');
+      return;
+    }
+    // Standalone web: use File System Access API for folder selection
     if (window.showSaveFilePicker) {
       try {
         const handle = await window.showSaveFilePicker({
@@ -171,22 +180,16 @@ export function FaultRecordPage() {
         if (e instanceof DOMException && e.name === 'AbortError') return;
       }
     }
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage({
-        type: 'bms:download-file',
-        payload: { filename, content, mimeType: 'text/csv;charset=utf-8' },
-      }, '*');
-    } else {
-      const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
+    // Fallback: blob download
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }, [calendarGroups, nonEmptyRecords, isZh]);
 
   if (calendarGroups.length === 0) {

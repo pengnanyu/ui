@@ -39,7 +39,9 @@ export function SendFrameCard({ onSendFrame, prefilledHex }: SendFrameCardProps)
   const [error, setError] = useState(false);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setHex(e.target.value);
+    // Only allow hex characters (0-9, A-F, a-f) and spaces
+    const sanitized = e.target.value.replace(/[^0-9A-Fa-f ]/g, '');
+    setHex(sanitized);
     setError(false);
   }, []);
 

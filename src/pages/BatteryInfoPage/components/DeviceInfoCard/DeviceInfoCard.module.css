@@ -1,42 +1,36 @@
 .fieldList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px 16px;
-  overflow: hidden;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 12px;
 }
 
 .field {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 6px;
+  flex-direction: column;
+  gap: 2px;
   padding: 4px 0;
   border-bottom: 1px solid var(--color-border);
   min-width: 0;
 }
 
 .fieldLabel {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--color-muted-foreground);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex-shrink: 1;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .fieldValue {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-foreground);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex-shrink: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .fieldUnit {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-muted-foreground);
   margin-left: 2px;
 }

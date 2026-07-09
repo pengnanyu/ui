@@ -44,31 +44,8 @@
   background: var(--color-muted);
 }
 
-.filterBtns {
-  display: flex;
-  gap: 4px;
-}
-
-.filterBtn {
-  padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  border: 1px solid var(--color-border);
-  background: var(--color-background);
-  color: var(--color-foreground);
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.filterBtnActive {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  border-color: var(--color-primary);
-}
-
 .logList {
-  max-height: 400px;
+  max-height: 300px;
   overflow-y: auto;
   border: 1px solid var(--color-border);
   border-radius: 8px;

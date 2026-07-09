@@ -195,7 +195,7 @@ export function ParamInput({ param, onValueChange, onBlur, hasPendingDiff }: Par
         type="text"
         inputMode={inputMode}
         enterKeyHint="done"
-        className={`${styles.input} ${hasPendingDiff ? styles.inputPending : ''}`}
+        className={`${styles.input} ${isEditing ? styles.inputEditing : ''} ${hasPendingDiff ? styles.inputPending : ''}`}
         value={localValue}
         onChange={handleChange}
         onBlur={handleBlur}
