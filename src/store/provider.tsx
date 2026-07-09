@@ -261,10 +261,28 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const advancePollRef = useRef<() => void>(() => { });
   const sendInstructionFrameRef = useRef<(instrIdx: number, isRetry?: boolean) => void>(() => { });
 
-  const sendFrame = useCallback((frame: number[], label?: string) => {
+  const sendFrame = useCallback((frame: number[]) => {
+    if (connectionStatusRef.current !== 'connected') return;
+    const hex = frame.map(b => b.toString(16).padStart(2, '0')).join('');
+    if (sendMessageRef.current) {
+      sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex } });
+    }
+  }, []);
+
+  const manualFramePendingRef = useRef(false);
+  const manualFrameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sendManualFrame = useCallback((frame: number[]) => {
     if (connectionStatusRef.current !== 'connected') return;
     const hex = frame.map(b => b.toString(16).padStart(2, '0')).join(' ');
-    addDebugLog('send', hex, label);
+    addDebugLog('send', hex, '手动发送');
+    manualFramePendingRef.current = true;
+    if (manualFrameTimerRef.current) clearTimeout(manualFrameTimerRef.current);
+    manualFrameTimerRef.current = setTimeout(() => {
+      if (manualFramePendingRef.current) {
+        manualFramePendingRef.current = false;
+        addDebugLog('recv', '', '⚠ 手动发送超时');
+      }
+    }, RESPONSE_TIMEOUT);
     if (sendMessageRef.current) {
       sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex.replace(/ /g, '') } });
     }
@@ -297,17 +315,16 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const frame = appendCrc([0x00, 0x03, 0x00, 0x00, 0x00, 0x01]);
     rawBufRef.current = [];
     waitingResponseRef.current = true;
-    sendFrame(frame, '版本查询');
+    sendFrame(frame);
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); }
     const timeoutCb = () => {
       if (!waitingResponseRef.current) return;
       if (connectionStatusRef.current !== 'connected') { waitingResponseRef.current = false; return; }
       waitingResponseRef.current = false;
-      addDebugLog('send', '', '⚠ 版本查询超时');
     };
     responseTimeoutCbRef.current = timeoutCb;
     responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
-  }, [sendFrame, addDebugLog]);
+  }, [sendFrame]);
 
   const startVersionRetry = useCallback(() => {
     if (versionRetryRef.current) return;
@@ -377,13 +394,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     rawBufRef.current = [];
-    sendFrame(frame, `读取 #${instrIdx} ${inst.configNameZh || inst.configNameEn}`);
+    sendFrame(frame);
 
     const timeoutCb = () => {
       if (!waitingResponseRef.current) return;
       if (connectionStatusRef.current !== 'connected') { waitingResponseRef.current = false; return; }
       errorCountRef.current++;
-      addDebugLog('send', '', `⚠ 指令#${instrIdx} 超时 (${errorCountRef.current}/3)`);
       if (errorCountRef.current < 3) {
         waitingResponseRef.current = false;
         sendInstructionFrame(instrIdx, true);
@@ -398,7 +414,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     };
     responseTimeoutCbRef.current = timeoutCb;
     responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
-  }, [sendFrame, addDebugLog]);
+  }, [sendFrame]);
 
   sendInstructionFrameRef.current = sendInstructionFrame;
 
@@ -433,7 +449,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     // Clear response timer for injected command
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     rawBufRef.current = [];
-    sendFrame(item.frame, `批量写入帧 ${batchWriteDoneRef.current + 1}/${batchWriteTotalRef.current}`);
+    sendFrame(item.frame);
     const batchTimeoutCb = () => {
       if (!isWritingRef.current) return;
       errorCountRef.current++;
@@ -566,11 +582,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     ]);
     waitingResponseRef.current = true;
     rawBufRef.current = [];
-    sendFrame(frame, `读取异常记录 G${groupIdx}R${recordIdx}`);
+    sendFrame(frame);
     const calTimeoutCb = () => {
       if (!calendarPollingRef.current) return;
       calendarErrorCountRef.current++;
-      addDebugLog('send', '', `⚠ 异常记录读取超时 G${groupIdx}R${recordIdx} (${calendarErrorCountRef.current}/3)`);
       if (calendarErrorCountRef.current < 3) {
         waitingResponseRef.current = false;
         sendCalendarRecordFrame(groupIdx, recordIdx);
@@ -662,7 +677,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const startPeriodicPoll = useCallback(() => {
     const skipped = skippedInstrIndicesRef.current;
     if (skipped.length > 0) {
-      addDebugLog('send', '', `重试跳过的指令 ${skipped.length}条`);
       initPhaseRef.current = 'initial-poll';
       pollIdxRef.current = 0;
       skippedInstrIndicesRef.current = [];
@@ -674,11 +688,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     pollIdxRef.current = 0;
     cycleStartRef.current = Date.now();
     const regIndices = registerInstrIndicesRef.current;
-    addDebugLog('send', '', `周期轮询开始, register指令数: ${regIndices.length}`);
     if (regIndices.length === 0) return;
 
     sendInstructionFrame(regIndices[0]!);
-  }, [sendInstructionFrame, addDebugLog]);
+  }, [sendInstructionFrame]);
 
   startPeriodicPollRef.current = startPeriodicPoll;
 
@@ -765,7 +778,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         flushUpdates();
         sendInstructionFrameRef.current(allIndices[pollIdxRef.current]!);
       } else {
-        addDebugLog('send', '', `初始轮询完成 ${allIndices.length}条指令, 进入周期轮询`);
         flushUpdates();
         startPeriodicPoll();
       }
@@ -808,7 +820,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         })());
       }
     }
-  }, [startPeriodicPoll, flushUpdates, checkVerifyResult, showToast, startCalendarPoll, addDebugLog]);
+  }, [startPeriodicPoll, flushUpdates, checkVerifyResult, showToast, startCalendarPoll]);
 
   advancePollRef.current = advancePoll;
 
@@ -819,16 +831,24 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const processFrame = useCallback((data: number[]) => {
     if (data.length === 0) return;
 
+    // If a manual frame is pending, log the response and clear the flag
+    if (manualFramePendingRef.current) {
+      manualFramePendingRef.current = false;
+      if (manualFrameTimerRef.current) {
+        clearTimeout(manualFrameTimerRef.current);
+        manualFrameTimerRef.current = null;
+      }
+      const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
+      addDebugLog('recv', respHex);
+    }
+
     if (isWritingRef.current) {
       const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
-      // Log all received data during write for debugging
       if (data.length < 5 || !verifyCrc(data)) {
-        addDebugLog('recv', respHex, `${writeFieldNameRef.current} 写入响应(CRC失败)`);
         return;
       }
       const recvFc = data[1]! & 0x7F;
       if (recvFc !== 0x10) {
-        addDebugLog('recv', respHex, `${writeFieldNameRef.current} 写入响应(非写入FC:0x${recvFc.toString(16)})`);
         return;
       }
       isWritingRef.current = false;
@@ -838,7 +858,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         responseTimerRef.current = null;
       }
       const fc = data[1]!;
-      addDebugLog('recv', respHex, isBatchWritingRef.current ? '批量写入响应' : `${writeFieldNameRef.current} 写入响应`);
       if (fc & 0x80) {
         if (isBatchWritingRef.current) {
           batchWriteErrorRef.current = true;
@@ -889,11 +908,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
     const parsed = parseModbusResponse(data);
 
     if (!parsed) {
-      addDebugLog('recv', respHex, '⚠ CRC校验失败/数据解析失败');
       waitingResponseRef.current = false;
       if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
       advancePollRef.current();
@@ -908,7 +925,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     if (!versionRef.current && parsed.registers.length > 0) {
-      addDebugLog('recv', respHex, `版本响应 ${registerToVersionHex(parsed.registers[0]!)}`);
       errorCountRef.current = 0;
       const verHex = registerToVersionHex(parsed.registers[0]!);
       versionRef.current = verHex;
@@ -925,8 +941,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
       waitingResponseRef.current = false;
       calendarErrorCountRef.current = 0;
-      const calHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
-      addDebugLog('recv', calHex, `异常记录 G${calendarPollGroupIdxRef.current}R${calendarPollRecordIdxRef.current}`);
       advanceCalendarPoll(parsed.registers);
       return;
     }
@@ -936,7 +950,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (protocol && instrIdx >= 0 && instrIdx < protocol.instructions.length) {
       const expectedFc = protocol.instructions[instrIdx]!.funcCode;
       if (parsed.funcCode !== expectedFc) {
-        addDebugLog('recv', respHex, `⚠ 功能码不匹配 期望:0x${expectedFc.toString(16)} 实际:0x${parsed.funcCode.toString(16)}`);
         waitingResponseRef.current = false;
         if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
         advancePollRef.current();
@@ -945,15 +958,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       // Verify byte count matches expected quantity to prevent stale response misalignment
       const expectedBc = protocol.instructions[instrIdx]!.quantity * 2;
       if (parsed.byteCount !== expectedBc) {
-        addDebugLog('recv', respHex, `⚠ 字节计数不匹配 期望:${expectedBc} 实际:${parsed.byteCount}`);
         waitingResponseRef.current = false;
         if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
         advancePollRef.current();
         return;
       }
     }
-
-    addDebugLog('recv', respHex);
 
     if (!pendingFieldsUpdateRef.current) {
       pendingFieldsUpdateRef.current = new Map(parsedFieldsRef.current);
@@ -1197,11 +1207,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       writeFieldNameRef.current = fv.name;
       // Store expected value for verify-read comparison
       writeExpectedValueRef.current = { rowIndex: fv.rowIndex, expectedValue: newValue, fieldName: fv.name };
-      sendFrame(frame, `写入: ${fv.name}`);
+      sendFrame(frame);
       const writeTimeoutCb = () => {
         if (!isWritingRef.current) return;
         errorCountRef.current++;
-        addDebugLog('send', '', `⚠ 写入超时 ${writeFieldNameRef.current} (${errorCountRef.current}/3)`);
         if (errorCountRef.current < 3) {
           isWritingRef.current = false;
           waitingResponseRef.current = false;
@@ -1259,7 +1268,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     toasts,
     isBatchWriting,
     debugLogs,
-    sendFrame,
+    sendManualFrame,
     autoRead,
     writeField,
     showToast,
@@ -1267,7 +1276,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     readCalendar,
     writeBatch,
     clearDebugLogs,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, debugLogs, sendFrame, autoRead, writeField, showToast, startBatchWrite, readCalendar, writeBatch, clearDebugLogs]);
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, debugLogs, sendManualFrame, autoRead, writeField, showToast, startBatchWrite, readCalendar, writeBatch, clearDebugLogs]);
 
   return (
     <BmsContext.Provider value={store}>

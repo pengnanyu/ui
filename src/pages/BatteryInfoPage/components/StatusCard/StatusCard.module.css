@@ -12,23 +12,29 @@
   gap: 4px;
 }
 
+.groupName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+
 .flagList {
   display: grid;
   gap: 3px;
-  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
 }
 
 .flag {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 4px;
+  padding: 2px 3px;
   border-radius: 3px;
-  font-size: 14px;
+  font-size: 11px;
   text-align: center;
   word-break: break-word;
   overflow: hidden;
-  line-height: 1.2;
+  line-height: 1.35;
   min-width: 0;
 }
 

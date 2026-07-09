@@ -8,12 +8,12 @@ import { DebugLogCard } from './components/DebugLogCard';
 import styles from './ExtendedCommandPage.module.css';
 
 export function ExtendedCommandPage() {
-  const { protocolDb, protocolLoading, sendFrame, autoRead, debugLogs, clearDebugLogs } = useBmsStore();
+  const { protocolDb, protocolLoading, sendManualFrame, autoRead, debugLogs, clearDebugLogs } = useBmsStore();
   const [prefilledHex] = useState<string | undefined>();
 
   const handleSendFrame = useCallback((frame: number[]) => {
-    sendFrame(frame);
-  }, [sendFrame]);
+    sendManualFrame(frame);
+  }, [sendManualFrame]);
 
   useEffect(() => {
     if (protocolDb && !protocolLoading) {

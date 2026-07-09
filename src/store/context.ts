@@ -43,7 +43,7 @@ export interface BmsState {
 }
 
 export interface BmsActions {
-  sendFrame: (frame: number[]) => void;
+  sendManualFrame: (frame: number[]) => void;
   autoRead: () => void;
   writeField: (fieldRowIndex: number, newValue: number) => void;
   showToast: (message: string, type: 'success' | 'error') => void;
