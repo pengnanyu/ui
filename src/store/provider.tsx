@@ -9,7 +9,7 @@ import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
 import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, buildBatchWriteFrames, verifyCrc, parseCalendarGroups, parseCalendarRecord, initDefaultFieldValues } from '@/utils/modbus';
-import { getCachedProtocol, setCachedProtocol } from '@/utils/protocol-cache';
+import { setCachedProtocol } from '@/utils/protocol-cache';
 import type { ParsedProtocol, FieldValue, CalendarGroup, CalendarRecord } from '@/utils/modbus';
 import i18n from '@/i18n';
 import { buildDataMemoryGroups, buildFieldValueMap } from './helpers';
@@ -332,42 +332,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const loadProtocolDb = useCallback(async (version: string) => {
     setProtocolLoading(true);
     initPhaseRef.current = 'protocol';
-    // Try cache first for instant loading on reconnection
-    try {
-      const cached = await getCachedProtocol(version);
-      if (cached && cached.columns && cached.rows) {
-        setProtocolDb(cached);
-        setProtocolLoading(false);
-        // Refresh cache in background
-        (async () => {
-          for (const apiUrl of PROTOCOL_API_URLS) {
-            try {
-              const res = await fetch(`${apiUrl}?search=${encodeURIComponent(version)}`);
-              if (!res.ok) continue;
-              const data = await res.json();
-              if (data && data.columns && data.rows) {
-                const entry = {
-                  version,
-                  table: data.table || '',
-                  columns: data.columns,
-                  rows: data.rows,
-                  loadedAt: Date.now(),
-                };
-                setCachedProtocol(entry);
-                setProtocolDb(entry);
-                return;
-              }
-            } catch (_e) {
-              // try next API source
-            }
-          }
-        })();
-        return;
-      }
-    } catch (_e) {
-      // ignore cache read error
-    }
-    // No cache, fetch from API
     for (const apiUrl of PROTOCOL_API_URLS) {
       try {
         const res = await fetch(`${apiUrl}?search=${encodeURIComponent(version)}`);
