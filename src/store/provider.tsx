@@ -773,6 +773,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const regIndices = registerInstrIndicesRef.current;
       pollIdxRef.current++;
       if (pollIdxRef.current < regIndices.length) {
+        flushUpdates();
         sendInstructionFrameRef.current(regIndices[pollIdxRef.current]!);
       } else {
         flushUpdates();

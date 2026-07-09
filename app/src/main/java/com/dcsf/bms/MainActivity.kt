@@ -19,15 +19,21 @@ import android.net.Uri
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.os.Environment
+import android.content.SharedPreferences
+import com.journeyapps.barcodescanner.DecoratedBarcodeView
+import com.journeyapps.barcodescanner.DefaultDecoderFactory
+import com.google.zxing.BarcodeFormat
+import androidx.compose.ui.draw.clip
 import java.io.File
 import java.io.FileOutputStream
 
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateColorAsState
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,7 +51,6 @@ import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -65,48 +70,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.foundation.border
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Velocity
 
-object LogCollector {
-    private val _buffer = ArrayDeque<String>()
-    private val _logs = mutableStateListOf<String>()
-    val logs: List<String> get() = _logs
-    private const val MAX = 200
-    private const val FLUSH_INTERVAL_MS = 500L
-    private var lastFlush = 0L
-    private val dateFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
-
-    fun log(tag: String, msg: String) {
-        val ts = dateFormat.format(java.util.Date())
-        val entry = "$ts $tag $msg"
-        synchronized(_buffer) {
-            _buffer.addLast(entry)
-            if (_buffer.size > MAX) _buffer.removeFirst()
-        }
-        val now = System.currentTimeMillis()
-        if (now - lastFlush > FLUSH_INTERVAL_MS) {
-            lastFlush = now
-            synchronized(_buffer) {
-                _logs.clear()
-                _logs.addAll(_buffer)
-            }
-        }
-    }
-
-    fun clear() {
-        synchronized(_buffer) { _buffer.clear() }
-        _logs.clear()
-    }
-}
+// Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
 
 data class AppColors(
     val bg: Color,
@@ -174,16 +162,12 @@ private var pushLogCounter = 0
 
 fun pushToUi(webView: MutableState<WebView?>, type: String, payloadJson: String) {
     val wv = webView.value ?: return
-    // Only log every 10th raw-data push to avoid flooding
-    if (type != "bms:raw-data" || pushLogCounter++ % 10 == 0) {
-        LogCollector.log("UI", "push $type ${payloadJson.take(60)}")
-    }
     try {
         val escapedType = type.replace("'", "\\'")
         val js = "try{if(window.__APP_BRIDGE__){if(window.__APP_BRIDGE__._handler){window.__APP_BRIDGE__._handler({type:'" + escapedType + "',payload:" + payloadJson + "})}else{console.log('BRIDGE:_handler_not_set for " + escapedType + "')}}else{console.log('BRIDGE:__APP_BRIDGE__ not found')}}catch(e){console.log('BRIDGE:push_error:'+e.message)}"
         wv.post { wv.evaluateJavascript(js, null) }
     } catch (e: Exception) {
-        LogCollector.log("UI", "pushToUi error: ${e.message}")
+
     }
 }
 
@@ -200,6 +184,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        bleManager.initPrefs(this)
+        // Enable edge-to-edge: content draws behind status bar, eliminating white gap
+        window.setDecorFitsSystemWindows(false)
         setContent {
             val darkTheme = isSystemInDarkTheme()
             val c = if (darkTheme) AppColors.Dark else AppColors.Light
@@ -283,23 +270,24 @@ class MainActivity : ComponentActivity() {
 
     private fun connectDevice(device: BleDevice) {
         bleManager.stopScan()
-        LogCollector.log("BLE", "Connecting ${device.name} addr=${device.address}...")
+
         try {
             bleManager.connect(this, device) { connected ->
                 runOnUiThread {
                     bleManager.connected.value = connected
                     if (!connected) bleManager.connectionError.value = true
-                    LogCollector.log("BLE", if (connected) "Connected OK" else "Connection failed")
+                    Log.d("BMS_BLE", if (connected) "Connected OK" else "Connection failed")
                 }
             }
         } catch (e: Exception) {
-            LogCollector.log("BLE", "connectDevice error: ${e.message}")
+            bleManager.connectingDevice.value = null
+
             Log.e("BMS_BLE", "connectDevice crash", e)
         }
     }
 
     private fun disconnect() {
-        LogCollector.log("BLE", "Disconnecting...")
+
         bleManager.disconnect()
     }
 
@@ -312,7 +300,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         val status = if (bleManager.connected.value) "connected" else "disconnected"
-        LogCollector.log("BLE", "onResume: BLE status=$status")
+
         mainWebView?.let { wv ->
             wv.post {
                 val js = "try{if(window.__APP_BRIDGE__){if(window.__APP_BRIDGE__._handler){window.__APP_BRIDGE__._handler({type:'bms:connection-status',payload:{\"status\":\"$status\"}})}else{console.log('BRIDGE:_handler_not_set for bms:connection-status')}}else{console.log('BRIDGE:__APP_BRIDGE__ not found')}}catch(e){console.log('BRIDGE:push_error:'+e.message)}"
@@ -365,7 +353,7 @@ fun getScanRecordBytes(record: android.bluetooth.le.ScanRecord): ByteArray? = re
 
 fun parseMfgData(data: ByteArray): IntArray? {
     Log.d("BMS_BLE", "parseMfgData: ${data.size} bytes: ${data.joinToString("") { "%02x".format(it) }}")
-    // 格式1: 9+ bytes (旧格式, 前2字节为前缀)
+    // Format 1: 9+ bytes (old format, first 2 bytes are prefix)
     if (data.size >= 9) {
         val soc = data[2].toInt() and 0xFF
         val voltage = ((data[4].toInt() and 0xFF) shl 8) or (data[3].toInt() and 0xFF)
@@ -374,7 +362,7 @@ fun parseMfgData(data: ByteArray): IntArray? {
         Log.d("BMS_BLE", "parseMfgData(fmt1 9B): soc=$soc V=$voltage I=$current safety=0x${safety.toString(16)}")
         return intArrayOf(soc, voltage, current, safety)
     }
-    // 格式2: 7 bytes (新格式, 无前缀)
+    // Format 2: 7 bytes (new format, no prefix)
     if (data.size >= 7) {
         val soc = data[0].toInt() and 0xFF
         val voltage = ((data[2].toInt() and 0xFF) shl 8) or (data[1].toInt() and 0xFF)
@@ -415,12 +403,16 @@ class BleManager {
     val connected = mutableStateOf(false)
     val connectedDevice = mutableStateOf<BleDevice?>(null)
     val connectionError = mutableStateOf(false)
+    val connectingDevice = mutableStateOf<BleDevice?>(null)
     val rememberedDevices = mutableStateListOf<BleDevice>()
     val scanStatus = mutableStateOf("")
 
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bleConnection: BleConnection? = null
     private var pendingDataCallback: ((ByteArray) -> Unit)? = null
+    private val backgroundScanCache = mutableListOf<BleDevice>()
+    private val missCount = mutableMapOf<String, Int>()
+    private var prefs: SharedPreferences? = null
 
     companion object {
         const val SERVICE_UUID = "0000ff00-0000-1000-8000-00805f9b34fb"
@@ -428,6 +420,53 @@ class BleManager {
         const val WRITE_UUID = "0000ff02-0000-1000-8000-00805f9b34fb"
         const val NAME_PREFIX = "DCSF"
         const val MAX_DEVICES = 30
+        private const val PREFS_NAME = "bms_devices"
+        private const val KEY_REMEMBERED = "remembered_devices"
+    }
+
+    fun initPrefs(context: Context) {
+        if (prefs != null) return
+        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        loadRememberedDevices()
+    }
+
+    private fun loadRememberedDevices() {
+        val json = prefs?.getString(KEY_REMEMBERED, "") ?: ""
+        if (json.isBlank()) return
+        try {
+            val arr = org.json.JSONArray(json)
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val device = BleDevice(
+                    name = obj.getString("name"),
+                    address = obj.getString("address"),
+                    rssi = 0,
+                    lastSeen = System.currentTimeMillis(),
+                )
+                if (rememberedDevices.none { it.address == device.address }) {
+                    rememberedDevices.add(device)
+                }
+            }
+            Log.d("BMS_BLE", "Loaded ${rememberedDevices.size} remembered devices from prefs")
+        } catch (e: Exception) {
+            Log.e("BMS_BLE", "Failed to load remembered devices", e)
+        }
+    }
+
+    private fun saveRememberedDevices() {
+        try {
+            val arr = org.json.JSONArray()
+            for (dev in rememberedDevices) {
+                val obj = org.json.JSONObject()
+                obj.put("name", dev.name)
+                obj.put("address", dev.address)
+                arr.put(obj)
+            }
+            prefs?.edit()?.putString(KEY_REMEMBERED, arr.toString())?.apply()
+            Log.d("BMS_BLE", "Saved ${rememberedDevices.size} remembered devices to prefs")
+        } catch (e: Exception) {
+            Log.e("BMS_BLE", "Failed to save remembered devices", e)
+        }
     }
 
     fun rememberDevice(device: BleDevice) {
@@ -437,10 +476,17 @@ class BleManager {
         } else {
             rememberedDevices.add(device)
         }
+        saveRememberedDevices()
+        Log.d("BMS_BLE", "rememberDevice: ${device.name} (${device.address}), total=${rememberedDevices.size}")
     }
 
     fun forgetDevice(address: String) {
         rememberedDevices.removeAll { it.address == address }
+        // Do NOT remove from devices list - let processScanCycle handle it naturally.
+        // If still being scanned, the device will appear in "new devices".
+        // If not, it will be removed after scan miss threshold.
+        saveRememberedDevices()
+        Log.d("BMS_BLE", "forgetDevice: $address, removed from remembered only")
     }
 
     fun isRemembered(address: String): Boolean = rememberedDevices.any { it.address == address }
@@ -449,12 +495,11 @@ class BleManager {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val name = result.device.name ?: return
             if (!name.startsWith(NAME_PREFIX)) return
-            LogCollector.log("BLE", "Found $name RSSI=${result.rssi}")
 
             var soc = 0; var voltage = 0; var current = 0; var safety = 0
             val scanRecord = result.scanRecord
             if (scanRecord != null) {
-                // 方法1: 使用 getManufacturerSpecificData API (API 21+, 更可靠)
+                // Method 1: Use getManufacturerSpecificData API (API 21+, more reliable)
                 val mfgDataMap = scanRecord.manufacturerSpecificData
                 if (mfgDataMap != null && mfgDataMap.size() > 0) {
                     for (i in 0 until mfgDataMap.size()) {
@@ -462,18 +507,17 @@ class BleManager {
                         val mfgData = mfgDataMap.valueAt(i)
                         val hexStr = mfgData.joinToString("") { "%02x".format(it) }
                         Log.d("BMS_BLE", "MfgData id=0x${mfgId.toString(16)} len=${mfgData.size} data=$hexStr")
-                        LogCollector.log("BLE", "Mfg 0x${mfgId.toString(16)}: $hexStr")
 
                         val parsed = parseMfgData(mfgData)
                         if (parsed != null) {
                             soc = parsed[0]; voltage = parsed[1]; current = parsed[2]; safety = parsed[3]
-                            LogCollector.log("BLE", "Adv: soc=$soc V=$voltage I=$current safety=0x${safety.toString(16)}")
+                            Log.d("BMS_BLE", "Parsed mfg: soc=$soc V=$voltage I=$current safety=$safety")
                             break
                         }
                     }
                 }
 
-                // 方法2: 如果API方法失败，尝试原始字节解析
+                // Method 2: If API method fails, try raw byte parsing
                 if (soc == 0 && voltage == 0) {
                     val bytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) scanRecord.bytes else getScanRecordBytes(scanRecord)
                     if (bytes != null) {
@@ -482,20 +526,13 @@ class BleManager {
                         if (parsed != null) {
                             soc = parsed[0]; voltage = parsed[1]; current = parsed[2]; safety = parsed[3]
                             Log.d("BMS_BLE", "Parsed via raw: soc=$soc V=$voltage I=$current safety=$safety")
-                            LogCollector.log("BLE", "Adv(raw): soc=$soc V=$voltage I=$current")
                         } else {
                             Log.d("BMS_BLE", "parseAdData returned null")
-                            LogCollector.log("BLE", "Adv parse failed (raw)")
                         }
-                    } else {
-                        LogCollector.log("BLE", "No scan record bytes")
                     }
                 }
-            } else {
-                LogCollector.log("BLE", "No scan record")
             }
 
-            val existing = devices.indexOfFirst { it.address == result.device.address }
             val device = BleDevice(name, result.device.address, result.rssi, soc, voltage, current, safety, System.currentTimeMillis())
 
             // Update remembered device info if this device is remembered
@@ -504,21 +541,24 @@ class BleManager {
                 rememberedDevices[remIdx] = device
             }
 
-            if (existing >= 0) {
-                devices[existing] = device
-            } else if (devices.size < MAX_DEVICES) {
-                devices.add(device)
+            // Add to background cache (will be compared to display list in processScanCycle)
+            val cacheIdx = backgroundScanCache.indexOfFirst { it.address == result.device.address }
+            if (cacheIdx >= 0) {
+                backgroundScanCache[cacheIdx] = device
+            } else {
+                backgroundScanCache.add(device)
             }
         }
 
         override fun onScanFailed(errorCode: Int) {
             scanning.value = false
             scanStatus.value = "Scan failed: $errorCode"
-            LogCollector.log("BLE", "Scan failed: $errorCode")
+
         }
     }
 
     fun startScan(context: Context) {
+        if (scanning.value) return // Already scanning, prevent duplicate start
         val bm = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
         bluetoothAdapter = bm?.adapter
 
@@ -551,7 +591,10 @@ class BleManager {
             return
         }
 
-        devices.clear()
+        // Do NOT clear devices list - let processScanCycle handle removal
+        // This preserves connected/remembered devices across scan restarts
+        missCount.clear()
+        backgroundScanCache.clear()
         scanning.value = true
         scanStatus.value = "Scanning..."
         // Don't use ScanFilter.setDeviceName - it does exact match, not prefix match.
@@ -567,12 +610,59 @@ class BleManager {
         }
     }
 
-    fun cleanupStaleDevices(maxAgeMs: Long = 5000L) {
-        val now = System.currentTimeMillis()
-        val toRemove = devices.filter { now - it.lastSeen > maxAgeMs }
+    fun processScanCycle() {
+        // Build a map of scanned addresses for quick lookup
+        val cacheMap = backgroundScanCache.associateBy { it.address }
+        val connAddr = connectedDevice.value?.address
+
+        val toRemove = mutableListOf<BleDevice>()
+
+        // Check existing display devices against cache
+        for (dev in devices) {
+            val isProtected = connAddr == dev.address || isRemembered(dev.address)
+            val cached = cacheMap[dev.address]
+
+            if (cached != null) {
+                // Device found in cache - update it and reset miss count
+                val idx = devices.indexOfFirst { it.address == dev.address }
+                if (idx >= 0) {
+                    devices[idx] = cached
+                }
+                missCount[dev.address] = 0
+            } else {
+                // Device not in cache - increment miss count
+                val count = (missCount[dev.address] ?: 0) + 1
+                missCount[dev.address] = count
+                if (count > 5) {
+                    if (!isProtected) {
+                        toRemove.add(dev)
+                        missCount.remove(dev.address)
+                    } else {
+                        // For protected devices, just clear RSSI but keep in list
+                        val idx = devices.indexOfFirst { it.address == dev.address }
+                        if (idx >= 0) {
+                            devices[idx] = dev.copy(rssi = 0)
+                        }
+                        missCount[dev.address] = 0
+                    }
+                }
+            }
+        }
+
+        // Add new devices from cache that aren't in display list yet
+        for (cached in backgroundScanCache) {
+            if (devices.none { it.address == cached.address } && devices.size < MAX_DEVICES) {
+                devices.add(cached)
+                missCount[cached.address] = 0
+            }
+        }
+
         if (toRemove.isNotEmpty()) {
             devices.removeAll(toRemove)
         }
+
+        // Clear cache for next cycle
+        backgroundScanCache.clear()
     }
 
     fun stopScan() {
@@ -582,19 +672,19 @@ class BleManager {
 
     fun connect(context: Context, device: BleDevice, onResult: (Boolean) -> Unit) {
         stopScan()
-        val adapter = bluetoothAdapter ?: return onResult(false)
-        val btDevice = adapter.getRemoteDevice(device.address) ?: return onResult(false)
+        connectingDevice.value = device
 
-        // Clear old connection's callback to prevent race conditions
+        // Always disconnect old connection first
         bleConnection?.onDisconnected = null
         bleConnection?.disconnect()
         bleConnection = null
+        connected.value = false
+        connectedDevice.value = null
 
-        // Force disconnected state to trigger UI cleanup when switching devices
-        if (connected.value) {
-            connected.value = false
-            connectedDevice.value = null
-        }
+        val adapter = bluetoothAdapter
+        if (adapter == null) { connectingDevice.value = null; onResult(false); return }
+        val btDevice = adapter.getRemoteDevice(device.address)
+        if (btDevice == null) { connectingDevice.value = null; onResult(false); return }
 
         bleConnection = BleConnection(btDevice, SERVICE_UUID, NOTIFY_UUID, WRITE_UUID)
         pendingDataCallback?.let { bleConnection?.onDataReceived = it }
@@ -603,9 +693,15 @@ class BleManager {
             connectedDevice.value = null
         }
         bleConnection?.connect(context) { success ->
+            connectingDevice.value = null
             if (success) {
                 connectedDevice.value = device
                 connectionError.value = false
+                // Ensure connected device stays in the devices list so it doesn't disappear
+                if (devices.none { it.address == device.address }) {
+                    devices.add(0, device)
+                }
+                missCount[device.address] = 0
             }
             onResult(success)
         }
@@ -626,6 +722,60 @@ class BleManager {
     fun setOnDataReceived(callback: (ByteArray) -> Unit) {
         pendingDataCallback = callback
         bleConnection?.onDataReceived = callback
+    }
+
+    // Search for a device by name predicate and connect to the first match
+    // Returns true if a matching device was found and connection attempt started
+    val qrScanStatus = mutableStateOf("")
+    val qrScanning = mutableStateOf(false)
+
+    fun findAndConnectByName(
+        context: Context,
+        namePredicate: (String) -> Boolean,
+        onResult: (Boolean) -> Unit
+    ) {
+        qrScanning.value = true
+        qrScanStatus.value = "Searching..."
+
+        // First check if any already-scanned device matches
+        val match = devices.firstOrNull { namePredicate(it.name) }
+            ?: rememberedDevices.firstOrNull { namePredicate(it.name) }
+        if (match != null) {
+            qrScanStatus.value = "Found: ${match.name}"
+            qrScanning.value = false
+            connect(context, match) { success -> onResult(success) }
+            return
+        }
+
+        // Not found in current list - start scanning
+        startScan(context)
+
+        // Use a coroutine-like approach: check scan results periodically
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        var attempts = 0
+        val maxAttempts = 15 // 15 seconds max
+
+        val runnable = object : Runnable {
+            override fun run() {
+                attempts++
+                val found = devices.firstOrNull { namePredicate(it.name) }
+                    ?: rememberedDevices.firstOrNull { namePredicate(it.name) }
+                if (found != null) {
+                    stopScan()
+                    qrScanStatus.value = "Found: ${found.name}"
+                    qrScanning.value = false
+                    connect(context, found) { success -> onResult(success) }
+                } else if (attempts >= maxAttempts) {
+                    stopScan()
+                    qrScanStatus.value = "Device not found"
+                    qrScanning.value = false
+                    onResult(false)
+                } else {
+                    handler.postDelayed(this, 1000L)
+                }
+            }
+        }
+        handler.postDelayed(runnable, 1000L)
     }
 }
 
@@ -651,6 +801,26 @@ fun BmsApp(
     // File chooser state for import functionality
     val fileChooserCallback = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     val context = LocalContext.current
+
+    // File save dialog state for export functionality
+    val pendingFileContent = remember { mutableStateOf<Pair<String, String>?>(null) } // (filename, content)
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        val pending = pendingFileContent.value
+        if (uri != null && pending != null) {
+            val (filename, content) = pending
+            try {
+                context.contentResolver.openOutputStream(uri)?.use { os ->
+                    os.write(content.toByteArray(Charsets.UTF_8))
+                }
+                pushToUi(webView, "bms:file-saved", """{"path":"${uri.toString()}","filename":"$filename"}""")
+            } catch (e: Exception) {
+                pushToUi(webView, "bms:file-save-error", """{"error":"${e.message?.replace("\"", "\\\"")}"""")
+            }
+        }
+        pendingFileContent.value = null
+    }
     val fileChooserLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -664,7 +834,7 @@ fun BmsApp(
                         context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     } catch (_e: SecurityException) { /* ignore */ }
                     callback.onReceiveValue(arrayOf(uri))
-                    LogCollector.log("UI", "File selected: $uri")
+
                 } else {
                     callback.onReceiveValue(null)
                 }
@@ -675,18 +845,68 @@ fun BmsApp(
         }
     }
 
+    // QR scan result dialog state
+    var qrScanResult by remember { mutableStateOf<String?>(null) }
+    var qrSearchStatus by remember { mutableStateOf("") }
+    var qrSearching by remember { mutableStateOf(false) }
+    var showConsole by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var showScanner by remember { mutableStateOf(false) }
+
+    // Handle QR scan result - called from embedded scanner dialog
+    val handleQrResult: (String) -> Unit = { scanned ->
+        qrScanResult = scanned
+        showScanner = false
+
+        // Extract search term from scanned result
+        val searchTerm = when {
+            scanned.contains("SN=", ignoreCase = true) -> {
+                scanned.substringAfter("SN=", "").substringBefore("&").substringBefore("#").trim()
+            }
+            scanned.startsWith("DC", ignoreCase = true) -> scanned.trim()
+            else -> ""
+        }
+
+        if (searchTerm.isNotBlank()) {
+            // Put extracted info into search box and switch to device tab
+            searchQuery = searchTerm
+            selectedTab = 0
+            showConsole = false
+
+            // Determine match predicate: DC = exact match, SN = fuzzy (contains) match
+            val predicate: (String) -> Boolean = if (scanned.startsWith("DC", ignoreCase = true)) {
+                { name -> name.equals(searchTerm, ignoreCase = true) }
+            } else {
+                { name -> name.contains(searchTerm, ignoreCase = true) }
+            }
+
+            qrSearching = true
+            qrSearchStatus = "Searching: $searchTerm"
+
+            bleManager.findAndConnectByName(context, predicate) { success ->
+                qrSearching = false
+                qrSearchStatus = if (success) "Connected: $searchTerm" else "Not found: $searchTerm"
+                if (success) {
+                    showConsole = true
+                }
+            }
+        }
+    }
+
     LaunchedEffect(bleManager.connected.value) {
         val status = if (bleManager.connected.value) "connected" else "disconnected"
         pushToUi(webView, "bms:connection-status", """{"status":"$status"}""")
-        LogCollector.log("BLE", "connection: $status")
+
         if (bleManager.connected.value) {
-            selectedTab = 1
+            showConsole = true
+        } else {
+            showConsole = false
         }
     }
 
     LaunchedEffect(darkTheme) {
         pushToUi(webView, "bms:theme-change", """{"theme":"$themeStr"}""")
-        LogCollector.log("UI", "theme sync: $themeStr")
+
     }
 
     LaunchedEffect(Unit) {
@@ -700,8 +920,8 @@ fun BmsApp(
     // Scan cycle - runs at BmsApp level so it continues even when BluetoothPage is not visible
     LaunchedEffect(bleManager.scanning.value) {
         while (bleManager.scanning.value) {
-            kotlinx.coroutines.delay(2000L)
-            bleManager.cleanupStaleDevices(5000L)
+            kotlinx.coroutines.delay(1000L)
+            bleManager.processScanCycle()
         }
     }
 
@@ -721,7 +941,7 @@ fun BmsApp(
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     Log.d("BMS_UI", "Page finished: $url")
-                    LogCollector.log("UI", "Page loaded: $url")
+
                     super.onPageFinished(view, url)
                     uiReady.value = true
                     view?.evaluateJavascript("localStorage.setItem('bms-theme','$themeStr')", null)
@@ -759,7 +979,6 @@ fun BmsApp(
             webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage): Boolean {
                     Log.d("BMS_JS", "${consoleMessage.message()} -- ${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}")
-                    LogCollector.log("JS", consoleMessage.message().take(80))
                     return true
                 }
                 override fun onShowFileChooser(webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?): Boolean {
@@ -772,7 +991,7 @@ fun BmsApp(
                     try {
                         fileChooserLauncher.launch(intent)
                     } catch (e: Exception) {
-                        LogCollector.log("UI", "File chooser error: ${e.message}")
+
                         filePathCallback?.onReceiveValue(null)
                     }
                     return true
@@ -785,7 +1004,7 @@ fun BmsApp(
                         val msg = org.json.JSONObject(json)
                         val type = msg.optString("type", "")
                         val payload = msg.optJSONObject("payload")
-                        LogCollector.log("JS", "msg $type")
+
                         when (type) {
                             "bms:frame-send" -> {
                                 if (!bleManager.connected.value) {
@@ -793,7 +1012,7 @@ fun BmsApp(
                                     return@postMessage
                                 }
                                 val frameVal = payload?.opt("frame")
-                                LogCollector.log("JS", "frame-send frameVal type=${frameVal?.javaClass?.simpleName} val=${frameVal.toString().take(40)}")
+                                Log.d("BMS_BLE", "TX frame: ${frameVal.toString().take(40)}")
                                 val frame: ByteArray? = when (frameVal) {
                                     is org.json.JSONArray -> {
                                         ByteArray(frameVal.length()) { frameVal.getInt(it).toByte() }
@@ -806,41 +1025,37 @@ fun BmsApp(
                                 }
                                 if (frame != null) {
                                     bleManager.send(frame)
-                                    LogCollector.log("UI", "TX ${frame.size}B: ${frame.joinToString("") { "%02x".format(it) }}")
+                                    Log.d("BMS_BLE", "TX: ${frame.joinToString("") { "%02x".format(it) }}")
                                 } else {
-                                    LogCollector.log("JS", "frame-send: frame is null or invalid")
+
                                 }
                             }
                             "bms:request-status" -> {
                                 val status = if (bleManager.connected.value) "connected" else "disconnected"
                                 pushToUi(webView, "bms:connection-status", """{"status":"$status"}""")
                                 pushToUi(webView, "bms:theme-change", """{"theme":"$themeStr"}""")
-                                LogCollector.log("UI", "request-status: theme=$themeStr status=$status")
+
                             }
                             "bms:ui-ready" -> {
                                 val status = if (bleManager.connected.value) "connected" else "disconnected"
                                 pushToUi(webView, "bms:connection-status", """{"status":"$status"}""")
                                 pushToUi(webView, "bms:theme-change", """{"theme":"$themeStr"}""")
-                                LogCollector.log("UI", "ui-ready: theme=$themeStr status=$status")
+
                             }
                             "bms:download-file" -> {
                                 val filename = payload?.optString("filename", "download.bin") ?: "download.bin"
                                 val content = payload?.optString("content", "") ?: ""
-                                val mimeType = payload?.optString("mimeType", "application/octet-stream") ?: "application/octet-stream"
+                                pendingFileContent.value = Pair(filename, content)
                                 try {
-                                    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                                    val file = File(downloadsDir, filename)
-                                    FileOutputStream(file).use { it.write(content.toByteArray(Charsets.UTF_8)) }
-                                    LogCollector.log("UI", "File saved: ${file.absolutePath}")
-                                    pushToUi(webView, "bms:file-saved", """{"path":"${file.absolutePath}","filename":"$filename"}""")
+                                    saveFileLauncher.launch(filename)
                                 } catch (e: Exception) {
-                                    LogCollector.log("UI", "File save error: ${e.message}")
+                                    pendingFileContent.value = null
                                     pushToUi(webView, "bms:file-save-error", """{"error":"${e.message?.replace("\"", "\\\"")}"}""")
                                 }
                             }
                         }
                     } catch (_e: Exception) {
-                        LogCollector.log("JS", "postMessage error: ${_e.message}")
+
                     }
                 }
 
@@ -863,10 +1078,10 @@ fun BmsApp(
                         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                         val file = File(downloadsDir, filename)
                         FileOutputStream(file).use { it.write(content.toByteArray(Charsets.UTF_8)) }
-                        LogCollector.log("UI", "File saved: ${file.absolutePath}")
+
                         return file.absolutePath
                     } catch (e: Exception) {
-                        LogCollector.log("UI", "File save error: ${e.message}")
+
                         return ""
                     }
                 }
@@ -879,9 +1094,16 @@ fun BmsApp(
 
 
 
-    val showBottomBar = !(bleManager.connected.value && selectedTab == 1)
+    // Bottom bar: narrow screen shows it when not in console; wide screen shows it only when sidebar is visible
+    val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val showBottomBar = if (isWideScreen) sidebarVisible else (!showConsole || !bleManager.connected.value)
+    // Wide screen: sidebar width is adaptive - 38% of screen but capped at 340dp
+    val sidebarWidthDp = (configuration.screenWidthDp * 0.38f).toInt().coerceAtMost(340).coerceAtLeast(280)
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .windowInsetsPadding(WindowInsets.statusBars)
+    ) {
         // ===== Sidebar (wide screen only) =====
         if (isWideScreen && sidebarVisible) {
             Row(
@@ -891,7 +1113,7 @@ fun BmsApp(
             ) {
                 Box(
                     modifier = Modifier
-                        .width(360.dp)
+                        .width(sidebarWidthDp.dp)
                         .fillMaxHeight()
                 ) {
                     BluetoothPage(
@@ -900,8 +1122,14 @@ fun BmsApp(
                         onRequestPermissions = onRequestPermissions,
                         onConnectDevice = onConnectDevice,
                         onDisconnect = onDisconnect,
-                        onConnectedClick = { selectedTab = 1 },
-                        modifier = Modifier.fillMaxSize(),
+                        onConnectedClick = { showConsole = true },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 48.dp + navBarInset),
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { searchQuery = it },
+                        qrSearching = qrSearching,
+                        qrSearchStatus = qrSearchStatus,
                     )
                 }
                 Box(
@@ -913,76 +1141,128 @@ fun BmsApp(
             }
         }
 
-        // ===== WebView (always in composition, never disposed on configuration change) =====
+        // ===== Main content area =====
+        // In wide screen, the nav bar sits under the sidebar (not under content),
+        // so the content area only needs navBarInset at the bottom.
+        // In narrow screen, the nav bar spans full width under the content.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = if (isWideScreen && sidebarVisible) 361.dp else 0.dp)
-                .padding(bottom = if (!isWideScreen && showBottomBar) 80.dp else 0.dp)
+                .padding(start = if (isWideScreen && sidebarVisible) (sidebarWidthDp + 1).dp else 0.dp)
+                .padding(bottom = if (!isWideScreen && showBottomBar) 48.dp + navBarInset else navBarInset)
         ) {
-            AndroidView(
-                factory = createWebView,
-                modifier = Modifier.fillMaxSize(),
-            )
-
-            // "Not connected" overlay
-            if (!bleManager.connected.value) {
-                Box(
-                    modifier = Modifier.fillMaxSize().background(colors.bg),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.BluetoothDisabled, contentDescription = null, modifier = Modifier.size(48.dp), tint = colors.fg3)
-                        Spacer(Modifier.height(8.dp))
-                        Text("请先连接蓝牙设备", color = colors.fg3, fontSize = 14.sp)
+            // Always keep WebView in composition to prevent state loss on tab switch / rotation.
+            // Overlay pages with opaque backgrounds cover it when it should be hidden.
+            Box(modifier = Modifier.fillMaxSize()) {
+                AndroidView(
+                    factory = createWebView,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = if (!isWideScreen && showConsole && bleManager.connected.value) 40.dp else 0.dp),
+                )
+                // Narrow screen: header bar for console view
+                if (!isWideScreen && showConsole && bleManager.connected.value) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .background(colors.bg)
+                            .clickable { showConsole = false }
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = null,
+                            tint = colors.fg2,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            Icons.Default.BluetoothConnected,
+                            contentDescription = null,
+                            tint = colors.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            bleManager.connectedDevice.value?.name ?: "BMS",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.fg,
+                        )
+                    }
+                }
+                // Disconnected overlay (wide screen only)
+                if (isWideScreen && !bleManager.connected.value) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(colors.bg),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.BluetoothDisabled, contentDescription = null, modifier = Modifier.size(48.dp), tint = colors.fg3)
+                            Spacer(Modifier.height(8.dp))
+                            Text(stringResource(R.string.please_connect_ble), color = colors.fg3, fontSize = 14.sp)
+                        }
                     }
                 }
             }
 
-            // Portrait header bar (when connected, no bottom bar)
-            if (!isWideScreen && bleManager.connected.value && !showBottomBar) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .background(colors.bg.copy(alpha = 0.85f))
-                        .clickable { selectedTab = 0 }
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Default.BluetoothConnected,
-                        contentDescription = null,
-                        tint = colors.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        bleManager.connectedDevice.value?.name ?: "BMS",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.fg,
+            // Overlay pages on top of WebView (narrow screen)
+            if (!isWideScreen) {
+                when {
+                    !showConsole || !bleManager.connected.value -> {
+                        Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
+                            when {
+                                selectedTab == 0 -> {
+                                    BluetoothPage(
+                                        bleManager = bleManager,
+                                        colors = colors,
+                                        onRequestPermissions = onRequestPermissions,
+                                        onConnectDevice = onConnectDevice,
+                                        onDisconnect = onDisconnect,
+                                        onConnectedClick = { showConsole = true },
+                                        modifier = Modifier.fillMaxSize(),
+                                        searchQuery = searchQuery,
+                                        onSearchQueryChange = { searchQuery = it },
+                                        qrSearching = qrSearching,
+                                        qrSearchStatus = qrSearchStatus,
+                                    )
+                                }
+                                selectedTab == 1 -> {
+                                    ScanPage(
+                                        colors = colors,
+                                        bleManager = bleManager,
+                                        onScanClick = { showScanner = true },
+                                        qrScanResult = qrScanResult,
+                                        qrSearchStatus = qrSearchStatus,
+                                        qrSearching = qrSearching,
+                                    )
+                                }
+                                selectedTab == 2 -> {
+                                    MinePage(
+                                        colors = colors,
+                                        bleManager = bleManager,
+                                        onDisconnect = onDisconnect,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Wide screen: show MinePage when sidebar is hidden and tab is 2
+                if (!sidebarVisible && selectedTab == 2) {
+                    MinePage(
+                        colors = colors,
+                        bleManager = bleManager,
+                        onDisconnect = onDisconnect,
                     )
                 }
             }
         }
 
-        // ===== Portrait: BluetoothPage overlay =====
-        if (!isWideScreen && (selectedTab == 0 || !bleManager.connected.value)) {
-            BluetoothPage(
-                bleManager = bleManager,
-                colors = colors,
-                onRequestPermissions = onRequestPermissions,
-                onConnectDevice = onConnectDevice,
-                onDisconnect = onDisconnect,
-                onConnectedClick = { selectedTab = 1 },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = if (showBottomBar) 80.dp else 0.dp),
-            )
-        }
-
-        // ===== Sidebar toggle button (wide screen only) - centered on divider =====
+        // ===== Sidebar toggle button (wide screen only) =====
         if (isWideScreen) {
             Card(
                 shape = RoundedCornerShape(4.dp),
@@ -990,14 +1270,14 @@ fun BmsApp(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .offset(x = if (sidebarVisible) 349.dp else 0.dp)
+                    .offset(x = if (sidebarVisible) (sidebarWidthDp - 11).dp else 0.dp)
                     .size(width = 24.dp, height = 48.dp)
                     .clickable { sidebarVisible = !sidebarVisible },
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Icon(
                         if (sidebarVisible) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
-                        contentDescription = if (sidebarVisible) "隐藏侧栏" else "显示侧栏",
+                        contentDescription = if (sidebarVisible) stringResource(R.string.hide_sidebar) else stringResource(R.string.show_sidebar),
                         tint = colors.fg2,
                         modifier = Modifier.size(16.dp),
                     )
@@ -1005,156 +1285,222 @@ fun BmsApp(
             }
         }
 
-        // ===== Bottom navigation bar (portrait only) =====
-        if (!isWideScreen && showBottomBar) {
-            NavigationBar(
-                containerColor = colors.navBg,
-                tonalElevation = 2.dp,
-                modifier = Modifier.align(Alignment.BottomCenter),
+        // ===== Bottom navigation bar (compact, matching UI height) =====
+        if (showBottomBar) {
+            // Nav bar width follows sidebar width on wide screen; full width on narrow screen
+            val navBarFraction = if (isWideScreen) {
+                (sidebarWidthDp / configuration.screenWidthDp.toFloat()).coerceIn(0.3f, 0.45f)
+            } else {
+                1f
+            }
+            val deviceTabSelected = if (isWideScreen) sidebarVisible else (selectedTab == 0 && !showConsole)
+            val mineTabSelected = if (isWideScreen) (!sidebarVisible && selectedTab == 2) else (selectedTab == 2)
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth(navBarFraction)
+                    .height(48.dp + navBarInset)
+                    .padding(bottom = navBarInset)
+                    .background(colors.navBg),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = {
+                // Device tab
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable {
+                            showConsole = false
+                            selectedTab = 0
+                            if (isWideScreen) sidebarVisible = true
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        if (bleManager.connected.value) Icons.Default.BluetoothConnected
+                        else Icons.Default.Bluetooth,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (deviceTabSelected) colors.primary else colors.fg2,
+                    )
+                    Text(
+                        stringResource(R.string.device_tab),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (deviceTabSelected) colors.primary else colors.fg2,
+                    )
+                }
+                // Scan tab
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable {
+                            showConsole = false
+                            selectedTab = 1
+                            showScanner = true
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(colors.primary, RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Icon(
-                            if (bleManager.connected.value) Icons.Default.BluetoothConnected
-                            else Icons.Default.Bluetooth,
-                            contentDescription = null,
-                            tint = if (selectedTab == 0) colors.primary else colors.fg2
+                            Icons.Default.QrCodeScanner,
+                            contentDescription = stringResource(R.string.scan),
+                            tint = colors.primaryFg,
+                            modifier = Modifier.size(18.dp),
                         )
-                    },
-                    label = {
-                        Text(
-                            if (bleManager.connected.value) "已连接" else "蓝牙",
-                            color = if (selectedTab == 0) colors.primary else colors.fg2,
-                            fontSize = 12.sp
-                        )
-                    },
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(colors.primary, RoundedCornerShape(20.dp)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Default.QrCodeScanner,
-                                contentDescription = "扫码",
-                                tint = colors.primaryFg,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    },
-                    label = {
-                        Text(
-                            "扫码",
-                            color = colors.fg2,
-                            fontSize = 12.sp
-                        )
-                    },
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { if (bleManager.connected.value) selectedTab = 1 },
-                    icon = {
-                        Icon(
-                            Icons.Default.BluetoothDisabled,
-                            contentDescription = null,
-                            tint = if (selectedTab == 1) colors.primary else colors.fg2
-                        )
-                    },
-                    label = {
-                        Text(
-                            "控制台",
-                            color = if (selectedTab == 1) colors.primary else colors.fg2,
-                            fontSize = 12.sp
-                        )
-                    },
-                )
+                    }
+                    Text(
+                        stringResource(R.string.scan),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.fg2,
+                    )
+                }
+                // Mine tab
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable {
+                            showConsole = false
+                            selectedTab = 2
+                            if (isWideScreen) sidebarVisible = false
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (mineTabSelected) colors.primary else colors.fg2,
+                    )
+                    Text(
+                        stringResource(R.string.mine_tab),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (mineTabSelected) colors.primary else colors.fg2,
+                    )
+                }
             }
         }
 
-    // Floating debug panel
-    var showDebug by remember { mutableStateOf(false) }
-    if (showDebug) {
-        val logListState = rememberLazyListState()
-        val logsList = LogCollector.logs
-        LaunchedEffect(logsList.size) {
-            if (logsList.isNotEmpty()) {
-                logListState.animateScrollToItem(logsList.lastIndex)
-            }
+        // ===== Embedded QR Scanner Dialog =====
+        if (showScanner) {
+            QrScannerDialog(
+                onScanned = { handleQrResult(it) },
+                onDismiss = { showScanner = false },
+            )
         }
-        Card(
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(8.dp)
-                .fillMaxWidth(0.92f)
-                .heightIn(max = 350.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Default.Terminal, contentDescription = null, tint = colors.fg2, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("调试日志 (${logsList.size})", fontSize = 12.sp, color = colors.fg2, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { LogCollector.clear() }) { Text("清除", fontSize = 11.sp, color = colors.danger) }
-                    IconButton(onClick = { showDebug = false }, modifier = Modifier.size(24.dp)) {
-                        Text("✕", fontSize = 14.sp, color = colors.fg2)
-                    }
-                }
-                if (logsList.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                        Text("暂无日志", fontSize = 12.sp, color = colors.fg3)
-                    }
-                } else {
-                    LazyColumn(
-                        state = logListState,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(bottom = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        items(logsList.toList()) { log ->
-                            val tagColor = when {
-                                log.contains(" BLE ") -> Color(0xFF60A5FA)
-                                log.contains(" JS ") -> Color(0xFFA78BFA)
-                                log.contains(" UI ") -> Color(0xFF34D399)
-                                else -> colors.fg3
-                            }
-                            Text(log, fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = tagColor, lineHeight = 14.sp)
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        Card(
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(12.dp)
-                .size(40.dp)
-                .clickable { showDebug = true },
-        ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Icon(Icons.Default.Terminal, contentDescription = "调试", tint = colors.fg2, modifier = Modifier.size(18.dp))
-            }
-        }
-    }
+
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+/** Isolated header for BluetoothPage. Extracted as a separate composable so that
+ * device-list updates (which cause BluetoothPage to recompose) do NOT force the
+ * BasicTextField to recompose, preventing visual jitter/shaking. */
+@Composable
+fun BluetoothPageHeader(
+    isScanning: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    qrSearching: Boolean,
+    qrSearchStatus: String,
+    colors: AppColors,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            stringResource(R.string.nearby_devices),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.fg,
+        )
+        // Fixed-size Box prevents layout shift when indicator appears/disappears
+        Box(modifier = Modifier.size(16.dp)) {
+            if (isScanning) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = colors.primary,
+                )
+            }
+        }
+        // Search box
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .height(36.dp)
+                .background(colors.surface, RoundedCornerShape(18.dp))
+                .border(1.dp, colors.border, RoundedCornerShape(18.dp))
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp), tint = colors.fg3)
+            Spacer(Modifier.width(6.dp))
+            BasicTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = TextStyle(fontSize = 13.sp, color = colors.fg),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.primary),
+                decorationBox = { innerTextField ->
+                    if (searchQuery.isEmpty()) {
+                        Text(stringResource(R.string.search_devices), fontSize = 13.sp, color = colors.fg3)
+                    }
+                    innerTextField()
+                },
+            )
+            if (searchQuery.isNotEmpty()) {
+                Spacer(Modifier.width(6.dp))
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp).clickable { onSearchQueryChange("") },
+                    tint = colors.fg3,
+                )
+            }
+        }
+    }
+    // QR search status
+    if (qrSearching || qrSearchStatus.isNotBlank()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (qrSearching) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = colors.primary)
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                qrSearchStatus.ifBlank { stringResource(R.string.searching_device) },
+                fontSize = 12.sp,
+                color = when {
+                    qrSearchStatus.startsWith("Connected") -> Color(0xFF22C55E)
+                    qrSearchStatus.startsWith("Not found") || qrSearchStatus.startsWith("Invalid") -> colors.danger
+                    else -> colors.fg2
+                },
+            )
+        }
+    }
+}
+
 fun BluetoothPage(
     bleManager: BleManager,
     colors: AppColors,
@@ -1163,13 +1509,19 @@ fun BluetoothPage(
     onDisconnect: () -> Unit,
     onConnectedClick: () -> Unit = {},
     modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    qrSearching: Boolean = false,
+    qrSearchStatus: String = "",
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
 
-    // Auto-scan whenever BluetoothPage is visible
-    LaunchedEffect(Unit) {
-        if (!bleManager.scanning.value && !bleManager.connected.value) {
+    // Auto-scan whenever BluetoothPage becomes visible (re-triggers on recomposition from tab switch)
+    val isConnected = bleManager.connected.value
+    val isScanning = bleManager.scanning.value
+    LaunchedEffect(isConnected, isScanning) {
+        if (!isScanning && !isConnected) {
             if (hasBlePermissions(context)) {
                 bleManager.startScan(context)
             } else {
@@ -1186,25 +1538,14 @@ fun BluetoothPage(
             .background(colors.bg)
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "附近设备",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.fg,
-            )
-            if (bleManager.scanning.value) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = colors.primary,
-                )
-            }
-        }
+        BluetoothPageHeader(
+            isScanning = bleManager.scanning.value,
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            qrSearching = qrSearching,
+            qrSearchStatus = qrSearchStatus,
+            colors = colors,
+        )
 
         if (bleManager.devices.isEmpty() && !bleManager.scanning.value) {
             Box(
@@ -1219,7 +1560,7 @@ fun BluetoothPage(
                         tint = colors.fg3,
                     )
                     Spacer(Modifier.height(8.dp))
-                    Text("未发现设备", color = colors.fg3, fontSize = 14.sp)
+                    Text(stringResource(R.string.no_device_found), color = colors.fg3, fontSize = 14.sp)
                     Spacer(Modifier.height(16.dp))
                     Button(
                         onClick = {
@@ -1230,40 +1571,58 @@ fun BluetoothPage(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("开始扫描")
+                        Text(stringResource(R.string.start_scan))
                     }
                 }
             }
         } else {
             val connAddr = bleManager.connectedDevice.value?.address
+            val connectingAddr = bleManager.connectingDevice.value?.address
             // Merge remembered devices with scan data: show remembered devices even if not currently scanned
             val remembered = bleManager.rememberedDevices.map { rd ->
                 bleManager.devices.find { it.address == rd.address } ?: rd
             }.sortedByDescending { it.address == connAddr }
             val newDevs = bleManager.devices.filter { !bleManager.isRemembered(it.address) }
                 .sortedByDescending { it.address == connAddr }
+            // Apply search filter (fuzzy match on device name)
+            val filteredRemembered = if (searchQuery.isBlank()) remembered else remembered.filter { it.name.contains(searchQuery, ignoreCase = true) }
+            val filteredNewDevs = if (searchQuery.isBlank()) newDevs else newDevs.filter { it.name.contains(searchQuery, ignoreCase = true) }
 
+            if (filteredRemembered.isEmpty() && filteredNewDevs.isEmpty() && searchQuery.isNotBlank()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(R.string.no_matching_device),
+                        color = colors.fg3,
+                        fontSize = 14.sp,
+                    )
+                }
+            } else {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (remembered.isNotEmpty()) {
+                if (filteredRemembered.isNotEmpty()) {
                     item {
                         Text(
-                            "记忆设备",
+                            stringResource(R.string.saved_devices),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = colors.fg2,
                             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                         )
                     }
-                    items(remembered, key = { it.address }) { device ->
+                    items(filteredRemembered, key = { it.address }) { device ->
                         val isConn = connAddr != null && device.address == connAddr
+                        val isConnecting = connectingAddr != null && device.address == connectingAddr
                         SwipeDeviceCard(
                             device = device,
                             isConn = isConn,
+                            isConnecting = isConnecting,
                             isRemembered = true,
                             colors = colors,
                             onClick = { onConnectDevice(device) },
@@ -1274,21 +1633,23 @@ fun BluetoothPage(
                         )
                     }
                 }
-                if (newDevs.isNotEmpty()) {
+                if (filteredNewDevs.isNotEmpty()) {
                     item {
                         Text(
-                            "新设备",
+                            stringResource(R.string.new_devices),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = colors.fg2,
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
                         )
                     }
-                    items(newDevs, key = { it.address }) { device ->
+                    items(filteredNewDevs, key = { it.address }) { device ->
                         val isConn = connAddr != null && device.address == connAddr
+                        val isConnecting = connectingAddr != null && device.address == connectingAddr
                         SwipeDeviceCard(
                             device = device,
                             isConn = isConn,
+                            isConnecting = isConnecting,
                             isRemembered = false,
                             colors = colors,
                             onClick = { onConnectDevice(device) },
@@ -1300,103 +1661,17 @@ fun BluetoothPage(
                     }
                 }
             }
-        }
-
-        DebugLogPanel(colors)
-    }
-}
-
-@Composable
-fun DebugLogPanel(colors: AppColors) {
-    var expanded by remember { mutableStateOf(false) }
-    val logs = LogCollector.logs
-    val logListState = rememberLazyListState()
-    // Auto-scroll to bottom when new logs arrive
-    LaunchedEffect(logs.size) {
-        if (logs.isNotEmpty()) {
-            logListState.animateScrollToItem(logs.lastIndex)
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Default.Terminal,
-                contentDescription = null,
-                tint = colors.fg2,
-                modifier = Modifier.size(16.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                if (expanded) "调试日志 (${logs.size}) ▼" else "调试日志 ▶",
-                fontSize = 12.sp,
-                color = colors.fg2,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.weight(1f))
-            if (expanded && logs.isNotEmpty()) {
-                TextButton(onClick = { LogCollector.clear() }) {
-                    Text("清除", fontSize = 11.sp, color = colors.danger)
-                }
-            }
-        }
-
-        if (expanded) {
-            Card(
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surface),
-                modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
-            ) {
-                if (logs.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("暂无日志", fontSize = 12.sp, color = colors.fg3)
-                    }
-                } else {
-                    LazyColumn(
-                        state = logListState,
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        items(logs.toList()) { log ->
-                            val tagColor = when {
-                                log.contains(" BLE ") -> Color(0xFF60A5FA)
-                                log.contains(" JS ") -> Color(0xFFA78BFA)
-                                log.contains(" UI ") -> Color(0xFF34D399)
-                                else -> colors.fg3
-                            }
-                            Text(
-                                log,
-                                fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace,
-                                color = tagColor,
-                                lineHeight = 14.sp,
-                            )
-                        }
-                    }
-                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun SwipeDeviceCard(
     device: BleDevice,
     isConn: Boolean,
+    isConnecting: Boolean = false,
     isRemembered: Boolean,
     colors: AppColors,
     onClick: () -> Unit,
@@ -1405,67 +1680,37 @@ fun SwipeDeviceCard(
     onDisconnect: () -> Unit,
     onConnectedClick: () -> Unit = {},
 ) {
-    val dismissState = rememberSwipeToDismissBoxState()
-    val showSwipe = (isConn && !isRemembered) || (!isConn && isRemembered)
-
-    if (showSwipe) {
-        SwipeToDismissBox(
-            state = dismissState,
-            backgroundContent = {
-                val isSave = isConn && !isRemembered
-                val bgColor by animateColorAsState(
-                    when (dismissState.targetValue) {
-                        SwipeToDismissBoxValue.EndToStart -> if (isSave) colors.primary else colors.swipeBg
-                        else -> Color.Transparent
-                    }, label = "swipe-bg"
-                )
-                val fgColor by animateColorAsState(
-                    when (dismissState.targetValue) {
-                        SwipeToDismissBoxValue.EndToStart -> if (isSave) colors.primaryFg else Color.White
-                        else -> Color.Transparent
-                    }, label = "swipe-fg"
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(bgColor, RoundedCornerShape(12.dp))
-                        .padding(end = 20.dp),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    Text(
-                        if (isSave) "保存记忆" else "取消记忆",
-                        color = fgColor,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                    )
-                }
-            },
-            enableDismissFromStartToEnd = false,
-        ) {
-            if (isConn) {
-                ConnectedCard(device = device, colors = colors, onDisconnect = onDisconnect, onClick = onConnectedClick)
-            } else {
-                DeviceCard(device = device, colors = colors, onClick = onClick)
-            }
-        }
-
-        LaunchedEffect(dismissState.currentValue) {
-            if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-                if (isConn && !isRemembered) onSaveRemember() else onForget()
-                dismissState.reset()
-            }
-        }
+    val onToggleRemember = if (isRemembered) onForget else onSaveRemember
+    if (isConn) {
+        ConnectedCard(
+            device = device,
+            colors = colors,
+            onDisconnect = onDisconnect,
+            onClick = onConnectedClick,
+            isRemembered = isRemembered,
+            onToggleRemember = onToggleRemember,
+        )
     } else {
-        if (isConn) {
-            ConnectedCard(device = device, colors = colors, onDisconnect = onDisconnect, onClick = onConnectedClick)
-        } else {
-            DeviceCard(device = device, colors = colors, onClick = onClick)
-        }
+        DeviceCard(
+            device = device,
+            colors = colors,
+            onClick = onClick,
+            isConnecting = isConnecting,
+            isRemembered = isRemembered,
+            onToggleRemember = onToggleRemember,
+        )
     }
 }
 
 @Composable
-fun ConnectedCard(device: BleDevice, colors: AppColors, onDisconnect: () -> Unit, onClick: () -> Unit = {}) {
+fun ConnectedCard(
+    device: BleDevice,
+    colors: AppColors,
+    onDisconnect: () -> Unit,
+    onClick: () -> Unit = {},
+    isRemembered: Boolean = false,
+    onToggleRemember: () -> Unit = {},
+) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surfaceConn, contentColor = colors.fg),
@@ -1487,7 +1732,11 @@ fun ConnectedCard(device: BleDevice, colors: AppColors, onDisconnect: () -> Unit
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(device.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = colors.fg)
                     Spacer(Modifier.weight(1f))
-                    RssiIndicator(device.rssi, showDbm = true, trackColor = colors.track, fg2Color = colors.fg2)
+                    if (device.rssi != 0) {
+                        RssiIndicator(device.rssi, showDbm = true, trackColor = colors.track, fg2Color = colors.fg2)
+                    } else {
+                        Text("--", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = colors.fg3)
+                    }
                 }
                 Spacer(Modifier.height(3.dp))
                 Row(
@@ -1496,90 +1745,152 @@ fun ConnectedCard(device: BleDevice, colors: AppColors, onDisconnect: () -> Unit
                 ) {
                     Text("%.3fV".format(device.voltageV()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     Text("${if (device.currentA() > 0) "+" else ""}%.3fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    val flags = SafetyBits.activeFlags(device.safety)
+                    if (flags.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(12.dp)
+                                .background(colors.border)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                        ) {
+                            flags.forEach { f ->
+                                val isAlarm = f in listOf("ALERT", "P_DSG", "COM_OUT")
+                                val c = if (isAlarm) Color(0xFFEAB308) else Color(0xFFEF4444)
+                                Surface(
+                                    shape = RoundedCornerShape(3.dp),
+                                    color = c.copy(alpha = 0.12f),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, c.copy(alpha = 0.25f)),
+                                ) {
+                                    Text(f, color = c, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp))
+                                }
+                            }
+                        }
+                    }
                 }
-                SafetyFlagRow(device.safety, colors)
+            }
+            // Star button for remember/forget
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { onToggleRemember() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    if (isRemembered) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = if (isRemembered) Color(0xFFF59E0B) else colors.fg3,
+                )
             }
         }
     }
 }
 
 @Composable
-fun DeviceCard(device: BleDevice, colors: AppColors, onClick: () -> Unit) {
+fun DeviceCard(
+    device: BleDevice,
+    colors: AppColors,
+    onClick: () -> Unit,
+    isConnecting: Boolean = false,
+    isRemembered: Boolean = false,
+    onToggleRemember: () -> Unit = {},
+) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp, 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SocCircle(soc = device.soc, isGlowing = false, trackColor = colors.track)
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(device.name, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = colors.fg)
-                    Spacer(Modifier.weight(1f))
-                    RssiIndicator(device.rssi, showDbm = true, trackColor = colors.track, fg2Color = colors.fg2)
-                }
-                Spacer(Modifier.height(3.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text("%.3fV".format(device.voltageV()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Text("${if (device.currentA() > 0) "+" else ""}%.3fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                }
-                SafetyFlagRow(device.safety, colors)
-            }
-        }
-    }
-}
-
-@Composable
-fun SafetyFlagRow(safety: Int, colors: AppColors) {
-    val flags = SafetyBits.activeFlags(safety)
-    if (flags.isNotEmpty()) {
-        Spacer(Modifier.height(3.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(12.dp)
-                    .background(colors.border)
-            )
+        Box {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                modifier = Modifier.padding(12.dp, 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                flags.forEach { f ->
-                    val isAlarm = f in listOf("ALERT", "P_DSG", "COM_OUT")
-                    val c = if (isAlarm) Color(0xFFEAB308) else Color(0xFFEF4444)
-                    Surface(
-                        shape = RoundedCornerShape(3.dp),
-                        color = c.copy(alpha = 0.12f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, c.copy(alpha = 0.25f)),
+                if (isConnecting) {
+                    Box(modifier = Modifier.size(46.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            strokeWidth = 3.dp,
+                            color = colors.primary,
+                        )
+                    }
+                } else {
+                    SocCircle(soc = device.soc, isGlowing = false, trackColor = colors.track)
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(device.name, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = colors.fg)
+                        Spacer(Modifier.weight(1f))
+                        if (device.rssi != 0) {
+                            RssiIndicator(device.rssi, showDbm = true, trackColor = colors.track, fg2Color = colors.fg2)
+                        } else {
+                            Text("--", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = colors.fg3)
+                        }
+                    }
+                    Spacer(Modifier.height(3.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(f, color = c, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp))
+                        Text("%.3fV".format(device.voltageV()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("${if (device.currentA() > 0) "+" else ""}%.3fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        val flags = SafetyBits.activeFlags(device.safety)
+                        if (flags.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(12.dp)
+                                    .background(colors.border)
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                            ) {
+                                flags.forEach { f ->
+                                    val isAlarm = f in listOf("ALERT", "P_DSG", "COM_OUT")
+                                    val c = if (isAlarm) Color(0xFFEAB308) else Color(0xFFEF4444)
+                                    Surface(
+                                        shape = RoundedCornerShape(3.dp),
+                                        color = c.copy(alpha = 0.12f),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, c.copy(alpha = 0.25f)),
+                                    ) {
+                                        Text(f, color = c, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp))
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+                // Star button for remember/forget
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clickable { onToggleRemember() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        if (isRemembered) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (isRemembered) Color(0xFFF59E0B) else colors.fg3,
+                    )
+                }
+            }
+            if (isConnecting) {
+                // Semi-transparent overlay to show connecting state
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(colors.primary.copy(alpha = 0.06f), RoundedCornerShape(12.dp)),
+                )
             }
         }
     }
-}
-
-@Composable
-fun RssiIndicator(rssi: Int, showDbm: Boolean = false, trackColor: Color = Color(0xFFE5E7EB), fg2Color: Color = Color(0xFF6B7280)) {
-    val color = when {
-        rssi > -50 -> Color(0xFF22C55E)
-        rssi > -70 -> Color(0xFFEAB308)
-        else -> Color(0xFFEF4444)
-    }
-    Text("${rssi}dBm", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = color)
 }
 
 @Composable
@@ -1627,6 +1938,16 @@ fun SocCircle(soc: Int, isGlowing: Boolean, trackColor: Color = Color(0xFFE5E7EB
 }
 
 @Composable
+fun RssiIndicator(rssi: Int, showDbm: Boolean = false, trackColor: Color = Color(0xFFE5E7EB), fg2Color: Color = Color(0xFF6B7280)) {
+    val color = when {
+        rssi > -50 -> Color(0xFF22C55E)
+        rssi > -70 -> Color(0xFFEAB308)
+        else -> Color(0xFFEF4444)
+    }
+    Text("${rssi}dBm", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = color)
+}
+
+@Composable
 fun UiPage(
     bleManager: BleManager,
     colors: AppColors,
@@ -1649,8 +1970,361 @@ fun UiPage(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.BluetoothDisabled, contentDescription = null, modifier = Modifier.size(48.dp), tint = colors.fg3)
                     Spacer(Modifier.height(8.dp))
-                    Text("请先连接蓝牙设备", color = colors.fg3, fontSize = 14.sp)
+                    Text(stringResource(R.string.please_connect_ble), color = colors.fg3, fontSize = 14.sp)
                 }
+            }
+        }
+    }
+}
+
+// ===== Embedded QR Scanner Overlay (full-screen, no Dialog to avoid SurfaceView window issues) =====
+@Composable
+fun QrScannerDialog(
+    onScanned: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    var hasPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var scannerView by remember { mutableStateOf<DecoratedBarcodeView?>(null) }
+    var hasScanned by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) onDismiss()
+        else hasPermission = true
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    BackHandler { onDismiss() }
+
+    // Resume scanner after view is attached and laid out
+    LaunchedEffect(scannerView, hasPermission) {
+        if (scannerView != null && hasPermission) {
+            val sv = scannerView!!
+            // Wait for the view to have non-zero dimensions, then resume on next frame
+            sv.post {
+                if (sv.width > 0 && sv.height > 0) {
+                    sv.resume()
+                } else {
+                    sv.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                        override fun onGlobalLayout() {
+                            if (sv.width > 0 && sv.height > 0) {
+                                sv.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                                sv.post { sv.resume() }
+                            }
+                        }
+                    })
+                }
+            }
+        }
+    }
+
+    DisposableEffect(scannerView) {
+        onDispose {
+            scannerView?.pause()
+            scannerView = null
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+    ) {
+        if (hasPermission) {
+            AndroidView(
+                factory = { ctx ->
+                    DecoratedBarcodeView(ctx).apply {
+                        barcodeView.decoderFactory = DefaultDecoderFactory(listOf(BarcodeFormat.QR_CODE))
+                        decodeContinuous { result ->
+                            val text = result.text
+                            if (text != null && text.isNotEmpty() && !hasScanned) {
+                                hasScanned = true
+                                pause()
+                                onScanned(text)
+                            }
+                        }
+                        scannerView = this
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
+        // Top bar with title and close button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.scan_qr_code),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.weight(1f))
+            Icon(
+                Icons.Default.Close,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable { onDismiss() },
+            )
+        }
+
+        // Hint text at bottom
+        Text(
+            "SN / DC",
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 13.sp,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp),
+        )
+    }
+}
+
+// ===== Scan Page =====
+@Composable
+fun ScanPage(
+    colors: AppColors,
+    bleManager: BleManager,
+    onScanClick: () -> Unit,
+    qrScanResult: String?,
+    qrSearchStatus: String,
+    qrSearching: Boolean,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Spacer(Modifier.height(40.dp))
+
+        Text(
+            stringResource(R.string.scan_qr_code),
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = colors.fg,
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            "SN / DC",
+            fontSize = 13.sp,
+            color = colors.fg2,
+        )
+
+        Spacer(Modifier.height(40.dp))
+
+        // Scan button
+        Button(
+            onClick = onScanClick,
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.size(width = 200.dp, height = 56.dp),
+        ) {
+            Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(28.dp), tint = colors.primaryFg)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.scan), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.primaryFg)
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        // Show scan result
+        if (qrScanResult != null) {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        stringResource(R.string.scan_result),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.fg2,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        qrScanResult,
+                        fontSize = 13.sp,
+                        color = colors.fg,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
+        }
+
+        // Show search status
+        if (qrSearching || qrSearchStatus.isNotBlank()) {
+            Spacer(Modifier.height(16.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (qrSearching) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = colors.primary,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                }
+                Text(
+                    qrSearchStatus.ifBlank { stringResource(R.string.searching_device) },
+                    fontSize = 14.sp,
+                    color = if (qrSearchStatus.startsWith("Connected")) Color(0xFF22C55E)
+                           else if (qrSearchStatus.startsWith("Device not found") || qrSearchStatus.startsWith("Invalid")) colors.danger
+                           else colors.fg2,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
+    }
+}
+
+// ===== Mine Page =====
+@Composable
+fun MinePage(
+    colors: AppColors,
+    bleManager: BleManager,
+    onDisconnect: () -> Unit,
+) {
+    val context = LocalContext.current
+    val packageInfo = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0)
+            "${context.packageManager.getPackageInfo(context.packageName, 0).versionName} (${context.packageManager.getPackageInfo(context.packageName, 0).versionCode})"
+        } catch (e: Exception) {
+            "1.0.0"
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            .padding(24.dp),
+    ) {
+        Spacer(Modifier.height(20.dp))
+
+        // App icon and name
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(colors.primary.copy(alpha = 0.1f), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.BatteryChargingFull,
+                    contentDescription = null,
+                    tint = colors.primary,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(
+                    stringResource(R.string.app_name),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.fg,
+                )
+                Text(
+                    "${stringResource(R.string.app_version)}: $packageInfo",
+                    fontSize = 12.sp,
+                    color = colors.fg2,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        // Connected device info
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    stringResource(R.string.connected_device),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.fg2,
+                )
+                Spacer(Modifier.height(8.dp))
+                if (bleManager.connected.value && bleManager.connectedDevice.value != null) {
+                    val dev = bleManager.connectedDevice.value!!
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SocCircle(soc = dev.soc, isGlowing = true, trackColor = colors.track, modifier = Modifier.size(40.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(dev.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = colors.fg)
+                            Text(dev.address, fontSize = 11.sp, color = colors.fg2)
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = onDisconnect,
+                        colors = ButtonDefaults.buttonColors(containerColor = colors.danger.copy(alpha = 0.1f)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.disconnect), color = colors.danger, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                    }
+                } else {
+                    Text(
+                        stringResource(R.string.not_connected),
+                        fontSize = 14.sp,
+                        color = colors.fg3,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        // Saved devices count
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Default.Bluetooth, contentDescription = null, tint = colors.primary, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(12.dp))
+                Text(stringResource(R.string.saved_devices), fontSize = 14.sp, color = colors.fg, modifier = Modifier.weight(1f))
+                Text("${bleManager.rememberedDevices.size}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.primary)
             }
         }
     }
