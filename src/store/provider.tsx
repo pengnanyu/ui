@@ -259,6 +259,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const stopVersionRetryRef = useRef<() => void>(() => { });
   const stopAllTimersRef = useRef<() => void>(() => { });
   const advancePollRef = useRef<() => void>(() => { });
+  const sendInstructionFrameRef = useRef<(instrIdx: number, isRetry?: boolean) => void>(() => { });
 
   const sendFrame = useCallback((frame: number[], label?: string) => {
     if (connectionStatusRef.current !== 'connected') return;
@@ -434,6 +435,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     responseTimeoutCbRef.current = timeoutCb;
     responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
   }, [sendFrame, addDebugLog]);
+
+  sendInstructionFrameRef.current = sendInstructionFrame;
 
   const sendNextBatchFrame = useCallback((isRetry = false) => {
     if (batchWriteQueueRef.current.length === 0) {
@@ -796,7 +799,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       pollIdxRef.current++;
       if (pollIdxRef.current < allIndices.length) {
         flushUpdates();
-        sendInstructionFrame(allIndices[pollIdxRef.current]!);
+        sendInstructionFrameRef.current(allIndices[pollIdxRef.current]!);
       } else {
         addDebugLog('send', '', `初始轮询完成 ${allIndices.length}条指令, 进入周期轮询`);
         flushUpdates();
@@ -806,7 +809,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const regIndices = registerInstrIndicesRef.current;
       pollIdxRef.current++;
       if (pollIdxRef.current < regIndices.length) {
-        sendInstructionFrame(regIndices[pollIdxRef.current]!);
+        sendInstructionFrameRef.current(regIndices[pollIdxRef.current]!);
       } else {
         flushUpdates();
         if (pendingCalendarReadRef.current) {
@@ -833,14 +836,14 @@ export function BmsProvider({ children }: { children: ReactNode }) {
             writeFieldRef.current(pw.fieldRowIndex, pw.newValue);
             return;
           }
-          sendInstructionFrame(regIndices[0]!);
+          sendInstructionFrameRef.current(regIndices[0]!);
         }, (() => {
           const elapsed = Date.now() - cycleStartRef.current;
           return elapsed >= TARGET_CYCLE_MS ? EXTRA_DELAY_AFTER_CYCLE : Math.max(0, TARGET_CYCLE_MS - elapsed);
         })());
       }
     }
-  }, [sendInstructionFrame, startPeriodicPoll, flushUpdates, checkVerifyResult, showToast, startCalendarPoll]);
+  }, [startPeriodicPoll, flushUpdates, checkVerifyResult, showToast, startCalendarPoll, addDebugLog]);
 
   advancePollRef.current = advancePoll;
 
@@ -917,7 +920,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (data.length >= 5 && verifyCrc(data) && (data[1]! & 0x80)) {
       waitingResponseRef.current = false;
       if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-      advancePoll();
+      advancePollRef.current();
       return;
     }
 
@@ -928,14 +931,14 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       addDebugLog('recv', respHex, '⚠ CRC校验失败/数据解析失败');
       waitingResponseRef.current = false;
       if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-      advancePoll();
+      advancePollRef.current();
       return;
     }
 
     if (parsed.funcCode & 0x80) {
       waitingResponseRef.current = false;
       if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-      advancePoll();
+      advancePollRef.current();
       return;
     }
 
@@ -971,7 +974,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         addDebugLog('recv', respHex, `⚠ 功能码不匹配 期望:0x${expectedFc.toString(16)} 实际:0x${parsed.funcCode.toString(16)}`);
         waitingResponseRef.current = false;
         if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-        advancePoll();
+        advancePollRef.current();
         return;
       }
       // Verify byte count matches expected quantity to prevent stale response misalignment
@@ -980,7 +983,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         addDebugLog('recv', respHex, `⚠ 字节计数不匹配 期望:${expectedBc} 实际:${parsed.byteCount}`);
         waitingResponseRef.current = false;
         if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-        advancePoll();
+        advancePollRef.current();
         return;
       }
     }
@@ -1011,8 +1014,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     errorCountRef.current = 0;
     waitingResponseRef.current = false;
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
-    advancePoll();
-  }, [advancePoll, stopVersionRetry, loadProtocolDb, addDebugLog]);
+    advancePollRef.current();
+  }, [stopVersionRetry, loadProtocolDb, addDebugLog]);
 
   const handleRawData = useCallback((payload: unknown) => {
     if (connectionStatusRef.current !== 'connected') return;
