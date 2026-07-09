@@ -258,6 +258,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const startVersionRetryRef = useRef<() => void>(() => { });
   const stopVersionRetryRef = useRef<() => void>(() => { });
   const stopAllTimersRef = useRef<() => void>(() => { });
+  const advancePollRef = useRef<() => void>(() => { });
 
   const sendFrame = useCallback((frame: number[], label?: string) => {
     if (connectionStatusRef.current !== 'connected') return;
@@ -427,7 +428,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           skippedInstrIndicesRef.current.push(instrIdx);
         }
         waitingResponseRef.current = false;
-        advancePoll();
+        advancePollRef.current();
       }
     };
     responseTimeoutCbRef.current = timeoutCb;
@@ -694,6 +695,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const startPeriodicPoll = useCallback(() => {
     const skipped = skippedInstrIndicesRef.current;
     if (skipped.length > 0) {
+      addDebugLog('send', '', `重试跳过的指令 ${skipped.length}条`);
       initPhaseRef.current = 'initial-poll';
       pollIdxRef.current = 0;
       skippedInstrIndicesRef.current = [];
@@ -705,10 +707,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     pollIdxRef.current = 0;
     cycleStartRef.current = Date.now();
     const regIndices = registerInstrIndicesRef.current;
+    addDebugLog('send', '', `周期轮询开始, register指令数: ${regIndices.length}`);
     if (regIndices.length === 0) return;
 
     sendInstructionFrame(regIndices[0]!);
-  }, [sendInstructionFrame]);
+  }, [sendInstructionFrame, addDebugLog]);
 
   startPeriodicPollRef.current = startPeriodicPoll;
 
@@ -792,8 +795,10 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       const allIndices = allInstrIndicesRef.current;
       pollIdxRef.current++;
       if (pollIdxRef.current < allIndices.length) {
+        flushUpdates();
         sendInstructionFrame(allIndices[pollIdxRef.current]!);
       } else {
+        addDebugLog('send', '', `初始轮询完成 ${allIndices.length}条指令, 进入周期轮询`);
         flushUpdates();
         startPeriodicPoll();
       }
@@ -836,6 +841,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [sendInstructionFrame, startPeriodicPoll, flushUpdates, checkVerifyResult, showToast, startCalendarPoll]);
+
+  advancePollRef.current = advancePoll;
 
 
   const rawBufRef = useRef<number[]>([]);
@@ -933,6 +940,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
 
     if (!versionRef.current && parsed.registers.length > 0) {
+      addDebugLog('recv', respHex, `版本响应 ${registerToVersionHex(parsed.registers[0]!)}`);
       errorCountRef.current = 0;
       const verHex = registerToVersionHex(parsed.registers[0]!);
       versionRef.current = verHex;
