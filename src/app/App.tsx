@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Nav } from '@/components/shared/Nav';
 import { BatteryInfoPage } from '@/pages/BatteryInfoPage';
 import { ParamConfigPage } from '@/pages/ParamConfigPage';
@@ -20,6 +20,24 @@ const pages = [
 function AppContent() {
   const [activePath, setActivePath] = useState('/battery');
   const { toasts } = useBmsStore();
+
+  // Handle keyboard push-up: when the visual viewport changes (keyboard appears),
+  // update --vh so the layout shrinks and content is pushed above the keyboard.
+  useEffect(() => {
+    const setVh = () => {
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty('--vh', `${vh / 100}px`);
+    };
+    setVh();
+    window.visualViewport?.addEventListener('resize', setVh);
+    window.visualViewport?.addEventListener('scroll', setVh);
+    window.addEventListener('resize', setVh);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', setVh);
+      window.visualViewport?.removeEventListener('scroll', setVh);
+      window.removeEventListener('resize', setVh);
+    };
+  }, []);
 
   const handleNavigate = useCallback((path: string) => {
     setActivePath(path);

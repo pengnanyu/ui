@@ -19,13 +19,15 @@ function formatTimeDisplay(displayValue: string): { date: string; time: string }
   return { date: displayValue, time: '' };
 }
 
-/** Check if a field name is a MAX/MIN pair that should be merged */
+/** Check if a field name is a MAX/MIN pair that should be merged.
+ *  Supports both English (MAX/MIN Voltage/Temper) and Chinese (最高/最低 电压/温度) names. */
 function getMergePair(name: string): 'voltage' | 'temper' | null {
   const lower = name.toLowerCase();
-  if (lower.includes('max') && lower.includes('voltage')) return 'voltage';
-  if (lower.includes('min') && lower.includes('voltage')) return 'voltage';
-  if (lower.includes('max') && (lower.includes('temper') || lower.includes('temp'))) return 'temper';
-  if (lower.includes('min') && (lower.includes('temper') || lower.includes('temp'))) return 'temper';
+  const isMax = lower.includes('max') || name.includes('最高');
+  const isMin = lower.includes('min') || name.includes('最低');
+  if (!isMax && !isMin) return null;
+  if (lower.includes('voltage') || name.includes('电压') || name.includes('压差')) return 'voltage';
+  if (lower.includes('temper') || lower.includes('temp') || name.includes('温度') || name.includes('温差')) return 'temper';
   return null;
 }
 

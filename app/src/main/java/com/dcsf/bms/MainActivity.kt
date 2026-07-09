@@ -93,6 +93,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Velocity
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 // Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
 
@@ -321,7 +323,7 @@ data class BleDevice(
     val lastSeen: Long = System.currentTimeMillis(),
 ) {
     fun voltageV(): Float = voltage / 100f
-    fun currentA(): Float = current / 10f
+    fun currentA(): Float = current / 100f
 }
 
 object SafetyBits {
@@ -801,6 +803,7 @@ fun BmsApp(
     // File chooser state for import functionality
     val fileChooserCallback = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     // File save dialog state for export functionality
     val pendingFileContent = remember { mutableStateOf<Pair<String, String>?>(null) } // (filename, content)
@@ -885,9 +888,17 @@ fun BmsApp(
 
             bleManager.findAndConnectByName(context, predicate) { success ->
                 qrSearching = false
-                qrSearchStatus = if (success) "Connected: $searchTerm" else "Not found: $searchTerm"
                 if (success) {
                     showConsole = true
+                    // Floating toast that disappears after 2s
+                    qrSearchStatus = "Connected: $searchTerm"
+                } else {
+                    qrSearchStatus = "Not found: $searchTerm"
+                }
+                // Clear the floating status after 2 seconds
+                scope.launch {
+                    delay(2000L)
+                    qrSearchStatus = ""
                 }
             }
         }
@@ -901,6 +912,13 @@ fun BmsApp(
             showConsole = true
         } else {
             showConsole = false
+        }
+    }
+
+    // Re-push connection status when console becomes visible to ensure WebView page is in sync
+    LaunchedEffect(showConsole) {
+        if (showConsole && bleManager.connected.value) {
+            pushToUi(webView, "bms:connection-status", """{"status":"connected"}""")
         }
     }
 
@@ -1414,8 +1432,6 @@ fun BluetoothPageHeader(
     isScanning: Boolean,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    qrSearching: Boolean,
-    qrSearchStatus: String,
     colors: AppColors,
 ) {
     Row(
@@ -1476,27 +1492,6 @@ fun BluetoothPageHeader(
             }
         }
     }
-    // QR search status
-    if (qrSearching || qrSearchStatus.isNotBlank()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (qrSearching) {
-                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = colors.primary)
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(
-                qrSearchStatus.ifBlank { stringResource(R.string.searching_device) },
-                fontSize = 12.sp,
-                color = when {
-                    qrSearchStatus.startsWith("Connected") -> Color(0xFF22C55E)
-                    qrSearchStatus.startsWith("Not found") || qrSearchStatus.startsWith("Invalid") -> colors.danger
-                    else -> colors.fg2
-                },
-            )
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1542,10 +1537,44 @@ fun BluetoothPage(
             isScanning = bleManager.scanning.value,
             searchQuery = searchQuery,
             onSearchQueryChange = onSearchQueryChange,
-            qrSearching = qrSearching,
-            qrSearchStatus = qrSearchStatus,
             colors = colors,
         )
+
+        // Floating QR search status toast (disappears after 2s via parent clearing qrSearchStatus)
+        if (qrSearching || qrSearchStatus.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = when {
+                        qrSearchStatus.startsWith("Connected") -> Color(0xFF22C55E)
+                        qrSearchStatus.startsWith("Not found") || qrSearchStatus.startsWith("Invalid") -> colors.danger
+                        else -> colors.surface
+                    },
+                    shadowElevation = 4.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (qrSearching) {
+                            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = colors.primary)
+                        }
+                        Text(
+                            qrSearchStatus.ifBlank { stringResource(R.string.searching_device) },
+                            fontSize = 12.sp,
+                            color = if (qrSearchStatus.startsWith("Connected") || qrSearchStatus.startsWith("Not found")) Color.White else colors.fg,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        }
 
         if (bleManager.devices.isEmpty() && !bleManager.scanning.value) {
             Box(
@@ -1744,7 +1773,7 @@ fun ConnectedCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text("%.3fV".format(device.voltageV()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Text("${if (device.currentA() > 0) "+" else ""}%.3fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("${if (device.currentA() > 0) "+" else ""}%.2fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     val flags = SafetyBits.activeFlags(device.safety)
                     if (flags.isNotEmpty()) {
                         Box(
@@ -1838,7 +1867,7 @@ fun DeviceCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text("%.3fV".format(device.voltageV()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text("${if (device.currentA() > 0) "+" else ""}%.3fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("${if (device.currentA() > 0) "+" else ""}%.2fA".format(device.currentA()), color = colors.fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         val flags = SafetyBits.activeFlags(device.safety)
                         if (flags.isNotEmpty()) {
                             Box(
@@ -1940,9 +1969,9 @@ fun SocCircle(soc: Int, isGlowing: Boolean, trackColor: Color = Color(0xFFE5E7EB
 @Composable
 fun RssiIndicator(rssi: Int, showDbm: Boolean = false, trackColor: Color = Color(0xFFE5E7EB), fg2Color: Color = Color(0xFF6B7280)) {
     val color = when {
-        rssi > -50 -> Color(0xFF22C55E)
-        rssi > -70 -> Color(0xFFEAB308)
-        else -> Color(0xFFEF4444)
+        rssi >= -75 -> Color(0xFF22C55E) // -45 to -75: green
+        rssi >= -85 -> Color(0xFFF59E0B) // -76 to -85: orange
+        else -> Color(0xFFEF4444)        // -86 and below: red
     }
     Text("${rssi}dBm", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = color)
 }
