@@ -1406,8 +1406,6 @@ fun BmsApp(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 /** Isolated header for BluetoothPage. Extracted as a separate composable so that
  * device-list updates (which cause BluetoothPage to recompose) do NOT force the
  * BasicTextField to recompose, preventing visual jitter/shaking. */
@@ -1501,6 +1499,8 @@ fun BluetoothPageHeader(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun BluetoothPage(
     bleManager: BleManager,
     colors: AppColors,
