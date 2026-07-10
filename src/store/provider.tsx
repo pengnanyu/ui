@@ -877,6 +877,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         }
         if (isTimeSyncWriteRef.current) {
           isTimeSyncWriteRef.current = false;
+          addDebugLog('recv', respHex, '⏰ 时间同步: 写入失败(设备返回异常)');
           executePendingWriteOrPollRef.current();
           return;
         }
@@ -886,6 +887,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
       if (isTimeSyncWriteRef.current) {
         isTimeSyncWriteRef.current = false;
+        addDebugLog('recv', respHex, '⏰ 时间同步: 写入成功');
         executePendingWriteOrPollRef.current();
         return;
       }
@@ -906,6 +908,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       // Single write success - show response data immediately
       if (isTimeSyncWriteRef.current) {
         isTimeSyncWriteRef.current = false;
+        addDebugLog('recv', respHex, '⏰ 时间同步: 写入成功');
         executePendingWriteOrPollRef.current();
         return;
       }
@@ -1297,17 +1300,28 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     // Find the Time field in Register config type
     const timeField = Array.from(parsedValuesMapRef.current.values())
       .find(f => f.dataType === 'Time' && f.configType.toLowerCase() === 'register');
-    if (!timeField) return false;
+    if (!timeField) {
+      addDebugLog('send', '', '⏰ 时间同步: 未找到Time字段');
+      return false;
+    }
 
     // Parse BMS time from display value
     const bmsTime = parseBmsTimeDisplay(timeField.displayValue);
-    if (!bmsTime) return false;
+    if (!bmsTime) {
+      addDebugLog('send', '', `⏰ 时间同步: 无法解析BMS时间 [${timeField.displayValue}]`);
+      return false;
+    }
 
     const now = new Date();
     const diffMs = Math.abs(now.getTime() - bmsTime.getTime());
     const FIVE_MINUTES = 5 * 60 * 1000;
+    const diffMin = Math.round(diffMs / 60000);
 
-    if (diffMs <= FIVE_MINUTES) return false;
+    if (diffMs <= FIVE_MINUTES) {
+      addDebugLog('send', '', `⏰ 时间同步: 误差${diffMin}分钟 < 5分钟，无需同步`);
+      lastTimeSyncRef.current = Date.now();
+      return false;
+    }
 
     // Need to sync - build write frame
     const protocol = parsedProtocolRef.current;
@@ -1319,6 +1333,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const inst = protocol.instructions[instrIdx]!;
     const leRegs = encodeRtcTime(now);
     const frame = buildWriteFrame(inst.slaveAddr, timeField.absAddr, leRegs);
+    const frameHex = frame.map(b => b.toString(16).padStart(2, '0')).join(' ');
+
+    addDebugLog('send', frameHex, `⏰ 时间同步: BMS时间=${timeField.displayValue} 系统时间=${now.toLocaleString('zh-CN', { hour12: false })} 误差${diffMin}分钟`);
 
     // Inject the write (same mechanism as writeField but with time sync flag)
     clearInjectedTimers();
@@ -1334,6 +1351,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       if (!isWritingRef.current) return;
       isWritingRef.current = false;
       isTimeSyncWriteRef.current = false;
+      addDebugLog('recv', '', '⏰ 时间同步: 写入超时');
       executePendingWriteOrPollRef.current();
     };
     responseTimeoutCbRef.current = timeoutCb;
