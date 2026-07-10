@@ -4,7 +4,7 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  max-width: 100%;
+  flex-shrink: 0;
 }
 
 .title {
@@ -44,9 +44,5 @@
 
 .content {
   color: var(--color-card-foreground);
-  flex: 1;
-  min-height: 0;
   min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
 }
