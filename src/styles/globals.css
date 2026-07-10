@@ -25,8 +25,8 @@ html {
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
+  overscroll-behavior: none;
   scrollbar-width: none;
 }
 
@@ -44,7 +44,8 @@ html::-webkit-scrollbar {
 
 body {
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow: hidden;
+  overscroll-behavior: none;
   position: relative;
   background: var(--body-bg);
   color: var(--color-foreground);
