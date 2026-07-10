@@ -8,7 +8,7 @@ import type { BmsStore, DataMemeryGroup, Toast, DebugLog } from './context';
 import { BmsContext } from './context';
 import { useBridgeMessage } from '@/hooks/useBridgeMessage';
 import { isEmbedded } from '@/utils/platform';
-import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, buildBatchWriteFrames, verifyCrc, parseCalendarGroups, parseCalendarRecord, initDefaultFieldValues } from '@/utils/modbus';
+import { parseModbusResponse, appendCrc, bigEndianHex, parseProtocolRows, parseDataFields, buildFieldWriteFrame, buildBatchWriteFrames, buildWriteFrame, verifyCrc, parseCalendarGroups, parseCalendarRecord, initDefaultFieldValues, encodeRtcTime, parseBmsTimeDisplay } from '@/utils/modbus';
 import { setCachedProtocol } from '@/utils/protocol-cache';
 import type { ParsedProtocol, FieldValue, CalendarGroup, CalendarRecord } from '@/utils/modbus';
 import i18n from '@/i18n';
@@ -220,6 +220,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const [isBatchWriting, setIsBatchWriting] = useState(false);
+  const [isCalendarReading, setIsCalendarReading] = useState(false);
   const batchWriteQueueRef = useRef<{ frame: number[]; instrIdx: number }[]>([]);
   const batchWriteTotalRef = useRef(0);
   const batchWriteDoneRef = useRef(0);
@@ -250,6 +251,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const isVerifyReadRef = useRef(false);
   const errorCountRef = useRef(0);
   const calendarErrorCountRef = useRef(0);
+  const lastTimeSyncRef = useRef(0);
+  const isTimeSyncWriteRef = useRef(false);
+  const checkTimeSyncRef = useRef<() => boolean>(() => false);
 
   // Verify-read expected values for comparison
   const writeExpectedValueRef = useRef<{ rowIndex: number; expectedValue: number; fieldName: string } | null>(null);
@@ -299,6 +303,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     responseTimeoutCbRef.current = null;
     waitingResponseRef.current = false;
     rawBufRef.current = [];
+    isTimeSyncWriteRef.current = false;
   }, []);
 
   const stopAllTimers = useCallback(() => {
@@ -592,6 +597,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       } else {
         calendarPollingRef.current = false;
         pendingCalendarReadRef.current = false;
+        setIsCalendarReading(false);
         showToast(i18n.language === 'zh' ? '读取失败' : 'Read failed', 'error');
         startPeriodicPollRef.current();
       }
@@ -615,6 +621,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const readCalendar = useCallback(() => {
     if (calendarPollingRef.current) return;
+    setIsCalendarReading(true);
     if (initPhaseRef.current === 'periodic') {
       pendingCalendarReadRef.current = true;
       showToast(i18n.language === 'zh' ? '等待当前轮询完成后读取...' : 'Waiting for poll cycle...', 'success');
@@ -628,6 +635,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
   const finishCalendarPoll = useCallback(() => {
     calendarPollingRef.current = false;
+    setIsCalendarReading(false);
     const count = calendarRecordsRef.current.filter(r => !r.isEmpty).length;
     const msg = i18n.language === 'zh'
       ? (count > 0 ? `读取完成，共${count}条记录` : '读取完成，无异常记录')
@@ -789,6 +797,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         sendInstructionFrameRef.current(regIndices[pollIdxRef.current]!);
       } else {
         flushUpdates();
+        // Auto time sync: check if device time needs synchronization after cycle completes
+        if (checkTimeSyncRef.current()) return;
         if (pendingCalendarReadRef.current) {
           pendingCalendarReadRef.current = false;
           startCalendarPoll();
@@ -865,7 +875,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           sendNextBatchFrameRef.current();
           return;
         }
+        if (isTimeSyncWriteRef.current) {
+          isTimeSyncWriteRef.current = false;
+          executePendingWriteOrPollRef.current();
+          return;
+        }
         showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入失败 [${respHex}]` : `${writeFieldNameRef.current} write failed [${respHex}]`, 'error');
+        executePendingWriteOrPollRef.current();
+        return;
+      }
+      if (isTimeSyncWriteRef.current) {
+        isTimeSyncWriteRef.current = false;
         executePendingWriteOrPollRef.current();
         return;
       }
@@ -884,6 +904,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         return;
       }
       // Single write success - show response data immediately
+      if (isTimeSyncWriteRef.current) {
+        isTimeSyncWriteRef.current = false;
+        executePendingWriteOrPollRef.current();
+        return;
+      }
       showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入成功 [${respHex}]` : `${writeFieldNameRef.current} write OK [${respHex}]`, 'success');
       const writeInstrIdx = writeInstrIdxRef.current;
       if (writeInstrIdx >= 0) {
@@ -1052,9 +1077,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       initPhaseRef.current = 'idle';
       isWritingRef.current = false;
       isVerifyReadRef.current = false;
+      isTimeSyncWriteRef.current = false;
+      lastTimeSyncRef.current = 0;
       pendingWriteRef.current = [];
       calendarPollingRef.current = false;
       pendingCalendarReadRef.current = false;
+      setIsCalendarReading(false);
       errorCountRef.current = 0;
       calendarErrorCountRef.current = 0;
       isBatchWritingRef.current = false;
@@ -1129,9 +1157,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       initPhaseRef.current = 'idle';
       isWritingRef.current = false;
       isVerifyReadRef.current = false;
+      isTimeSyncWriteRef.current = false;
+      lastTimeSyncRef.current = 0;
       pendingWriteRef.current = [];
       calendarPollingRef.current = false;
       pendingCalendarReadRef.current = false;
+      setIsCalendarReading(false);
       errorCountRef.current = 0;
       calendarErrorCountRef.current = 0;
       isBatchWritingRef.current = false;
@@ -1254,6 +1285,64 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Auto time sync: check if device time differs from system time by > 5 minutes
+  checkTimeSyncRef.current = () => {
+    if (initPhaseRef.current !== 'periodic') return false;
+    if (isWritingRef.current || isBatchWritingRef.current) return false;
+    if (calendarPollingRef.current) return false;
+
+    // Throttle: only check once every 30 seconds
+    if (Date.now() - lastTimeSyncRef.current < 30000) return false;
+
+    // Find the Time field in Register config type
+    const timeField = Array.from(parsedValuesMapRef.current.values())
+      .find(f => f.dataType === 'Time' && f.configType.toLowerCase() === 'register');
+    if (!timeField) return false;
+
+    // Parse BMS time from display value
+    const bmsTime = parseBmsTimeDisplay(timeField.displayValue);
+    if (!bmsTime) return false;
+
+    const now = new Date();
+    const diffMs = Math.abs(now.getTime() - bmsTime.getTime());
+    const FIVE_MINUTES = 5 * 60 * 1000;
+
+    if (diffMs <= FIVE_MINUTES) return false;
+
+    // Need to sync - build write frame
+    const protocol = parsedProtocolRef.current;
+    if (!protocol) return false;
+
+    const instrIdx = timeField.parentInstructionIndex;
+    if (instrIdx < 0 || instrIdx >= protocol.instructions.length) return false;
+
+    const inst = protocol.instructions[instrIdx]!;
+    const leRegs = encodeRtcTime(now);
+    const frame = buildWriteFrame(inst.slaveAddr, timeField.absAddr, leRegs);
+
+    // Inject the write (same mechanism as writeField but with time sync flag)
+    clearInjectedTimers();
+    isWritingRef.current = true;
+    isTimeSyncWriteRef.current = true;
+    errorCountRef.current = 0;
+    writeInstrIdxRef.current = -1; // Skip verify read
+    writeFieldNameRef.current = 'Time Sync';
+    writeExpectedValueRef.current = null;
+    sendFrame(frame);
+
+    const timeoutCb = () => {
+      if (!isWritingRef.current) return;
+      isWritingRef.current = false;
+      isTimeSyncWriteRef.current = false;
+      executePendingWriteOrPollRef.current();
+    };
+    responseTimeoutCbRef.current = timeoutCb;
+    responseTimerRef.current = setTimeout(timeoutCb, RESPONSE_TIMEOUT);
+
+    lastTimeSyncRef.current = Date.now();
+    return true;
+  };
+
   const store = useMemo<BmsStore>(() => ({
     connectionStatus,
     protocolDb,
@@ -1267,6 +1356,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     calendarRecords,
     toasts,
     isBatchWriting,
+    isCalendarReading,
     debugLogs,
     sendManualFrame,
     autoRead,
@@ -1276,7 +1366,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     readCalendar,
     writeBatch,
     clearDebugLogs,
-  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, debugLogs, sendManualFrame, autoRead, writeField, showToast, startBatchWrite, readCalendar, writeBatch, clearDebugLogs]);
+  }), [connectionStatus, protocolDb, protocolLoading, deviceVersion, parsedFields, parsedValues, parsedProtocol, dataMemeryGroups, calendarGroups, calendarRecords, toasts, isBatchWriting, isCalendarReading, debugLogs, sendManualFrame, autoRead, writeField, showToast, startBatchWrite, readCalendar, writeBatch, clearDebugLogs]);
 
   return (
     <BmsContext.Provider value={store}>

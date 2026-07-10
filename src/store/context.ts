@@ -39,6 +39,7 @@ export interface BmsState {
   calendarRecords: CalendarRecord[];
   toasts: Toast[];
   isBatchWriting: boolean;
+  isCalendarReading: boolean;
   debugLogs: DebugLog[];
 }
 

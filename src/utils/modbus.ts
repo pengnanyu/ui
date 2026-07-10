@@ -554,6 +554,59 @@ function bcdToDec(bcd: number): number {
   return ((bcd >> 4) & 0x0F) * 10 + (bcd & 0x0F);
 }
 
+function decToBcd(dec: number): number {
+  return ((Math.floor(dec / 10) % 10) << 4) | (dec % 10);
+}
+
+/** Encode a Date into RTC_Time_Type bit-field struct as 4 little-endian Modbus registers.
+ *  Struct layout (64 bits total):
+ *    SEC:7 | :1 | MIN:7 | :1 | HOUR:6 | PM:1 | :9 | DAY:6 | :2 | MON:5 | WEEK:3 | YEAR:8 | :8
+ *  All fields are BCD-encoded. 24-hour format (PM bit = 0).
+ */
+export function encodeRtcTime(date: Date): number[] {
+  const sec = decToBcd(date.getSeconds());
+  const min = decToBcd(date.getMinutes());
+  const hour = decToBcd(date.getHours()); // 24-hour format
+  const day = decToBcd(date.getDate());
+  const mon = decToBcd(date.getMonth() + 1);
+  const week = decToBcd(date.getDay()); // 0=Sunday
+  const year = decToBcd(date.getFullYear() - 2000);
+
+  // Build 64-bit value using BigInt for safety
+  let all = BigInt(0);
+  all |= BigInt(sec & 0x7F);              // bits 0-6
+  all |= BigInt(min & 0x7F) << BigInt(8); // bits 8-14
+  all |= BigInt(hour & 0x3F) << BigInt(16); // bits 16-21
+  // bit 22: PM = 0 (24-hour format)
+  all |= BigInt(day & 0x3F) << BigInt(32);  // bits 32-37
+  all |= BigInt(mon & 0x1F) << BigInt(40);  // bits 40-44
+  all |= BigInt(week & 0x07) << BigInt(45); // bits 45-47
+  all |= BigInt(year & 0xFF) << BigInt(48); // bits 48-55
+
+  // Split into 4 big-endian 16-bit words
+  const be0 = Number(all & BigInt(0xFFFF));
+  const be1 = Number((all >> BigInt(16)) & BigInt(0xFFFF));
+  const be2 = Number((all >> BigInt(32)) & BigInt(0xFFFF));
+  const be3 = Number((all >> BigInt(48)) & BigInt(0xFFFF));
+
+  // Convert to little-endian for buildWriteFrame
+  return [swap16(be0), swap16(be1), swap16(be2), swap16(be3)];
+}
+
+/** Parse a BMS time display string ("YYYY-MM-DD HH:MM:SS ...") into a Date object */
+export function parseBmsTimeDisplay(displayValue: string): Date | null {
+  const match = displayValue.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return new Date(
+    parseInt(match[1]!, 10),
+    parseInt(match[2]!, 10) - 1,
+    parseInt(match[3]!, 10),
+    parseInt(match[4]!, 10),
+    parseInt(match[5]!, 10),
+    parseInt(match[6]!, 10),
+  );
+}
+
 function leRegToValue(leReg: number): number {
   return ((leReg & 0xFF) << 8) | ((leReg >> 8) & 0xFF);
 }

@@ -45,7 +45,8 @@ export function SocPackCard({ soc, pack, bmsTime, dischargeTime, chargeTime, saf
 
   const hasAlarm = activeSafetyItems.some(f => f.isAlarm);
   const hasSafety = activeSafetyItems.some(f => f.isSafety && !f.isAlarm);
-  const shieldColor = hasAlarm ? '#eab308' : hasSafety ? '#ef4444' : '#22c55e';
+  // Priority: Safety(red) > Alarm(yellow) > green
+  const shieldColor = hasSafety ? '#ef4444' : hasAlarm ? '#eab308' : '#22c55e';
 
   const titleContent = activeSafetyItems.length > 0 ? (
     <div className={styles.titleBar}>

@@ -105,7 +105,7 @@ function getRecordValue(rec: CalendarRecord, fieldIdx: number): { displayValue: 
 }
 
 export function FaultRecordPage() {
-  const { calendarGroups, calendarRecords, readCalendar } = useBmsStore();
+  const { calendarGroups, calendarRecords, readCalendar, isCalendarReading } = useBmsStore();
   const { i18n, t } = useTranslation();
   const isZh = i18n.language === 'zh';
 
@@ -199,7 +199,7 @@ export function FaultRecordPage() {
           <div className={styles.groupHeader}>
             <span>{t('fault.title')}</span>
             <div className={styles.groupActions}>
-              <button className={styles.headerBtn} onClick={readCalendar}>{t('fault.readRecords')}</button>
+              <button className={styles.headerBtn} onClick={readCalendar} disabled={isCalendarReading}>{t('fault.readRecords')}</button>
               <button className={styles.headerBtn} disabled>{t('fault.exportRecords')}</button>
             </div>
           </div>
@@ -225,6 +225,7 @@ export function FaultRecordPage() {
             onExport={handleExport}
             canExport={nonEmptyRecords.length > 0}
             hasData={nonEmptyRecords.length > 0}
+            isReading={isCalendarReading}
           />
         );
       })}
@@ -232,7 +233,7 @@ export function FaultRecordPage() {
   );
 }
 
-function FaultGroupCard({ groupName, group, groupRecords, isZh, onRead, onExport, canExport, hasData }: {
+function FaultGroupCard({ groupName, group, groupRecords, isZh, onRead, onExport, canExport, hasData, isReading }: {
   groupName: string;
   group: CalendarGroup;
   groupRecords: CalendarRecord[];
@@ -241,6 +242,7 @@ function FaultGroupCard({ groupName, group, groupRecords, isZh, onRead, onExport
   onExport: () => void;
   canExport: boolean;
   hasData: boolean;
+  isReading: boolean;
 }) {
   const { t } = useTranslation();
   const tableRef = useRef<HTMLTableElement>(null);
@@ -297,7 +299,7 @@ function FaultGroupCard({ groupName, group, groupRecords, isZh, onRead, onExport
       <div className={styles.groupHeader}>
         <span>{groupName}</span>
         <div className={styles.groupActions}>
-          <button className={styles.headerBtn} onClick={onRead}>{t('fault.readRecords')}</button>
+          <button className={styles.headerBtn} onClick={onRead} disabled={isReading}>{t('fault.readRecords')}</button>
           <button className={styles.headerBtn} onClick={onExport} disabled={!canExport}>{t('fault.exportRecords')}</button>
         </div>
       </div>
