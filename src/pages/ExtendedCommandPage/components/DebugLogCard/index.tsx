@@ -24,8 +24,8 @@ function formatTime(ts: number): string {
 export function DebugLogCard({ logs, onClear }: DebugLogCardProps) {
   const { t } = useTranslation();
 
-  // Only show logs with actual hex data (filter out internal status messages)
-  const dataLogs = logs.filter(l => l.hex && l.hex.length > 0);
+  // Show logs with hex data or label (includes time sync status messages)
+  const dataLogs = logs.filter(l => (l.hex && l.hex.length > 0) || (l.label && l.label.length > 0));
 
   return (
     <CardShell title={t('command.debugLog')}>
@@ -50,7 +50,7 @@ export function DebugLogCard({ logs, onClear }: DebugLogCardProps) {
                   {log.direction === 'send' ? t('command.send') : t('command.recv')}
                 </span>
                 {log.label && <span className={styles.logLabel}>{log.label}</span>}
-                <span className={styles.logHex}>{log.hex}</span>
+                {log.hex && log.hex.length > 0 && <span className={styles.logHex}>{log.hex}</span>}
               </div>
             ))
           )}

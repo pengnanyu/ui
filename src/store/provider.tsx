@@ -1296,12 +1296,13 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     // Throttle: only check once every 30 seconds
     if (Date.now() - lastTimeSyncRef.current < 30000) return false;
+    lastTimeSyncRef.current = Date.now();
 
     // Find the Time field in Register config type
     const timeField = Array.from(parsedValuesMapRef.current.values())
       .find(f => f.dataType === 'Time' && f.configType.toLowerCase() === 'register');
     if (!timeField) {
-      addDebugLog('send', '', '⏰ 时间同步: 未找到Time字段');
+      addDebugLog('send', '', '⏰ 时间同步: 未找到Time字段(configType=Register, dataType=Time)');
       return false;
     }
 
@@ -1319,7 +1320,6 @@ export function BmsProvider({ children }: { children: ReactNode }) {
 
     if (diffMs <= FIVE_MINUTES) {
       addDebugLog('send', '', `⏰ 时间同步: 误差${diffMin}分钟 < 5分钟，无需同步`);
-      lastTimeSyncRef.current = Date.now();
       return false;
     }
 
