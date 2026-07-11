@@ -542,12 +542,12 @@ function parseBcdTime(registers: number[]): string {
   const yy = (2000 + bcdToDec(year)).toString().padStart(4, '0');
   const mm = bcdToDec(mon).toString().padStart(2, '0');
   const dd = bcdToDec(day).toString().padStart(2, '0');
-  const hh = bcdToDec(hour).toString().padStart(2, '0');
+  const hh24 = pm ? bcdToDec(hour) + 12 : bcdToDec(hour);
+  const hhStr = hh24.toString().padStart(2, '0');
   const mi = bcdToDec(min).toString().padStart(2, '0');
   const ss = bcdToDec(sec).toString().padStart(2, '0');
-  const ampm = pm ? 'PM' : 'AM';
 
-  return `${yy}-${mm}-${dd} ${hh}:${mi}:${ss} ${ampm} W${bcdToDec(week)}`;
+  return `${yy}-${mm}-${dd} ${hhStr}:${mi}:${ss}`;
 }
 
 function bcdToDec(bcd: number): number {

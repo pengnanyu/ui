@@ -36,7 +36,7 @@ export function CellVoltageCard({
         </svg>
         单体电压
         {voltageDiff !== undefined && (
-          <span className={`${styles.csDiff} ${diffClass}`}>Δ{(voltageDiff / 1000).toFixed(3)}V</span>
+          <span className={`${styles.csDiff} ${diffClass}`}>Δ{(voltageDiff / 1000).toFixed(2)}V</span>
         )}
       </div>
       <div className={styles.grid}>

@@ -225,8 +225,9 @@ export function BatteryInfoPage() {
   const hasSafety = activeSafetyItems.some(f => f.isSafety && !f.isAlarm);
 
   const statusTitle = useMemo(() => {
+    const icon = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>;
     const base = t('status.status');
-    if (activeSafetyItems.length === 0) return base;
+    if (activeSafetyItems.length === 0) return <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{icon}{base}</span>;
     const flags = activeSafetyItems.map(item => (
       <span key={item.label} style={{
         fontSize: 11,
@@ -241,22 +242,24 @@ export function BatteryInfoPage() {
         {item.label}
       </span>
     ));
-    return <span style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>{base}{flags}</span>;
+    return <span style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>{icon}{base}{flags}</span>;
   }, [t, activeSafetyItems]);
 
   const tempTitle = useMemo(() => {
+    const icon = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c-blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" /></svg>;
     const base = t('battery.temp');
     const extras: React.ReactNode[] = [];
     if (temperMax !== undefined) extras.push(<span key="hi" style={{ color: 'var(--c-green)', fontSize: 12 }}>↑{temperMax.toFixed(1)}°C</span>);
     if (temperMin !== undefined) extras.push(<span key="lo" style={{ color: 'var(--c-purple)', fontSize: 12 }}>↓{temperMin.toFixed(1)}°C</span>);
-    if (extras.length === 0) return base;
-    return <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{base}<span style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>{extras}</span></span>;
+    if (extras.length === 0) return <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{icon}{base}</span>;
+    return <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{icon}{base}<span style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>{extras}</span></span>;
   }, [t, temperMax, temperMin]);
 
   const deviceInfoTitle = useMemo(() => {
+    const icon = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>;
     const base = t('battery.deviceInfo');
-    if (!bmsTime) return base;
-    return <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{base}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-muted-foreground)', marginLeft: 'auto', fontFamily: "'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace" }}>{bmsTime}</span></span>;
+    if (!bmsTime) return <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{icon}{base}</span>;
+    return <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{icon}{base}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-muted-foreground)', marginLeft: 'auto', fontFamily: "'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace" }}>{bmsTime}</span></span>;
   }, [t, bmsTime]);
 
   const infoCards = useMemo(() => [
@@ -265,8 +268,8 @@ export function BatteryInfoPage() {
     { key: 'status', title: statusTitle, content: <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell /> },
   ], [t, bmsId, extraFields, tempTitle, temperatures, statusTitle, protocolDb, parsedProtocol, parsedValues]);
 
-  const voltageHiStr = voltageMax !== undefined ? (voltageMax / 1000).toFixed(3) + 'V' : undefined;
-  const voltageLoStr = voltageMin !== undefined ? (voltageMin / 1000).toFixed(3) + 'V' : undefined;
+  const voltageHiStr = voltageMax !== undefined ? (voltageMax / 1000).toFixed(2) + 'V' : undefined;
+  const voltageLoStr = voltageMin !== undefined ? (voltageMin / 1000).toFixed(2) + 'V' : undefined;
   const tempHiStr = temperMax !== undefined ? temperMax.toFixed(1) + '°C' : undefined;
   const tempLoStr = temperMin !== undefined ? temperMin.toFixed(1) + '°C' : undefined;
 
@@ -321,7 +324,7 @@ export function BatteryInfoPage() {
     <div className={styles.page}>
 
       <div className={styles.metrics}>
-        <MetricCard variant="soc" value={soc?.soc ?? 0} unit="%" soc={soc?.soc} hi={socHi !== undefined ? Math.round(socHi) + '%' : undefined} lo={socLo !== undefined ? Math.round(socLo) + '%' : undefined} sparkData={socHistory} />
+        <MetricCard variant="soc" value={soc?.soc ?? 0} unit="%" soc={soc?.soc} hi={socHi !== undefined ? Math.round(socHi) + '%' : undefined} lo={socLo !== undefined ? Math.round(socLo) + '%' : undefined} sparkData={socHistory} alarmCount={activeAlarmItems.length} safetyCount={hasSafety ? activeSafetyItems.filter(f => f.isSafety && !f.isAlarm).length : undefined} />
         <MetricCard variant="temperature" value={temperatures.length > 0 ? temperatures[0].temperature : 0} unit="°C" hi={tempHiStr} lo={tempLoStr} sparkData={tempHistory} />
         <MetricCard variant="voltage" value={pack?.totalVoltage ?? 0} unit="V" hi={voltageHiStr} lo={voltageLoStr} sparkData={sparkVoltage} />
         <MetricCard variant="current" value={pack?.totalCurrent ?? 0} unit="A" hi={currentHi !== undefined ? currentHi.toFixed(2) + 'A' : undefined} lo={currentLo !== undefined ? currentLo.toFixed(2) + 'A' : undefined} sparkData={sparkCurrent} />

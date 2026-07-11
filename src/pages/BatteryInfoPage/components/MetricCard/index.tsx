@@ -16,13 +16,33 @@ interface MetricCardProps {
   lo?: string;
   sparkData?: number[];
   soc?: number;
+  alarmCount?: number;
+  safetyCount?: number;
 }
 
-function ShieldIcon({ color }: { color: string }) {
+function ShieldIcon({ color, count }: { color: string; count?: number }) {
   return (
-    <svg viewBox="0 0 24 24" style={{ color }}>
-      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" fillOpacity={0.15} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+      <svg viewBox="0 0 24 24" style={{ color }}>
+        <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" fillOpacity={0.15} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+      {count !== undefined && count > 0 && (
+        <span style={{
+          position: 'absolute',
+          top: -2,
+          right: -4,
+          fontSize: 9,
+          fontWeight: 700,
+          lineHeight: '12px',
+          minWidth: 12,
+          textAlign: 'center',
+          borderRadius: 6,
+          padding: '0 3px',
+          color: '#fff',
+          background: color,
+        }}>{count}</span>
+      )}
+    </span>
   );
 }
 
@@ -136,12 +156,14 @@ function SparkLine({ data, variant }: { data: number[]; variant: MetricVariant }
   return <div ref={ref} style={{ width: '100%', height: '100%' }} />;
 }
 
-export function MetricCard({ variant, value, unit, displayValue, hi, lo, sparkData, soc }: MetricCardProps) {
+export function MetricCard({ variant, value, unit, displayValue, hi, lo, sparkData, soc, alarmCount, safetyCount }: MetricCardProps) {
   const valColor = VAL_COLORS[variant];
   const iconColor = `var(--c-${variant === 'temperature' ? 'blue' : variant === 'voltage' ? 'cyan' : variant === 'current' ? 'purple' : 'green'})`;
 
+  const shieldColor = safetyCount !== undefined && safetyCount > 0 ? '#dc2626' : alarmCount !== undefined && alarmCount > 0 ? '#fbbf24' : undefined;
+
   const iconMap: Record<MetricVariant, React.ReactNode> = {
-    soc: <ShieldIcon color={iconColor} />,
+    soc: <ShieldIcon color={shieldColor ?? iconColor} count={safetyCount ?? alarmCount} />,
     current: <BoltIcon color={iconColor} />,
     voltage: <GaugeIcon color={iconColor} />,
     temperature: <ThermIcon color={iconColor} />,
@@ -157,7 +179,7 @@ export function MetricCard({ variant, value, unit, displayValue, hi, lo, sparkDa
   const valStr = displayValue ?? (
     variant === 'soc' ? String(Math.round(value)) :
     variant === 'temperature' ? value.toFixed(1) :
-    variant === 'voltage' ? value.toFixed(3) :
+    variant === 'voltage' ? value.toFixed(2) :
     value.toFixed(2)
   );
 

@@ -27,7 +27,7 @@ export function CellIcon({ index, voltage, isBalancing }: CellIconProps) {
 
   const fillY = 54 - pct * 0.48;
   const fillH = pct * 0.48;
-  const voltageStr = (voltage / 1000).toFixed(3);
+  const voltageStr = (voltage / 1000).toFixed(2);
 
   const className = `${styles.cell} ${cls === 'ok' ? styles.vOk : cls === 'warn' ? styles.vWarn : styles.vDanger}`;
 
