@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
-import { useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useBmsStore } from '@/store/context';
 import { useTranslation } from 'react-i18next';
 import type { FieldValue } from '@/utils/modbus';
@@ -20,6 +20,24 @@ function findField(fields: FieldValue[], nameEn: string): FieldValue | undefined
 }
 
 const MAX_SPARK = 60;
+const MAX_CHART = 300;
+
+function useSparkHistory(getValue: () => number | null | undefined, deps: readonly unknown[]): number[] {
+  const [history, setHistory] = useState<number[]>([]);
+  const prevRef = useRef<{ val: number | null; ts: number }>({ val: null, ts: 0 });
+
+  useEffect(() => {
+    const v = getValue();
+    if (v === null || v === undefined) return;
+    const ts = Date.now();
+    if (ts === prevRef.current.ts) return;
+    prevRef.current = { val: v, ts };
+    setHistory(prev => [...prev.slice(-MAX_SPARK), v]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return history;
+}
 
 export function BatteryInfoPage() {
   const { parsedValues, parsedProtocol, protocolDb } = useBmsStore();
@@ -97,64 +115,25 @@ export function BatteryInfoPage() {
   const [chartHistory, setChartHistory] = useState<VoltageCurrentDataPoint[]>([]);
   const lastChartTsRef = useRef(0);
 
-  useMemo(() => {
+  useEffect(() => {
     if (!graphVoltage && !graphCurrent) return;
     const ts = Date.now();
     if (ts === lastChartTsRef.current) return;
     lastChartTsRef.current = ts;
     const pt: VoltageCurrentDataPoint = { timestamp: ts, voltage: graphVoltage?.value ?? 0, current: graphCurrent?.value ?? 0 };
-    setChartHistory(prev => [...prev.slice(-(MAX_SPARK * 5)), pt]);
+    setChartHistory(prev => [...prev.slice(-MAX_CHART), pt]);
   }, [graphVoltage, graphCurrent]);
 
   const sparkVoltage = useMemo(() => chartHistory.slice(-MAX_SPARK).map(p => p.voltage), [chartHistory]);
   const sparkCurrent = useMemo(() => chartHistory.slice(-MAX_SPARK).map(p => p.current), [chartHistory]);
 
-  const [socHistory, setSocHistory] = useState<number[]>([]);
-  const lastSocTsRef = useRef(0);
-  useMemo(() => {
-    if (!soc) return;
-    const ts = Date.now();
-    if (ts === lastSocTsRef.current) return;
-    lastSocTsRef.current = ts;
-    setSocHistory(prev => [...prev.slice(-MAX_SPARK), soc.soc]);
-  }, [soc]);
+  const socHistory = useSparkHistory(() => soc?.soc, [soc]);
+  const tempHistory = useSparkHistory(() => temperatures.length > 0 ? temperatures[0].temperature : null, [temperatures]);
 
-  const [tempHistory, setTempHistory] = useState<number[]>([]);
-  const lastTempTsRef = useRef(0);
-  const currentTemp = temperatures.length > 0 ? temperatures[0].temperature : null;
-  useMemo(() => {
-    if (currentTemp === null) return;
-    const ts = Date.now();
-    if (ts === lastTempTsRef.current) return;
-    lastTempTsRef.current = ts;
-    setTempHistory(prev => [...prev.slice(-MAX_SPARK), currentTemp]);
-  }, [currentTemp]);
-
-  const [voltageHiLo, setVoltageHiLo] = useState<{ hi: number; lo: number } | null>(null);
-  useMemo(() => {
-    if (chartHistory.length === 0) return;
-    const vals = chartHistory.map(p => p.voltage);
-    setVoltageHiLo({ hi: Math.max(...vals), lo: Math.min(...vals) });
-  }, [chartHistory]);
-
-  const [currentHiLo, setCurrentHiLo] = useState<{ hi: number; lo: number } | null>(null);
-  useMemo(() => {
-    if (chartHistory.length === 0) return;
-    const vals = chartHistory.map(p => p.current);
-    setCurrentHiLo({ hi: Math.max(...vals), lo: Math.min(...vals) });
-  }, [chartHistory]);
-
-  const [socHiLo, setSocHiLo] = useState<{ hi: number; lo: number } | null>(null);
-  useMemo(() => {
-    if (socHistory.length === 0) return;
-    setSocHiLo({ hi: Math.max(...socHistory), lo: Math.min(...socHistory) });
-  }, [socHistory]);
-
-  const [tempHiLo, setTempHiLo] = useState<{ hi: number; lo: number } | null>(null);
-  useMemo(() => {
-    if (tempHistory.length === 0) return;
-    setTempHiLo({ hi: Math.max(...tempHistory), lo: Math.min(...tempHistory) });
-  }, [tempHistory]);
+  const socHi = socHistory.length > 0 ? Math.max(...socHistory) : undefined;
+  const socLo = socHistory.length > 0 ? Math.min(...socHistory) : undefined;
+  const currentHi = sparkCurrent.length > 0 ? Math.max(...sparkCurrent) : undefined;
+  const currentLo = sparkCurrent.length > 0 ? Math.min(...sparkCurrent) : undefined;
 
   const extraFields = useMemo(() => {
     const skipInstrIdx = new Set<number>();
@@ -215,13 +194,18 @@ export function BatteryInfoPage() {
     { key: 'status', title: t('status.status'), content: <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell /> },
   ], [t, bmsId, extraFields, temperatures, temperMax, temperMin, protocolDb, parsedProtocol, parsedValues]);
 
+  const voltageHiStr = voltageMax !== undefined ? (voltageMax / 1000).toFixed(3) + 'V' : undefined;
+  const voltageLoStr = voltageMin !== undefined ? (voltageMin / 1000).toFixed(3) + 'V' : undefined;
+  const tempHiStr = temperMax !== undefined ? temperMax.toFixed(1) + '°C' : undefined;
+  const tempLoStr = temperMin !== undefined ? temperMin.toFixed(1) + '°C' : undefined;
+
   return (
     <div className={styles.page}>
       <div className={styles.metrics}>
-        <MetricCard variant="soc" value={soc?.soc ?? 0} unit="%" soc={soc?.soc} hi={socHiLo ? Math.round(socHiLo.hi) + '%' : undefined} lo={socHiLo ? Math.round(socHiLo.lo) + '%' : undefined} sparkData={socHistory} />
-        <MetricCard variant="current" value={pack?.totalCurrent ?? 0} unit="A" hi={currentHiLo ? currentHiLo.hi.toFixed(2) + 'A' : undefined} lo={currentHiLo ? currentHiLo.lo.toFixed(2) + 'A' : undefined} sparkData={sparkCurrent} />
-        <MetricCard variant="voltage" value={pack?.totalVoltage ?? 0} unit="V" hi={voltageHiLo ? voltageHiLo.hi.toFixed(3) + 'V' : undefined} lo={voltageHiLo ? voltageHiLo.lo.toFixed(3) + 'V' : undefined} sparkData={sparkVoltage} />
-        <MetricCard variant="temperature" value={currentTemp ?? 0} unit="°C" hi={tempHiLo ? tempHiLo.hi.toFixed(1) + '°C' : undefined} lo={tempHiLo ? tempHiLo.lo.toFixed(1) + '°C' : undefined} sparkData={tempHistory} />
+        <MetricCard variant="soc" value={soc?.soc ?? 0} unit="%" soc={soc?.soc} hi={socHi !== undefined ? Math.round(socHi) + '%' : undefined} lo={socLo !== undefined ? Math.round(socLo) + '%' : undefined} sparkData={socHistory} />
+        <MetricCard variant="current" value={pack?.totalCurrent ?? 0} unit="A" hi={currentHi !== undefined ? currentHi.toFixed(2) + 'A' : undefined} lo={currentLo !== undefined ? currentLo.toFixed(2) + 'A' : undefined} sparkData={sparkCurrent} />
+        <MetricCard variant="voltage" value={pack?.totalVoltage ?? 0} unit="V" hi={voltageHiStr} lo={voltageLoStr} sparkData={sparkVoltage} />
+        <MetricCard variant="temperature" value={temperatures.length > 0 ? temperatures[0].temperature : 0} unit="°C" hi={tempHiStr} lo={tempLoStr} sparkData={tempHistory} />
       </div>
 
       <div className={styles.mainRow}>
