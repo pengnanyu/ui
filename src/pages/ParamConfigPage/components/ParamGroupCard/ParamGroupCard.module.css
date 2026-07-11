@@ -1,6 +1,8 @@
 .group {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
@@ -87,8 +89,8 @@
 
 .rowHeader > span {
   padding: 6px 4px 8px;
-  border-bottom: 2px solid var(--color-border);
-  background: var(--color-card);
+  border-bottom: 2px solid var(--card-border);
+  background: var(--card-bg);
   position: sticky;
   top: 0;
   z-index: 1;

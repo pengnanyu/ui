@@ -43,6 +43,8 @@
   min-width: 100%;
   scroll-snap-align: start;
   flex-shrink: 0;
+  height: 320px;
+  overflow: hidden;
 }
 
 .infoRow {

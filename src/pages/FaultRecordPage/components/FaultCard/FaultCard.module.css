@@ -1,6 +1,8 @@
 .faultCard {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
   border-radius: 8px;
   padding: 12px 16px;
   display: flex;
