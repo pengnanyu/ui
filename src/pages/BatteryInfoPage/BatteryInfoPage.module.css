@@ -32,7 +32,7 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: x mandatory;
 }
 
 .mainSwipeTrack::-webkit-scrollbar {
@@ -122,7 +122,7 @@
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
   flex: 1;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: x mandatory;
 }
 
 .infoSwipeTrack::-webkit-scrollbar {

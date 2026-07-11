@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useBmsStore } from '@/store/context';
 import { useTranslation } from 'react-i18next';
 import type { FieldValue } from '@/utils/modbus';
@@ -119,6 +119,12 @@ export function BatteryInfoPage() {
     return infoFields.find(f => f.parentInstructionIndex === temperInstrIdx && /temper\s*min/i.test(f.name))?.value;
   }, [infoFields, temperInstrIdx]);
 
+  const mosTemperature = useMemo(() => {
+    const mosF = infoFields.find(f => /mos.*temp/i.test(f.name));
+    if (!mosF) return undefined;
+    return { index: 0, temperature: mosF.value, name: 'MOS' };
+  }, [infoFields]);
+
   const graphFields = useMemo(() => infoFields.filter(f => f.graph), [infoFields]);
   const graphVoltage = useMemo(() => graphFields.find(f => /voltage/i.test(f.name)), [graphFields]);
   const graphCurrent = useMemo(() => graphFields.find(f => /current/i.test(f.name)), [graphFields]);
@@ -191,22 +197,14 @@ export function BatteryInfoPage() {
 
   const swipeRef = useRef<HTMLDivElement>(null);
   const [activeDot, setActiveDot] = useState(0);
-  const infoScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSwipeScroll = useCallback(() => {
     const el = swipeRef.current;
     if (!el) return;
-    if (infoScrollTimerRef.current) clearTimeout(infoScrollTimerRef.current);
-    infoScrollTimerRef.current = setTimeout(() => {
-      const sl = el.scrollLeft;
-      const w = el.offsetWidth;
-      const idx = Math.round(sl / w);
-      const target = Math.max(0, Math.min(idx, 2));
-      setActiveDot(target);
-      if (Math.abs(sl - target * w) > 2) {
-        el.scrollTo({ left: target * w, behavior: 'smooth' });
-      }
-    }, 80);
+    const sl = el.scrollLeft;
+    const w = el.offsetWidth;
+    const idx = Math.round(sl / w);
+    setActiveDot(Math.max(0, Math.min(idx, 2)));
   }, []);
 
   const handleDotClick = useCallback((idx: number) => {
@@ -216,11 +214,45 @@ export function BatteryInfoPage() {
     setActiveDot(idx);
   }, []);
 
+  const activeSafetyItems = safetyItems.filter(f => f.active);
+  const activeAlarmItems = safetyItems.filter(f => f.isAlarm && f.active);
+  const hasAlarm = activeAlarmItems.length > 0;
+  const hasSafety = activeSafetyItems.some(f => f.isSafety && !f.isAlarm);
+
+  const statusTitle = useMemo(() => {
+    const base = t('status.status');
+    if (activeSafetyItems.length === 0) return base;
+    const flags = activeSafetyItems.map(item => (
+      <span key={item.label} style={{
+        fontSize: 11,
+        fontWeight: 600,
+        padding: '0 5px',
+        borderRadius: 3,
+        lineHeight: '18px',
+        whiteSpace: 'nowrap' as const,
+        color: item.isAlarm ? '#78350f' : '#fff',
+        background: item.isAlarm ? '#fbbf24' : '#dc2626',
+      }}>
+        {item.label}
+      </span>
+    ));
+    return <span style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>{base}{flags}</span>;
+  }, [t, activeSafetyItems]);
+
+  const tempTitle = useMemo(() => {
+    const base = t('battery.temp');
+    const extras: React.ReactNode[] = [];
+    if (temperMax !== undefined) extras.push(<span key="hi" style={{ color: 'var(--c-green)', fontSize: 12 }}>↑{temperMax.toFixed(1)}°C</span>);
+    if (temperMin !== undefined) extras.push(<span key="lo" style={{ color: 'var(--c-purple)', fontSize: 12 }}>↓{temperMin.toFixed(1)}°C</span>);
+    if (extras.length === 0) return base;
+    return <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{base}<span style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>{extras}</span></span>;
+  }, [t, temperMax, temperMin]);
+
   const infoCards = useMemo(() => [
     { key: 'device', title: t('battery.deviceInfo'), content: <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} noShell /> },
-    { key: 'temperature', title: t('battery.temp'), content: <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell /> },
-    { key: 'status', title: t('status.status'), content: <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell /> },
-  ], [t, bmsId, extraFields, temperatures, temperMax, temperMin, protocolDb, parsedProtocol, parsedValues]);
+    { key: 'temperature', title: tempTitle, content: <TemperatureCard temperatures={temperatures} mosTemperature={mosTemperature} noShell /> },
+    { key: 'status', title: statusTitle, content: <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell /> },
+  ], [t, bmsId, extraFields, tempTitle, temperatures, statusTitle, protocolDb, parsedProtocol, parsedValues]);
 
   const voltageHiStr = voltageMax !== undefined ? (voltageMax / 1000).toFixed(3) + 'V' : undefined;
   const voltageLoStr = voltageMin !== undefined ? (voltageMin / 1000).toFixed(3) + 'V' : undefined;
@@ -229,7 +261,6 @@ export function BatteryInfoPage() {
 
   const chartSwipeRef = useRef<HTMLDivElement>(null);
   const [chartDot, setChartDot] = useState(0);
-  const chartScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const track = chartSwipeRef.current;
@@ -246,17 +277,10 @@ export function BatteryInfoPage() {
   const handleChartSwipeScroll = useCallback(() => {
     const el = chartSwipeRef.current;
     if (!el) return;
-    if (chartScrollTimerRef.current) clearTimeout(chartScrollTimerRef.current);
-    chartScrollTimerRef.current = setTimeout(() => {
-      const sl = el.scrollLeft;
-      const w = el.offsetWidth;
-      const idx = Math.round(sl / w);
-      const target = Math.max(0, Math.min(idx, 1));
-      setChartDot(target);
-      if (Math.abs(sl - target * w) > 2) {
-        el.scrollTo({ left: target * w, behavior: 'smooth' });
-      }
-    }, 80);
+    const sl = el.scrollLeft;
+    const w = el.offsetWidth;
+    const idx = Math.round(sl / w);
+    setChartDot(Math.max(0, Math.min(idx, 1)));
   }, []);
 
   const handleChartDotClick = useCallback((idx: number) => {

@@ -7,10 +7,10 @@
 }
 
 .barLabel {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-muted-foreground);
-  min-width: 60px;
-  max-width: 80px;
+  min-width: 40px;
+  max-width: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -41,10 +41,11 @@
 }
 
 .barValue {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-foreground);
   min-width: 50px;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 500;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
 }

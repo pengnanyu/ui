@@ -13,34 +13,16 @@ interface TemperatureCardProps {
   noShell?: boolean;
 }
 
-export function TemperatureCard({ temperatures, mosTemperature, temperMax, temperMin }: TemperatureCardProps) {
+export function TemperatureCard({ temperatures, mosTemperature }: TemperatureCardProps) {
   return (
     <div className={styles.tempList}>
       {temperatures.length > 0 ? (
         <>
           {temperatures.map((temp) => (
-            <div key={temp.index} className="infoItem">
-              <span className="infoLabel">{temp.name || `T${temp.index}`}</span>
-              <span className="infoVal">{temp.temperature.toFixed(1)}°C</span>
-            </div>
+            <TempBar key={temp.index} index={temp.index} temperature={temp.temperature} name={temp.name} />
           ))}
           {mosTemperature && (
-            <div className="infoItem">
-              <span className="infoLabel">MOS</span>
-              <span className="infoVal">{mosTemperature.temperature.toFixed(1)}°C</span>
-            </div>
-          )}
-          {temperMax !== undefined && (
-            <div className="infoItem">
-              <span className="infoLabel">↑ Max</span>
-              <span className="infoVal" style={{ color: 'var(--c-green)' }}>{temperMax.toFixed(1)}°C</span>
-            </div>
-          )}
-          {temperMin !== undefined && (
-            <div className="infoItem">
-              <span className="infoLabel">↓ Min</span>
-              <span className="infoVal" style={{ color: 'var(--c-purple)' }}>{temperMin.toFixed(1)}°C</span>
-            </div>
+            <TempBar index={mosTemperature.index} temperature={mosTemperature.temperature} name="MOS" />
           )}
         </>
       ) : (
