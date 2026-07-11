@@ -29,17 +29,13 @@ function ShieldIcon({ color, count }: { color: string; count?: number }) {
       {count !== undefined && count > 0 && (
         <span style={{
           position: 'absolute',
-          top: -2,
-          right: -4,
-          fontSize: 9,
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          fontSize: 8,
           fontWeight: 700,
-          lineHeight: '12px',
-          minWidth: 12,
-          textAlign: 'center',
-          borderRadius: 6,
-          padding: '0 3px',
-          color: '#fff',
-          background: color,
+          lineHeight: 1,
+          color: color,
         }}>{count}</span>
       )}
     </span>
