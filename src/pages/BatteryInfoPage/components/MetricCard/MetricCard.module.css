@@ -1,0 +1,150 @@
+.card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--card-shadow);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.lbl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--color-muted-foreground);
+  position: relative;
+  z-index: 2;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.leftLbl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.leftLbl svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.minmax {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hi {
+  color: var(--c-green);
+}
+
+.lo {
+  color: var(--c-purple);
+}
+
+.vr {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  position: relative;
+  z-index: 2;
+}
+
+.val {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
+  font-size: clamp(24px, 6vw, 40px);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  font-size: 14px;
+  color: var(--color-muted-foreground);
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
+}
+
+.spark {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.progressBg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--color-muted);
+  opacity: 0.3;
+}
+
+.progressFill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  pointer-events: none;
+  transition: height 0.6s ease, background 0.6s ease;
+  border-radius: 0 0 12px 0;
+}
+
+.socRed {
+  background: rgba(255, 71, 87, 0.2);
+}
+
+.socYellow {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+.socGreen {
+  background: rgba(80, 250, 123, 0.18);
+}
+
+@media (max-width: 420px) {
+  .minmax {
+    font-size: 9px;
+    gap: 2px;
+  }
+  .lbl {
+    font-size: 12px;
+  }
+  .val {
+    font-size: 24px;
+  }
+  .unit {
+    font-size: 12px;
+  }
+}

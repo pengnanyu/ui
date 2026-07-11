@@ -71,4 +71,10 @@
   --c-purple: #7C3AED;
   --c-cyan: #0891B2;
   --c-blue: #0072D5;
+
+  --cell-stroke: rgba(0,0,0,0.25);
+  --cell-ok-fill: rgba(27,158,62,0.3);
+  --cell-warn-fill: rgba(212,150,10,0.3);
+  --cell-danger-fill: rgba(212,42,58,0.3);
+  --chart-grid: rgba(0,0,0,0.06);
 }

@@ -1,56 +1,28 @@
 /**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { useBmsStore } from '@/store/context';
 import { useTranslation } from 'react-i18next';
 import type { FieldValue } from '@/utils/modbus';
 import type { VoltageCurrentDataPoint } from '@/types';
-import { useColumnCount } from '@/hooks/useColumnCount';
 import { useStatusItems } from './hooks/useStatusItems';
-import { SocPackCard } from './components/SocPackCard';
-import { DeviceInfoCard } from './components/DeviceInfoCard';
-import { StatusCard } from './components/StatusCard';
+import { MetricCard } from './components/MetricCard';
 import { VoltageCurrentChart } from './components/VoltageCurrentChart';
+import { CellVoltageCard } from './components/CellVoltageCard';
+import { DeviceInfoCard } from './components/DeviceInfoCard';
 import { TemperatureCard } from './components/TemperatureCard';
+import { StatusCard } from './components/StatusCard';
 import styles from './BatteryInfoPage.module.css';
 
 function findField(fields: FieldValue[], nameEn: string): FieldValue | undefined {
   return fields.find(f => f.name === nameEn);
 }
 
-type MergedTab = 'device' | 'temperature' | 'status';
-
-function FingerprintIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4" /><path d="M5 12a7 7 0 0 1 7-7 7 7 0 0 1 5.7 3" /><path d="M8 12a4 4 0 0 1 4-4 4 4 0 0 1 3.5 2.1" /><path d="M12 12h.01" /><path d="M17.5 8.5A10 10 0 0 1 22 12" /><path d="M15 11a7 7 0 0 1 4 6" /><path d="M12 16a4 4 0 0 1 2 3.5" /><path d="M8 16a10 10 0 0 0 1 5" />
-    </svg>
-  );
-}
-
-function ShieldSvg({ color }: { color: string }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-      <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" fill={color} fillOpacity={0.15} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ThermometerIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
-    </svg>
-  );
-}
-
 export function BatteryInfoPage() {
   const { parsedValues, parsedProtocol, protocolDb } = useBmsStore();
   const { i18n, t } = useTranslation();
   const isZh = i18n.language === 'zh';
-  const { ref: gridRef, cols } = useColumnCount();
-  const [mergedTab, setMergedTab] = useState<MergedTab>('device');
 
   const { safetyItems } = useStatusItems(protocolDb, parsedProtocol, parsedValues);
 
@@ -70,16 +42,6 @@ export function BatteryInfoPage() {
     const v = vF?.value ?? 0;
     const i = iF?.value ?? 0;
     return { totalVoltage: v, totalCurrent: i, power: v * i };
-  }, [infoFields]);
-
-  const dischargeTime = useMemo(() => {
-    const df = findField(infoFields, 'AverageTimeToEmpty');
-    return df?.displayValue;
-  }, [infoFields]);
-
-  const chargeTime = useMemo(() => {
-    const cf = findField(infoFields, 'AverageTimeToFull');
-    return cf?.displayValue;
   }, [infoFields]);
 
   const voltageInstrIdx = useMemo(() => {
@@ -129,7 +91,6 @@ export function BatteryInfoPage() {
   const graphFields = useMemo(() => infoFields.filter(f => f.graph), [infoFields]);
   const graphVoltage = useMemo(() => graphFields.find(f => /voltage/i.test(f.name)), [graphFields]);
   const graphCurrent = useMemo(() => graphFields.find(f => /current/i.test(f.name)), [graphFields]);
-
 
   const [chartHistory, setChartHistory] = useState<VoltageCurrentDataPoint[]>([]);
   const lastChartTsRef = useRef(0);
@@ -182,70 +143,114 @@ export function BatteryInfoPage() {
     return tf?.displayValue;
   }, [infoFields]);
 
-  const edgeTabs: { key: MergedTab; icon: React.ReactNode; label: string }[] = [
-    { key: 'device', icon: <FingerprintIcon />, label: t('battery.deviceInfo') },
-    { key: 'temperature', icon: <ThermometerIcon />, label: t('battery.temperature') },
-    { key: 'status', icon: <ShieldSvg color="currentColor" />, label: t('status.status') },
-  ];
+  const sparkVoltage = useMemo(() => chartHistory.slice(-60).map(p => p.voltage), [chartHistory]);
+  const sparkCurrent = useMemo(() => chartHistory.slice(-60).map(p => p.current), [chartHistory]);
+  const sparkTemp = useMemo(() => temperatures.map(t => t.temperature), [temperatures]);
+  const sparkSoc = useMemo(() => {
+    if (!soc) return [];
+    const arr: number[] = [];
+    for (let i = 0; i < Math.min(chartHistory.length, 60); i++) arr.push(soc.soc);
+    return arr;
+  }, [soc, chartHistory.length]);
 
-  const detailContent = cols === 1 ? (
-    <div className={styles.edgeCard}>
-      <div className={styles.edgeTabBar}>
-        {edgeTabs.map(tab => (
-          <button key={tab.key} className={`${styles.edgeTab} ${mergedTab === tab.key ? styles.edgeTabActive : ''}`} onClick={() => setMergedTab(tab.key)}>
-            {tab.icon}<span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-      <div className={styles.edgeBody}>
-        <div className={styles.panelStack}>
-          <div className={mergedTab === 'device' ? styles.panelVisible : styles.panelHidden}>
-            <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} noShell />
-          </div>
-          <div className={mergedTab === 'temperature' ? styles.panelVisible : styles.panelHidden}>
-            <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell />
-          </div>
-          <div className={mergedTab === 'status' ? styles.panelVisible : styles.panelHidden}>
-            <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell />
-          </div>
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div className={styles.detailGrid}>
-      <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} />
-      <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} />
-      <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />
-    </div>
-  );
+  const voltageHi = useMemo(() => {
+    if (chartHistory.length === 0) return undefined;
+    const max = Math.max(...chartHistory.map(p => p.voltage));
+    return max.toFixed(3) + 'V';
+  }, [chartHistory]);
+
+  const voltageLo = useMemo(() => {
+    if (chartHistory.length === 0) return undefined;
+    const min = Math.min(...chartHistory.map(p => p.voltage));
+    return min.toFixed(3) + 'V';
+  }, [chartHistory]);
+
+  const currentHi = useMemo(() => {
+    if (chartHistory.length === 0) return undefined;
+    const max = Math.max(...chartHistory.map(p => p.current));
+    return max.toFixed(2) + 'A';
+  }, [chartHistory]);
+
+  const currentLo = useMemo(() => {
+    if (chartHistory.length === 0) return undefined;
+    const min = Math.min(...chartHistory.map(p => p.current));
+    return min.toFixed(2) + 'A';
+  }, [chartHistory]);
+
+  const tempHi = temperMax !== undefined ? temperMax.toFixed(1) + '°C' : undefined;
+  const tempLo = temperMin !== undefined ? temperMin.toFixed(1) + '°C' : undefined;
+
+  const swipeRef = useRef<HTMLDivElement>(null);
+  const [activeDot, setActiveDot] = useState(0);
+
+  const handleSwipeScroll = useCallback(() => {
+    const el = swipeRef.current;
+    if (!el) return;
+    const sl = el.scrollLeft;
+    const w = el.offsetWidth;
+    const idx = Math.round(sl / w);
+    setActiveDot(Math.max(0, Math.min(idx, 2)));
+  }, []);
+
+  const handleDotClick = useCallback((idx: number) => {
+    const el = swipeRef.current;
+    if (!el) return;
+    el.scrollTo({ left: idx * el.offsetWidth, behavior: 'smooth' });
+    setActiveDot(idx);
+  }, []);
+
+  const infoCards = useMemo(() => [
+    { key: 'device', title: t('battery.deviceInfo'), content: <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} noShell /> },
+    { key: 'temperature', title: t('battery.temp'), content: <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} noShell /> },
+    { key: 'status', title: t('status.status'), content: <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell /> },
+  ], [t, bmsId, extraFields, temperatures, temperMax, temperMin, protocolDb, parsedProtocol, parsedValues]);
 
   return (
-    <div className={styles.page} ref={gridRef}>
-      {cols === 1 ? (
-        <>
-          <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} />
-          <VoltageCurrentChart history={chartHistory} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
-          {detailContent}
-        </>
-      ) : (
-        <div className={styles.mainGrid}>
-          <div className={styles.orderSoc}>
-            <SocPackCard soc={soc} pack={pack} bmsTime={bmsTime} dischargeTime={dischargeTime} chargeTime={chargeTime} safetyItems={safetyItems} />
+    <div className={styles.page}>
+      <div className={styles.metrics}>
+        <MetricCard variant="soc" value={soc?.soc ?? 0} unit="%" soc={soc?.soc} hi={soc ? Math.round(soc.soc) + '%' : undefined} lo={soc ? Math.round(soc.soc) + '%' : undefined} sparkData={sparkSoc} />
+        <MetricCard variant="current" value={pack?.totalCurrent ?? 0} unit="A" hi={currentHi} lo={currentLo} sparkData={sparkCurrent} />
+        <MetricCard variant="voltage" value={pack?.totalVoltage ?? 0} unit="V" hi={voltageHi} lo={voltageLo} sparkData={sparkVoltage} />
+        <MetricCard variant="temperature" value={temperatures.length > 0 ? temperatures[0].temperature : 0} unit="°C" hi={tempHi} lo={tempLo} sparkData={sparkTemp} />
+      </div>
+
+      <div className={styles.mainRow}>
+        <VoltageCurrentChart history={chartHistory} />
+        <CellVoltageCard
+          cellVoltages={cellVoltages}
+          soc={soc?.soc}
+          voltageMax={voltageMax}
+          voltageMin={voltageMin}
+          balanceFlags={balanceFlags}
+        />
+      </div>
+
+      <div className={styles.infoRow}>
+        {infoCards.map(card => (
+          <div key={card.key} className={styles.infoCard}>
+            <div className={styles.infoHdr}>{card.title}</div>
+            <div className={styles.infoBody}>{card.content}</div>
           </div>
-          <div className={styles.orderDevice}>
-            <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} />
-          </div>
-          <div className={`${styles.orderChart} ${styles.chartSpan2}`}>
-            <VoltageCurrentChart history={chartHistory} cellVoltages={cellVoltages} voltageMax={voltageMax} voltageMin={voltageMin} balanceFlags={balanceFlags} soc={soc?.soc} />
-          </div>
-          <div className={styles.orderStatus}>
-            <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} />
-          </div>
-          <div className={styles.orderTemp}>
-            <TemperatureCard temperatures={temperatures} temperMax={temperMax} temperMin={temperMin} />
-          </div>
+        ))}
+      </div>
+
+      <div className={styles.infoSwipeWrap}>
+        <div className={styles.infoSwipeTrack} ref={swipeRef} onScroll={handleSwipeScroll}>
+          {infoCards.map(card => (
+            <div key={card.key} className={styles.infoCard}>
+              <div className={styles.swipeCardHdr}>
+                <span className={styles.swipeCardTitle}>{card.title}</span>
+              </div>
+              <div className={styles.infoBody}>{card.content}</div>
+            </div>
+          ))}
         </div>
-      )}
+        <div className={styles.swipeDots}>
+          {infoCards.map((_, i) => (
+            <button key={i} className={`${styles.dot} ${i === activeDot ? styles.active : ''}`} onClick={() => handleDotClick(i)} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

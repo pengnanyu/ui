@@ -4,10 +4,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import * as echarts from 'echarts';
 import { useTranslation } from 'react-i18next';
-import type { VoltageCurrentDataPoint, CellVoltage } from '@/types';
-import { CardShell } from '@/components/shared/CardShell';
-import { CellIcon } from '../CellVoltageCard/CellIcon';
-import cellStyles from '../CellVoltageCard/CellVoltageCard.module.css';
+import type { VoltageCurrentDataPoint } from '@/types';
 import styles from './VoltageCurrentChart.module.css';
 
 const RESTORE_DELAY = 3000;
@@ -18,18 +15,17 @@ function getThemeColor(varName: string): string {
 
 interface VoltageCurrentChartProps {
   history: VoltageCurrentDataPoint[];
-  cellVoltages?: CellVoltage[];
-  voltageMax?: number;
-  voltageMin?: number;
-  balanceFlags?: boolean[];
-  soc?: number;
-
 }
 
 function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
+  const vColor = getThemeColor('--c-cyan') || '#00D4B8';
+  const iColor = getThemeColor('--c-purple') || '#BB86FC';
+  const gridColor = getThemeColor('--chart-grid') || 'rgba(255,255,255,0.04)';
+  const tickColor = getThemeColor('--color-muted-foreground') || '#888888';
+
   return {
     animation: false,
-    grid: { left: 24, right: 24, top: 28, bottom: 28 },
+    grid: { left: 32, right: 32, top: 28, bottom: 28 },
     tooltip: {
       trigger: 'axis',
       triggerOn: 'mousemove|click',
@@ -45,27 +41,11 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
           borderColor: getThemeColor('--color-border'),
         },
       },
-      formatter(params: unknown) {
-        const ps = Array.isArray(params) ? params : [params];
-        const p0 = ps[0] as { axisValue?: string | number; marker?: string; seriesName?: string; value?: unknown };
-        let timeStr = String(p0?.axisValue ?? '');
-        const ts = Number(p0?.axisValue);
-        if (!isNaN(ts) && ts > 0) {
-          const d = new Date(ts);
-          timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
-        }
-        let s = `<b>${timeStr}</b><br/>`;
-        for (const item of ps) {
-          const it = item as { marker?: string; seriesName?: string; value?: unknown };
-          s += `${it.marker ?? ''} ${it.seriesName ?? ''}: ${Array.isArray(it.value) ? it.value[1] : it.value}<br/>`;
-        }
-        return s;
-      },
     },
     xAxis: {
       type: 'time',
-      axisLabel: { fontSize: 10, color: getThemeColor('--color-muted-foreground'), formatter: '{mm}:{ss}' },
-      axisLine: { lineStyle: { color: getThemeColor('--color-border') } },
+      axisLabel: { fontSize: 10, color: tickColor, formatter: '{mm}:{ss}' },
+      axisLine: { lineStyle: { color: gridColor } },
       axisTick: { show: false },
     },
     yAxis: [
@@ -75,10 +55,10 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         nameLocation: 'end',
         nameGap: 4,
         nameRotate: 0,
-        nameTextStyle: { fontSize: 10, color: '#6366f1', align: 'left' },
-        axisLabel: { fontSize: 10, color: '#6366f1' },
-        axisLine: { lineStyle: { color: '#6366f1' } },
-        splitLine: { lineStyle: { type: 'dashed', color: getThemeColor('--color-border') } },
+        nameTextStyle: { fontSize: 10, color: vColor, align: 'left' },
+        axisLabel: { fontSize: 10, color: vColor },
+        axisLine: { lineStyle: { color: vColor, width: 1.5 } },
+        splitLine: { lineStyle: { type: 'dashed', color: gridColor } },
       },
       {
         type: 'value',
@@ -86,9 +66,9 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         nameLocation: 'end',
         nameGap: 4,
         nameRotate: 0,
-        nameTextStyle: { fontSize: 10, color: '#f59e0b', align: 'right' },
-        axisLabel: { fontSize: 10, color: '#f59e0b' },
-        axisLine: { lineStyle: { color: '#f59e0b' } },
+        nameTextStyle: { fontSize: 10, color: iColor, align: 'right' },
+        axisLabel: { fontSize: 10, color: iColor },
+        axisLine: { lineStyle: { color: iColor, width: 1.5 } },
         splitLine: { show: false },
       },
     ],
@@ -113,9 +93,9 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         yAxisIndex: 0,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2, color: '#6366f1' },
-        itemStyle: { color: '#6366f1' },
-        areaStyle: { color: 'rgba(99,102,241,0.1)' },
+        lineStyle: { width: 2.5, color: vColor },
+        itemStyle: { color: vColor },
+        areaStyle: { color: vColor + '14' },
       },
       {
         name: 'Current',
@@ -124,9 +104,9 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         yAxisIndex: 1,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2, color: '#f59e0b' },
-        itemStyle: { color: '#f59e0b' },
-        areaStyle: { color: 'rgba(245,158,11,0.1)' },
+        lineStyle: { width: 2.5, color: iColor },
+        itemStyle: { color: iColor },
+        areaStyle: { color: iColor + '0F' },
       },
     ],
   };
@@ -143,13 +123,12 @@ function readZoomRange(chart: echarts.ECharts): { start: number; end: number } |
   return null;
 }
 
-export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltageMin, balanceFlags, soc }: VoltageCurrentChartProps) {
+export function VoltageCurrentChart({ history }: VoltageCurrentChartProps) {
   const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoveringRef = useRef(false);
-  const prevLenRef = useRef(0);
   const initializedRef = useRef(false);
   const historyRef = useRef(history);
   historyRef.current = history;
@@ -161,20 +140,9 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     chart.setOption({
       dataZoom: [
         { type: 'inside', startValue: h[0]!.timestamp, endValue: h[h.length - 1]!.timestamp },
-
       ],
     });
   }, []);
-
-  const voltageDiff = (voltageMax !== undefined && voltageMin !== undefined) ? voltageMax - voltageMin : undefined;
-
-  const titleExtra = (
-    <div className={styles.titleLegend}>
-      {voltageMax !== undefined && <span className={styles.legendItem}><span className={styles.arrowUp}>↑</span>{(voltageMax / 1000).toFixed(3)}V</span>}
-      {voltageMin !== undefined && <span className={styles.legendItem}><span className={styles.arrowDown}>↓</span>{(voltageMin / 1000).toFixed(3)}V</span>}
-      {voltageDiff !== undefined && <span className={styles.legendItem}><span className={styles.legendDiff}>Δ</span>{(voltageDiff / 1000).toFixed(3)}V</span>}
-    </div>
-  );
 
   useEffect(() => {
     const el = chartRef.current;
@@ -189,7 +157,6 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     if (!initializedRef.current) {
       chart.setOption(buildInitialOption(history), true);
       initializedRef.current = true;
-      prevLenRef.current = history.length;
       return;
     }
 
@@ -247,29 +214,28 @@ export function VoltageCurrentChart({ history, cellVoltages, voltageMax, voltage
     };
   }, [restoreToFull]);
 
+  const vColor = getThemeColor('--c-cyan') || '#00D4B8';
+  const iColor = getThemeColor('--c-purple') || '#BB86FC';
+
   return (
-    <CardShell title={<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>{t('battery.viChart')}</>} titleExtra={titleExtra}>
+    <div className={styles.chartSec}>
+      <div className={styles.chartHdr}>
+        <span className={styles.chartTtl}>
+          <svg style={{ width: 16, height: 16, fill: 'none', stroke: vColor, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', verticalAlign: 'middle', marginRight: 4 }} viewBox="0 0 24 24">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          {t('battery.viChart')}
+        </span>
+        <div className={styles.chartLeg}>
+          <div className={styles.legItem}><div className={styles.legDot} style={{ background: vColor }} />{t('battery.voltage')}(V)</div>
+          <div className={styles.legItem}><div className={styles.legDot} style={{ background: iColor }} />{t('battery.current')}(A)</div>
+        </div>
+      </div>
       {history.length === 0 ? (
         <div className={styles.empty}>--</div>
       ) : (
-        <div ref={chartRef} className={styles.chartContainer} />
+        <div ref={chartRef} className={styles.chartBody} />
       )}
-      {cellVoltages && cellVoltages.length > 0 && (
-        <div className={styles.cellSection}>
-          <div className={cellStyles.grid}>
-            {cellVoltages.map(cell => (
-              <CellIcon
-                key={cell.index}
-                index={cell.index}
-                voltage={cell.voltage}
-                soc={soc}
-                isBalancing={balanceFlags?.[(cell.index - 1)] ?? false}
-                compact
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </CardShell>
+    </div>
   );
 }

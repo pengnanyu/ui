@@ -1,32 +1,24 @@
 .fieldList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .field {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--color-border);
-  min-width: 0;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
 }
 
 .fieldLabel {
-  font-size: 12px;
   color: var(--color-muted-foreground);
-  word-break: break-word;
-  overflow-wrap: break-word;
 }
 
 .fieldValue {
-  font-size: 13px;
   color: var(--color-foreground);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
+  font-weight: 500;
 }
 
 .fieldUnit {
@@ -42,5 +34,10 @@
   color: var(--color-muted-foreground);
   font-size: 14px;
   padding: 16px 0;
-  grid-column: 1 / -1;
+}
+
+@media (max-width: 420px) {
+  .field {
+    font-size: 12px;
+  }
 }

@@ -2,8 +2,6 @@
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
 import type { TempData } from '@/types';
-import { useTranslation } from 'react-i18next';
-import { CardShell } from '@/components/shared/CardShell';
 import { TempBar } from './TempBar';
 import styles from './TemperatureCard.module.css';
 
@@ -15,46 +13,39 @@ interface TemperatureCardProps {
   noShell?: boolean;
 }
 
-export function TemperatureCard({ temperatures, mosTemperature, temperMax, temperMin, noShell }: TemperatureCardProps) {
-  const { t } = useTranslation();
-  const tempIcon = (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
-    </svg>
-  );
-  const titleExtra = (temperMax !== undefined || temperMin !== undefined) ? (
-    <div className={styles.headerInfo}>
-      {temperMax !== undefined && (
-        <span className={styles.headerItem}>↑ {temperMax.toFixed(1)}℃</span>
-      )}
-      {temperMin !== undefined && (
-        <span className={styles.headerItem}>↓ {temperMin.toFixed(1)}℃</span>
-      )}
-    </div>
-  ) : undefined;
-
-  const listContent = (
+export function TemperatureCard({ temperatures, mosTemperature, temperMax, temperMin }: TemperatureCardProps) {
+  return (
     <div className={styles.tempList}>
       {temperatures.length > 0 ? (
         <>
           {temperatures.map((temp) => (
-            <TempBar key={temp.index} index={temp.index} temperature={temp.temperature} name={temp.name} />
+            <div key={temp.index} className="infoItem">
+              <span className="infoLabel">{temp.name || `T${temp.index}`}</span>
+              <span className="infoVal">{temp.temperature.toFixed(1)}°C</span>
+            </div>
           ))}
           {mosTemperature && (
-            <TempBar index={mosTemperature.index} temperature={mosTemperature.temperature} name="MOS" />
+            <div className="infoItem">
+              <span className="infoLabel">MOS</span>
+              <span className="infoVal">{mosTemperature.temperature.toFixed(1)}°C</span>
+            </div>
+          )}
+          {temperMax !== undefined && (
+            <div className="infoItem">
+              <span className="infoLabel">↑ Max</span>
+              <span className="infoVal" style={{ color: 'var(--c-green)' }}>{temperMax.toFixed(1)}°C</span>
+            </div>
+          )}
+          {temperMin !== undefined && (
+            <div className="infoItem">
+              <span className="infoLabel">↓ Min</span>
+              <span className="infoVal" style={{ color: 'var(--c-purple)' }}>{temperMin.toFixed(1)}°C</span>
+            </div>
           )}
         </>
       ) : (
         <div style={{ color: 'var(--color-muted-foreground)', fontSize: 14, textAlign: 'center', padding: '16px 0' }}>--</div>
       )}
     </div>
-  );
-
-  if (noShell) return listContent;
-
-  return (
-    <CardShell title={<>{tempIcon}{t('battery.temp')}</>} titleExtra={titleExtra}>
-      {listContent}
-    </CardShell>
   );
 }

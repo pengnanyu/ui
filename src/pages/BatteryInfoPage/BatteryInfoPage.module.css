@@ -4,245 +4,178 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.page>*:not(.mainGrid) {
-  flex-shrink: 0;
-}
-
-.mainGrid {
+.metrics {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mainRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
   align-items: stretch;
+}
+
+.infoRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
   flex: 1;
-  min-height: min-content;
 }
 
-@media (min-width: 640px) {
-  .mainGrid {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto auto 1fr;
-    gap: 12px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .mainGrid {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: auto 1fr;
-    gap: 16px;
-  }
-}
-
-.orderSoc,
-.orderChart,
-.orderDevice,
-.orderStatus,
-.orderTemp {
+.infoRow .infoCard {
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
-
-.orderSoc>*,
-.orderChart>*,
-.orderDevice>*,
-.orderStatus>*,
-.orderTemp>* {
+.infoRow .infoCard .infoBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
-  min-height: 0;
 }
 
-.orderSoc {
-  order: 1;
-}
-
-.orderChart {
-  order: 2;
-}
-
-.orderDevice {
-  order: 3;
-}
-
-.orderStatus {
-  order: 4;
-}
-
-.orderTemp {
-  order: 5;
-}
-
-@media (min-width: 640px) and (max-width: 1023px) {
-  .orderSoc {
-    order: 1;
-  }
-
-  .orderDevice {
-    order: 2;
-  }
-
-  .orderChart {
-    order: 3;
-  }
-
-  .orderStatus {
-    order: 4;
-  }
-
-  .orderTemp {
-    order: 5;
-  }
-}
-
-@media (min-width: 640px) {
-
-  .orderStatus,
-  .orderTemp {
-    align-self: stretch;
-  }
-}
-
-@media (min-width: 1024px) {
-
-  .orderDevice,
-  .orderStatus,
-  .orderTemp {
-    align-self: stretch;
-  }
-}
-
-.chartSpan2 {
-  grid-column: span 2;
-}
-
-@media (min-width: 1024px) {
-  .chartSpan2 {
-    grid-column: span 2;
-  }
-}
-
-.edgeCard {
+.infoCard {
   background: var(--card-bg);
-  backdrop-filter: blur(var(--card-blur));
-  -webkit-backdrop-filter: blur(var(--card-blur));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  overflow: hidden;
-}
-
-.edgeTabBar {
-  display: flex;
-  background: var(--color-muted);
-  padding: 5px;
-  gap: 6px;
-  border-radius: 12px;
-}
-
-.edgeTab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: var(--color-background);
-  color: var(--color-muted-foreground);
-  transition: background 0.18s, color 0.18s, border-color 0.18s;
-  flex: 1;
-}
-
-.edgeTab:hover {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-}
-
-.edgeTabActive {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  border-color: var(--color-primary);
-}
-
-.edgeBody {
-  padding: 10px;
-  min-height: 120px;
-}
-
-.panelStack {
-  display: grid;
-}
-
-.panelStack>div {
-  grid-area: 1 / 1;
-}
-
-.panelVisible {
-  visibility: visible;
-}
-
-.panelHidden {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.sideTabCard {
-  display: flex;
-  gap: 0;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-}
-
-.sideTabLayout {
-  display: flex;
-  gap: 0;
-  min-height: 0;
-}
-
-.sideTabNav {
+  padding: 14px;
+  box-shadow: var(--card-shadow);
   display: flex;
   flex-direction: column;
-  gap: 0;
-  flex-shrink: 0;
-  background: var(--color-muted);
-  padding: 4px 0;
-  border-right: 1px solid var(--color-border);
+  gap: 8px;
 }
 
-.sideTab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  border-left: 3px solid transparent;
-  background: transparent;
-  color: var(--color-muted-foreground);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  letter-spacing: 2px;
-}
-
-.sideTab:hover {
-  background: var(--color-background);
-}
-
-.sideTabActive {
-  background: var(--color-card);
-  border-left-color: var(--color-foreground);
+.infoHdr {
+  font-size: 15px;
+  font-weight: 600;
   color: var(--color-foreground);
 }
 
-.sideTabContent {
+.infoBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.infoItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.infoLabel {
+  color: var(--color-muted-foreground);
+}
+
+.infoVal {
+  color: var(--color-foreground);
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
+  font-weight: 500;
+}
+
+.infoSwipeWrap {
+  display: none;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 12px;
   flex: 1;
-  min-width: 0;
-  padding: 8px;
+}
+
+.infoSwipeTrack {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
+.infoSwipeTrack::-webkit-scrollbar {
+  display: none;
+}
+
+.infoSwipeTrack .infoCard {
+  min-width: 100%;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+.infoSwipeTrack .infoCard .infoBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.infoSwipeTrack .infoCard .swipeCardHdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.infoSwipeTrack .infoCard .swipeCardTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.swipeDots {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.swipeDots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-muted-foreground);
+  opacity: 0.3;
+  transition: opacity 0.3s, transform 0.3s;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.swipeDots .dot.active {
+  opacity: 1;
+  transform: scale(1.3);
+}
+
+@media (min-width: 768px) {
+  .metrics {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .mainRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .infoRow {
+    display: none;
+  }
+  .infoSwipeWrap {
+    display: flex;
+  }
+}
+
+@media (max-width: 420px) {
+  .infoItem {
+    font-size: 12px;
+  }
 }
