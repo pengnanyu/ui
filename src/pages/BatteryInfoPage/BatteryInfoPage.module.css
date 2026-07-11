@@ -34,6 +34,7 @@
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
+
 }
 
 .mainSwipeTrack::-webkit-scrollbar {
@@ -46,6 +47,12 @@
   scroll-snap-align: start;
   flex-shrink: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mainSwipeItem > * {
+  flex: 1;
 }
 
 .infoRow {

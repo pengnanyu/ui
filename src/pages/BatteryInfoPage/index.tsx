@@ -273,18 +273,26 @@ export function BatteryInfoPage() {
   const chartSwipeRef = useRef<HTMLDivElement>(null);
   const [chartDot, setChartDot] = useState(0);
 
+
   useEffect(() => {
     const track = chartSwipeRef.current;
     if (!track) return;
     const syncHeight = () => {
-      const items = track.querySelectorAll<HTMLElement>(':scope > *');
+      const items = Array.from(track.children) as HTMLElement[];
+      if (items.length === 0) return;
+      const saved = items.map(el => el.style.height);
       items.forEach(el => { el.style.height = 'auto'; });
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          let maxH = 0;
-          items.forEach(el => { maxH = Math.max(maxH, el.offsetHeight); });
-          if (maxH > 0) items.forEach(el => { el.style.height = maxH + 'px'; });
+        let maxH = 0;
+        items.forEach(el => {
+          const h = el.scrollHeight;
+          if (h > maxH) maxH = h;
         });
+        if (maxH > 0) {
+          items.forEach(el => { el.style.height = maxH + 'px'; });
+        } else {
+          items.forEach((el, i) => { el.style.height = saved[i] || ''; });
+        }
       });
     };
     syncHeight();

@@ -60,8 +60,7 @@
 .chartBody {
   position: relative;
   flex: 1;
-  min-height: 120px;
-
+  min-height: 200px;
 }
 
 .empty {
@@ -76,8 +75,7 @@
 
 @media (max-width: 420px) {
   .chartBody {
-    min-height: 100px;
-
+    min-height: 160px;
   }
   .chartTtl {
     font-size: 13px;
