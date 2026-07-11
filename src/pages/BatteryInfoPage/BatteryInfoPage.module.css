@@ -29,10 +29,10 @@
 .mainSwipeTrack {
   display: flex;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
 }
 
 .mainSwipeTrack::-webkit-scrollbar {
@@ -43,8 +43,7 @@
   min-width: 100%;
   scroll-snap-align: start;
   flex-shrink: 0;
-  height: 320px;
-  overflow: hidden;
+
 }
 
 .infoRow {
@@ -119,11 +118,11 @@
 .infoSwipeTrack {
   display: flex;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
   flex: 1;
+  scroll-snap-type: x proximity;
 }
 
 .infoSwipeTrack::-webkit-scrollbar {

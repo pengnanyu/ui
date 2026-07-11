@@ -191,14 +191,22 @@ export function BatteryInfoPage() {
 
   const swipeRef = useRef<HTMLDivElement>(null);
   const [activeDot, setActiveDot] = useState(0);
+  const infoScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSwipeScroll = useCallback(() => {
     const el = swipeRef.current;
     if (!el) return;
-    const sl = el.scrollLeft;
-    const w = el.offsetWidth;
-    const idx = Math.round(sl / w);
-    setActiveDot(Math.max(0, Math.min(idx, 2)));
+    if (infoScrollTimerRef.current) clearTimeout(infoScrollTimerRef.current);
+    infoScrollTimerRef.current = setTimeout(() => {
+      const sl = el.scrollLeft;
+      const w = el.offsetWidth;
+      const idx = Math.round(sl / w);
+      const target = Math.max(0, Math.min(idx, 2));
+      setActiveDot(target);
+      if (Math.abs(sl - target * w) > 2) {
+        el.scrollTo({ left: target * w, behavior: 'smooth' });
+      }
+    }, 80);
   }, []);
 
   const handleDotClick = useCallback((idx: number) => {
@@ -221,14 +229,34 @@ export function BatteryInfoPage() {
 
   const chartSwipeRef = useRef<HTMLDivElement>(null);
   const [chartDot, setChartDot] = useState(0);
+  const chartScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const track = chartSwipeRef.current;
+    if (!track) return;
+    const items = track.querySelectorAll<HTMLElement>(':scope > *');
+    let maxH = 0;
+    items.forEach(el => { el.style.height = 'auto'; });
+    requestAnimationFrame(() => {
+      items.forEach(el => { maxH = Math.max(maxH, el.scrollHeight); });
+      if (maxH > 0) items.forEach(el => { el.style.height = maxH + 'px'; });
+    });
+  });
 
   const handleChartSwipeScroll = useCallback(() => {
     const el = chartSwipeRef.current;
     if (!el) return;
-    const sl = el.scrollLeft;
-    const w = el.offsetWidth;
-    const idx = Math.round(sl / w);
-    setChartDot(Math.max(0, Math.min(idx, 1)));
+    if (chartScrollTimerRef.current) clearTimeout(chartScrollTimerRef.current);
+    chartScrollTimerRef.current = setTimeout(() => {
+      const sl = el.scrollLeft;
+      const w = el.offsetWidth;
+      const idx = Math.round(sl / w);
+      const target = Math.max(0, Math.min(idx, 1));
+      setChartDot(target);
+      if (Math.abs(sl - target * w) > 2) {
+        el.scrollTo({ left: target * w, behavior: 'smooth' });
+      }
+    }, 80);
   }, []);
 
   const handleChartDotClick = useCallback((idx: number) => {

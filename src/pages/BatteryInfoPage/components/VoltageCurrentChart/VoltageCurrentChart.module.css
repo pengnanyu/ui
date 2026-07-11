@@ -4,7 +4,7 @@
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  padding: 14px;
+  padding: 10px;
   box-shadow: var(--card-shadow);
   min-width: 0;
   display: flex;
@@ -16,7 +16,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   flex-wrap: nowrap;
   overflow: hidden;
   gap: 8px;

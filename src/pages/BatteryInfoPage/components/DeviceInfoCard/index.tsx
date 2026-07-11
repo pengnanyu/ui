@@ -2,6 +2,7 @@
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
 import type { DeviceInfoField } from '@/types';
+import styles from './DeviceInfoCard.module.css';
 
 interface DeviceInfoCardProps {
   bmsId?: string;
@@ -11,17 +12,17 @@ interface DeviceInfoCardProps {
 
 export function DeviceInfoCard({ extraFields }: DeviceInfoCardProps) {
   return (
-    <div className="infoBody">
+    <div className={styles.fieldList}>
       {extraFields.length > 0 ? extraFields.map((field, i) => (
-        <div key={i} className="infoItem">
-          <span className="infoLabel">{field.label}</span>
-          <span>
-            <span className="infoVal">{field.value}</span>
-            {field.unit && <span style={{ color: 'var(--color-muted-foreground)', marginLeft: 2 }}>{field.unit}</span>}
+        <div key={i} className={styles.field}>
+          <span className={styles.fieldLabel}>{field.label}</span>
+          <span className={styles.fieldValue}>
+            {field.value}
+            {field.unit && <span className={styles.fieldUnit}>{field.unit}</span>}
           </span>
         </div>
       )) : (
-        <div style={{ color: 'var(--color-muted-foreground)', fontSize: 14, textAlign: 'center', padding: '16px 0' }}>--</div>
+        <div className={styles.empty}>--</div>
       )}
     </div>
   );

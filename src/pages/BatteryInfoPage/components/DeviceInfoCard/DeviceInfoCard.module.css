@@ -1,7 +1,7 @@
 .fieldList {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 16px;
 }
 
 .field {
@@ -9,16 +9,27 @@
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
+  min-width: 0;
 }
 
 .fieldLabel {
   color: var(--color-muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  max-width: 50%;
 }
 
 .fieldValue {
   color: var(--color-foreground);
   font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
   font-weight: 500;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .fieldUnit {
@@ -34,6 +45,13 @@
   color: var(--color-muted-foreground);
   font-size: 14px;
   padding: 16px 0;
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 768px) {
+  .fieldList {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 420px) {

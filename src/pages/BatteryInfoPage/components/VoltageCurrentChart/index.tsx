@@ -25,7 +25,7 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
 
   return {
     animation: false,
-    grid: { left: 32, right: 32, top: 28, bottom: 28 },
+    grid: { left: 28, right: 28, top: 16, bottom: 20 },
     tooltip: {
       trigger: 'axis',
       triggerOn: 'mousemove|click',
