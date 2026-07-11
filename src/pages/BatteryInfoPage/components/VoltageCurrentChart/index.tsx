@@ -13,6 +13,15 @@ function getThemeColor(varName: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#4a90d9';
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  if (h.length !== 6) return `rgba(75,163,247,${alpha})`;
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 interface VoltageCurrentChartProps {
   history: VoltageCurrentDataPoint[];
 }
@@ -95,7 +104,7 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         showSymbol: false,
         lineStyle: { width: 2.5, color: vColor },
         itemStyle: { color: vColor },
-        areaStyle: { color: vColor + '14' },
+        areaStyle: { color: hexToRgba(vColor, 0.08) },
       },
       {
         name: 'Current',
@@ -106,7 +115,7 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         showSymbol: false,
         lineStyle: { width: 2.5, color: iColor },
         itemStyle: { color: iColor },
-        areaStyle: { color: iColor + '0F' },
+        areaStyle: { color: hexToRgba(iColor, 0.06) },
       },
     ],
   };
@@ -129,7 +138,6 @@ export function VoltageCurrentChart({ history }: VoltageCurrentChartProps) {
   const instanceRef = useRef<echarts.ECharts | null>(null);
   const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoveringRef = useRef(false);
-  const initializedRef = useRef(false);
   const historyRef = useRef(history);
   historyRef.current = history;
 
@@ -147,6 +155,7 @@ export function VoltageCurrentChart({ history }: VoltageCurrentChartProps) {
   useEffect(() => {
     const el = chartRef.current;
     if (!el || history.length === 0) return;
+    if (el.clientWidth === 0 || el.clientHeight === 0) return;
 
     let chart = instanceRef.current;
     if (!chart) {
@@ -154,23 +163,8 @@ export function VoltageCurrentChart({ history }: VoltageCurrentChartProps) {
       instanceRef.current = chart;
     }
 
-    if (!initializedRef.current) {
-      chart.setOption(buildInitialOption(history), true);
-      initializedRef.current = true;
-      return;
-    }
+    chart.setOption(buildInitialOption(history), true);
 
-    const vData = history.map(p => [p.timestamp, p.voltage]);
-    const cData = history.map(p => [p.timestamp, p.current]);
-    const saved = hoveringRef.current ? readZoomRange(chart) : null;
-    const zoomOption = saved ? { start: saved.start, end: saved.end } : { start: 0, end: 100 };
-
-    chart.setOption({
-      series: [{ data: vData }, { data: cData }],
-      dataZoom: [
-        { type: 'inside', xAxisIndex: 0, ...zoomOption, zoomOnMouseWheel: true, moveOnMouseMove: true, moveOnMouseDrag: true, preventDefaultMouseMove: false, filterMode: 'none' },
-      ],
-    });
   }, [history]);
 
   useEffect(() => {
@@ -210,7 +204,6 @@ export function VoltageCurrentChart({ history }: VoltageCurrentChartProps) {
       if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
       instanceRef.current?.dispose();
       instanceRef.current = null;
-      initializedRef.current = false;
     };
   }, [restoreToFull]);
 
@@ -231,11 +224,8 @@ export function VoltageCurrentChart({ history }: VoltageCurrentChartProps) {
           <div className={styles.legItem}><div className={styles.legDot} style={{ background: iColor }} />{t('battery.current')}(A)</div>
         </div>
       </div>
-      {history.length === 0 ? (
-        <div className={styles.empty}>--</div>
-      ) : (
-        <div ref={chartRef} className={styles.chartBody} />
-      )}
+      <div ref={chartRef} className={styles.chartBody} style={{ display: history.length === 0 ? 'none' : 'block' }} />
+      {history.length === 0 && <div className={styles.empty}>--</div>}
     </div>
   );
 }
