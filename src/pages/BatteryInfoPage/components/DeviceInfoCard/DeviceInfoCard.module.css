@@ -22,7 +22,7 @@
 .fieldValue {
   color: var(--color-foreground);
   font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
-  font-weight: 500;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

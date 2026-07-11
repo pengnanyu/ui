@@ -10,6 +10,8 @@
   gap: 12px;
   box-shadow: var(--card-shadow);
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .ctrlTtl {

@@ -105,7 +105,7 @@ export function BatteryInfoPage() {
   const temperatures = useMemo(() => {
     if (temperInstrIdx < 0) return [];
     return infoFields
-      .filter(f => f.parentInstructionIndex === temperInstrIdx && !/temper\s*(max|min)/i.test(f.name))
+      .filter(f => f.parentInstructionIndex === temperInstrIdx && !/temper\s*(max|min)/i.test(f.name) && !/mos.*temp/i.test(f.name))
       .map((f, i) => ({ index: i + 1, temperature: f.value, name: isZh ? f.nameZh : f.name }));
   }, [infoFields, temperInstrIdx, isZh]);
 
@@ -253,8 +253,14 @@ export function BatteryInfoPage() {
     return <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{base}<span style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>{extras}</span></span>;
   }, [t, temperMax, temperMin]);
 
+  const deviceInfoTitle = useMemo(() => {
+    const base = t('battery.deviceInfo');
+    if (!bmsTime) return base;
+    return <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{base}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-muted-foreground)', marginLeft: 'auto', fontFamily: "'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace" }}>{bmsTime}</span></span>;
+  }, [t, bmsTime]);
+
   const infoCards = useMemo(() => [
-    { key: 'device', title: t('battery.deviceInfo'), content: <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} noShell /> },
+    { key: 'device', title: deviceInfoTitle, content: <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} noShell /> },
     { key: 'temperature', title: tempTitle, content: <TemperatureCard temperatures={temperatures} mosTemperature={mosTemperature} noShell /> },
     { key: 'status', title: statusTitle, content: <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell /> },
   ], [t, bmsId, extraFields, tempTitle, temperatures, statusTitle, protocolDb, parsedProtocol, parsedValues]);
@@ -270,14 +276,20 @@ export function BatteryInfoPage() {
   useEffect(() => {
     const track = chartSwipeRef.current;
     if (!track) return;
-    const items = track.querySelectorAll<HTMLElement>(':scope > *');
-    let maxH = 0;
-    items.forEach(el => { el.style.height = 'auto'; });
-    requestAnimationFrame(() => {
-      items.forEach(el => { maxH = Math.max(maxH, el.scrollHeight); });
-      if (maxH > 0) items.forEach(el => { el.style.height = maxH + 'px'; });
-    });
-  });
+    const syncHeight = () => {
+      const items = track.querySelectorAll<HTMLElement>(':scope > *');
+      let maxH = 0;
+      items.forEach(el => { el.style.height = 'auto'; });
+      requestAnimationFrame(() => {
+        items.forEach(el => { maxH = Math.max(maxH, el.offsetHeight); });
+        if (maxH > 0) items.forEach(el => { el.style.height = maxH + 'px'; });
+      });
+    };
+    syncHeight();
+    const ro = new ResizeObserver(syncHeight);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, [cellVoltages, chartHistory]);
 
   const handleChartSwipeScroll = useCallback(() => {
     const el = chartSwipeRef.current;
@@ -297,10 +309,7 @@ export function BatteryInfoPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.pageTitle}>
-        {t('nav.batteryInfo')}
-        {bmsTime && <span className={styles.bmsTime}>{bmsTime}</span>}
-      </div>
+
       <div className={styles.metrics}>
         <MetricCard variant="soc" value={soc?.soc ?? 0} unit="%" soc={soc?.soc} hi={socHi !== undefined ? Math.round(socHi) + '%' : undefined} lo={socLo !== undefined ? Math.round(socLo) + '%' : undefined} sparkData={socHistory} />
         <MetricCard variant="current" value={pack?.totalCurrent ?? 0} unit="A" hi={currentHi !== undefined ? currentHi.toFixed(2) + 'A' : undefined} lo={currentLo !== undefined ? currentLo.toFixed(2) + 'A' : undefined} sparkData={sparkCurrent} />

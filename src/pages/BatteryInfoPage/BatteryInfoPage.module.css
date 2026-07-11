@@ -4,22 +4,6 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.pageTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-foreground);
-}
-
-.bmsTime {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--color-muted-foreground);
-  margin-left: auto;
-  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
-}
 
 .metrics {
   display: grid;
@@ -58,9 +42,10 @@
 
 .mainSwipeItem {
   min-width: 100%;
+  max-width: 100%;
   scroll-snap-align: start;
   flex-shrink: 0;
-
+  overflow: hidden;
 }
 
 .infoRow {
