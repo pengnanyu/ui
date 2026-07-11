@@ -268,8 +268,8 @@ export function BatteryInfoPage() {
     { key: 'status', title: statusTitle, content: <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell /> },
   ], [t, bmsId, extraFields, tempTitle, temperatures, statusTitle, protocolDb, parsedProtocol, parsedValues]);
 
-  const voltageHiStr = voltageMax !== undefined ? (voltageMax / 1000).toFixed(2) + 'V' : undefined;
-  const voltageLoStr = voltageMin !== undefined ? (voltageMin / 1000).toFixed(2) + 'V' : undefined;
+  const voltageHiStr = voltageMax !== undefined ? (voltageMax / 1000).toFixed(3) + 'V' : undefined;
+  const voltageLoStr = voltageMin !== undefined ? (voltageMin / 1000).toFixed(3) + 'V' : undefined;
   const tempHiStr = temperMax !== undefined ? temperMax.toFixed(1) + '°C' : undefined;
   const tempLoStr = temperMin !== undefined ? temperMin.toFixed(1) + '°C' : undefined;
 
