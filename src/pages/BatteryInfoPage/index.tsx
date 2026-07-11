@@ -105,7 +105,7 @@ export function BatteryInfoPage() {
   const temperatures = useMemo(() => {
     if (temperInstrIdx < 0) return [];
     return infoFields
-      .filter(f => f.parentInstructionIndex === temperInstrIdx && !/temper\s*(max|min)/i.test(f.name) && !/mos.*temp/i.test(f.name))
+      .filter(f => f.parentInstructionIndex === temperInstrIdx && !/temper\s*(max|min)/i.test(f.name))
       .map((f, i) => ({ index: i + 1, temperature: f.value, name: isZh ? f.nameZh : f.name }));
   }, [infoFields, temperInstrIdx, isZh]);
 
@@ -278,11 +278,13 @@ export function BatteryInfoPage() {
     if (!track) return;
     const syncHeight = () => {
       const items = track.querySelectorAll<HTMLElement>(':scope > *');
-      let maxH = 0;
       items.forEach(el => { el.style.height = 'auto'; });
       requestAnimationFrame(() => {
-        items.forEach(el => { maxH = Math.max(maxH, el.offsetHeight); });
-        if (maxH > 0) items.forEach(el => { el.style.height = maxH + 'px'; });
+        requestAnimationFrame(() => {
+          let maxH = 0;
+          items.forEach(el => { maxH = Math.max(maxH, el.offsetHeight); });
+          if (maxH > 0) items.forEach(el => { el.style.height = maxH + 'px'; });
+        });
       });
     };
     syncHeight();

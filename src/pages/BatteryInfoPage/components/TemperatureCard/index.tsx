@@ -14,6 +14,7 @@ interface TemperatureCardProps {
 }
 
 export function TemperatureCard({ temperatures, mosTemperature }: TemperatureCardProps) {
+  const hasMosInList = temperatures.some(t => /mos/i.test(t.name ?? ''));
   return (
     <div className={styles.tempList}>
       {temperatures.length > 0 ? (
@@ -21,7 +22,7 @@ export function TemperatureCard({ temperatures, mosTemperature }: TemperatureCar
           {temperatures.map((temp) => (
             <TempBar key={temp.index} index={temp.index} temperature={temp.temperature} name={temp.name} />
           ))}
-          {mosTemperature && (
+          {mosTemperature && !hasMosInList && (
             <TempBar index={mosTemperature.index} temperature={mosTemperature.temperature} name="MOS" />
           )}
         </>
