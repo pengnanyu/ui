@@ -277,32 +277,6 @@ export function BatteryInfoPage() {
   const [chartDot, setChartDot] = useState(0);
 
 
-  useEffect(() => {
-    const track = chartSwipeRef.current;
-    if (!track) return;
-    let syncing = false;
-    const syncHeight = () => {
-      if (syncing) return;
-      syncing = true;
-      const items = Array.from(track.children) as HTMLElement[];
-      if (items.length === 0) { syncing = false; return; }
-      items.forEach(el => { el.style.height = 'auto'; });
-      requestAnimationFrame(() => {
-        let maxH = 0;
-        items.forEach(el => {
-          const h = el.scrollHeight;
-          if (h > maxH) maxH = h;
-        });
-        if (maxH > 0) items.forEach(el => { el.style.height = maxH + 'px'; });
-        syncing = false;
-      });
-    };
-    syncHeight();
-    const ro = new ResizeObserver(syncHeight);
-    ro.observe(track);
-    return () => ro.disconnect();
-  }, [cellVoltages]);
-
   const handleChartSwipeScroll = useCallback(() => {
     const el = chartSwipeRef.current;
     if (!el) return;

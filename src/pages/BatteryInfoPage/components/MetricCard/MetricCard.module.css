@@ -20,7 +20,7 @@
   align-items: center;
   gap: 4px;
   font-size: 14px;
-  color: var(--color-muted-foreground);
+  color: var(--color-foreground);
   position: relative;
   z-index: 2;
   flex-wrap: nowrap;
