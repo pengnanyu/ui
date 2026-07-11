@@ -65,7 +65,7 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         nameGap: 4,
         nameRotate: 0,
         nameTextStyle: { fontSize: 10, color: vColor, align: 'left' },
-        axisLabel: { fontSize: 10, color: vColor },
+        axisLabel: { fontSize: 10, color: vColor, formatter: (v: number) => v.toFixed(2) },
         axisLine: { lineStyle: { color: vColor, width: 1.5 } },
         splitLine: { lineStyle: { type: 'dashed', color: gridColor } },
       },
