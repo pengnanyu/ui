@@ -53,6 +53,25 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.bgLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bgLayer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    var(--glow-1),
+    var(--glow-2),
+    var(--glow-3),
+    var(--glow-4);
+}
+
 
 @keyframes toastIn {
   from {

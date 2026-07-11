@@ -46,16 +46,29 @@
 
   --color-card-title: var(--color-muted-foreground);
 
-  --body-bg: rgb(6,7,9);
+  --body-bg: linear-gradient(135deg, #060709 0%, #0a1628 40%, #0d0f1a 70%, #060709 100%);
   --body-overlay-opacity: 0;
   --body-grid-opacity: 0;
-  --card-bg: rgba(19,22,27,0.72);
+  --card-bg: rgba(19,22,27,0.50);
   --cell-cap: rgb(85,92,103);
   --card-border: rgba(43,46,51,0.45);
   --card-shadow: 0 8px 32px rgba(0,0,0,0.28);
-  --card-blur: 20px;
+  --card-blur: 16px;
   --table-header-bg: rgb(13,16,20);
   --table-row-bg: rgb(10,11,13);
   --table-row-even-bg: rgb(16,18,21);
   --table-border: rgba(38,41,46,0.6);
+
+  --bnav-bg: rgba(10,15,26,0.72);
+  --bnav-border: rgba(255,255,255,0.08);
+
+  --glow-1: radial-gradient(ellipse 600px 600px at 20% 20%, rgba(75,163,247,0.12) 0%, transparent 70%);
+  --glow-2: radial-gradient(ellipse 500px 500px at 80% 30%, rgba(139,92,246,0.10) 0%, transparent 70%);
+  --glow-3: radial-gradient(ellipse 400px 400px at 60% 80%, rgba(6,182,212,0.08) 0%, transparent 70%);
+  --glow-4: radial-gradient(ellipse 350px 350px at 10% 70%, rgba(59,130,246,0.06) 0%, transparent 70%);
+
+  --c-green: #50FA7B;
+  --c-purple: #BD93F9;
+  --c-cyan: #8BE9FD;
+  --c-blue: #4BA3F7;
 }

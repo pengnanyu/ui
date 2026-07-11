@@ -1,9 +1,9 @@
 {
   "nav": {
-    "batteryInfo": "Battery Info",
-    "paramConfig": "Parameters",
-    "faultRecord": "Fault Records",
-    "extendedCommand": "Commands"
+    "batteryInfo": "Info",
+    "paramConfig": "Config",
+    "faultRecord": "Records",
+    "extendedCommand": "Control"
   },
   "battery": {
     "soc": "SOC",

@@ -45,6 +45,7 @@ function AppContent() {
 
   return (
     <>
+      <div className="bgLayer" />
       {toasts.length > 0 && (
         <div style={{
           position: 'fixed',

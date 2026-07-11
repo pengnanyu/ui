@@ -46,16 +46,29 @@
 
   --color-card-title: var(--color-muted-foreground);
 
-  --body-bg: rgb(243,245,249);
+  --body-bg: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 40%, #f5f0ff 70%, #f0f4ff 100%);
   --body-overlay-opacity: 0;
   --body-grid-opacity: 0;
-  --card-bg: rgba(255,255,255,0.72);
+  --card-bg: rgba(255,255,255,0.50);
   --cell-cap: rgb(180,184,190);
   --card-border: rgba(204,206,209,0.45);
   --card-shadow: 0 8px 32px rgba(0,0,0,0.06);
-  --card-blur: 20px;
+  --card-blur: 16px;
   --table-header-bg: rgb(236,239,242);
   --table-row-bg: rgb(255,255,255);
   --table-row-even-bg: rgb(240,242,245);
   --table-border: rgba(213,215,219,0.6);
+
+  --bnav-bg: rgba(240,244,255,0.72);
+  --bnav-border: rgba(0,0,0,0.06);
+
+  --glow-1: radial-gradient(ellipse 600px 600px at 20% 20%, rgba(0,114,213,0.08) 0%, transparent 70%);
+  --glow-2: radial-gradient(ellipse 500px 500px at 80% 30%, rgba(139,92,246,0.06) 0%, transparent 70%);
+  --glow-3: radial-gradient(ellipse 400px 400px at 60% 80%, rgba(6,182,212,0.05) 0%, transparent 70%);
+  --glow-4: radial-gradient(ellipse 350px 350px at 10% 70%, rgba(59,130,246,0.04) 0%, transparent 70%);
+
+  --c-green: #1B9E3E;
+  --c-purple: #7C3AED;
+  --c-cyan: #0891B2;
+  --c-blue: #0072D5;
 }

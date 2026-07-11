@@ -1,9 +1,9 @@
 {
   "nav": {
-    "batteryInfo": "电池信息",
-    "paramConfig": "参数配置",
-    "faultRecord": "异常记录",
-    "extendedCommand": "扩展指令"
+    "batteryInfo": "信息",
+    "paramConfig": "配置",
+    "faultRecord": "记录",
+    "extendedCommand": "控制"
   },
   "battery": {
     "soc": "SOC",
