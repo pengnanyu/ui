@@ -195,6 +195,11 @@ export function BatteryInfoPage() {
     return idField?.displayValue;
   }, [infoFields]);
 
+  const bmsTime = useMemo(() => {
+    const timeField = parsedValues.find(f => f.dataType === 'Time' && f.configType.toLowerCase() === 'register');
+    return timeField?.displayValue;
+  }, [parsedValues]);
+
   const swipeRef = useRef<HTMLDivElement>(null);
   const [activeDot, setActiveDot] = useState(0);
 
@@ -292,6 +297,10 @@ export function BatteryInfoPage() {
 
   return (
     <div className={styles.page}>
+      <div className={styles.pageTitle}>
+        {t('nav.batteryInfo')}
+        {bmsTime && <span className={styles.bmsTime}>{bmsTime}</span>}
+      </div>
       <div className={styles.metrics}>
         <MetricCard variant="soc" value={soc?.soc ?? 0} unit="%" soc={soc?.soc} hi={socHi !== undefined ? Math.round(socHi) + '%' : undefined} lo={socLo !== undefined ? Math.round(socLo) + '%' : undefined} sparkData={socHistory} />
         <MetricCard variant="current" value={pack?.totalCurrent ?? 0} unit="A" hi={currentHi !== undefined ? currentHi.toFixed(2) + 'A' : undefined} lo={currentLo !== undefined ? currentLo.toFixed(2) + 'A' : undefined} sparkData={sparkCurrent} />

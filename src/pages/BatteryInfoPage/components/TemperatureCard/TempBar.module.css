@@ -9,12 +9,11 @@
 .barLabel {
   font-size: 13px;
   color: var(--color-muted-foreground);
-  min-width: 40px;
-  max-width: 60px;
+  width: 80px;
+  flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .barTrack {
@@ -43,7 +42,8 @@
 .barValue {
   font-size: 13px;
   color: var(--color-foreground);
-  min-width: 50px;
+  width: 56px;
+  flex-shrink: 0;
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 500;

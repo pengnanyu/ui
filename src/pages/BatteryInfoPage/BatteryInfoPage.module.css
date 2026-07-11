@@ -4,18 +4,35 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.pageTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.bmsTime {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-muted-foreground);
+  margin-left: auto;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .mainRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   align-items: stretch;
 }
 
@@ -23,7 +40,7 @@
   display: none;
   flex-direction: column;
   gap: 0;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .mainSwipeTrack {
@@ -111,7 +128,7 @@
   display: none;
   flex-direction: column;
   gap: 0;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   flex: 1;
 }
 
