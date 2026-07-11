@@ -25,7 +25,7 @@
 }
 
 .vOk .cellVolt {
-  color: var(--c-green);
+  color: var(--color-foreground);
 }
 
 .vOk .cellFill {
@@ -41,7 +41,7 @@
 }
 
 .vWarn .cellVolt {
-  color: var(--c-purple);
+  color: var(--color-foreground);
 }
 
 .vWarn .cellFill {
@@ -49,7 +49,7 @@
 }
 
 .vDanger .cellVolt {
-  color: var(--color-destructive);
+  color: var(--color-foreground);
 }
 
 .vDanger .cellFill {

@@ -25,8 +25,12 @@ function AppContent() {
   // update --vh so the layout shrinks and content is pushed above the keyboard.
   useEffect(() => {
     const setVh = () => {
-      const vh = window.visualViewport?.height ?? window.innerHeight;
+      const vv = window.visualViewport;
+      const vh = vv?.height ?? window.innerHeight;
       document.documentElement.style.setProperty('--vh', `${vh / 100}px`);
+      if (vv) {
+        document.documentElement.style.setProperty('--vv-offset-top', `${vv.offsetTop}px`);
+      }
     };
     setVh();
     window.visualViewport?.addEventListener('resize', setVh);
