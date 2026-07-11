@@ -19,6 +19,32 @@
   align-items: stretch;
 }
 
+.mainSwipeWrap {
+  display: none;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 12px;
+}
+
+.mainSwipeTrack {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mainSwipeTrack::-webkit-scrollbar {
+  display: none;
+}
+
+.mainSwipeItem {
+  min-width: 100%;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
 .infoRow {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -166,6 +192,12 @@
 }
 
 @media (max-width: 767px) {
+  .mainRow {
+    display: none;
+  }
+  .mainSwipeWrap {
+    display: flex;
+  }
   .infoRow {
     display: none;
   }

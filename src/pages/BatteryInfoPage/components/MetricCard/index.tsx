@@ -59,14 +59,12 @@ function getSocProgressClass(soc: number): string {
   return styles.socGreen;
 }
 
-function getVariantColor(variant: MetricVariant): string {
-  switch (variant) {
-    case 'soc': return 'var(--c-green)';
-    case 'current': return 'var(--c-purple)';
-    case 'voltage': return 'var(--c-cyan)';
-    case 'temperature': return 'var(--c-blue)';
-  }
-}
+const VAL_COLORS: Record<MetricVariant, string> = {
+  soc: '#3DDC84',
+  current: '#9B6DFF',
+  voltage: '#00BFA5',
+  temperature: '#2962FF',
+};
 
 const SPARK_COLORS: Record<MetricVariant, { line: string; fill: string }> = {
   soc: { line: '#50FA7B', fill: 'rgba(80,250,123,0.12)' },
@@ -91,27 +89,26 @@ function SparkLine({ data, variant }: { data: number[]; variant: MetricVariant }
       chartRef.current = chart;
     }
 
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const c = isDark ? colors : {
-      line: getComputedStyle(document.documentElement).getPropertyValue(`--c-${variant === 'temperature' ? 'blue' : variant === 'voltage' ? 'cyan' : variant === 'current' ? 'purple' : 'green'}`).trim() || colors.line,
-      fill: colors.fill,
-    };
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min;
+    const padding = range > 0 ? range * 0.2 : Math.abs(max) * 0.1 || 1;
 
     chart.setOption({
       animation: false,
-      grid: { left: 0, right: 0, top: 0, bottom: 0 },
+      grid: { left: 0, right: 0, top: 0, bottom: 0, containLabel: false },
       xAxis: { type: 'category', show: false, boundaryGap: false },
-      yAxis: { type: 'value', show: false, min: (value: { min: number; max: number }) => value.min - (value.max - value.min) * 0.1 },
+      yAxis: { type: 'value', show: false, min: min - padding, max: max + padding },
       series: [{
         type: 'line',
         data,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 1.5, color: c.line },
-        areaStyle: { color: c.fill },
+        lineStyle: { width: 1.5, color: colors.line },
+        areaStyle: { color: colors.fill },
       }],
     }, true);
-  }, [data, colors, variant]);
+  }, [data, colors]);
 
   useEffect(() => {
     updateChart();
@@ -140,13 +137,14 @@ function SparkLine({ data, variant }: { data: number[]; variant: MetricVariant }
 }
 
 export function MetricCard({ variant, value, unit, displayValue, hi, lo, sparkData, soc }: MetricCardProps) {
-  const color = getVariantColor(variant);
+  const valColor = VAL_COLORS[variant];
+  const iconColor = `var(--c-${variant === 'temperature' ? 'blue' : variant === 'voltage' ? 'cyan' : variant === 'current' ? 'purple' : 'green'})`;
 
   const iconMap: Record<MetricVariant, React.ReactNode> = {
-    soc: <ShieldIcon color={color} />,
-    current: <BoltIcon color={color} />,
-    voltage: <GaugeIcon color={color} />,
-    temperature: <ThermIcon color={color} />,
+    soc: <ShieldIcon color={iconColor} />,
+    current: <BoltIcon color={iconColor} />,
+    voltage: <GaugeIcon color={iconColor} />,
+    temperature: <ThermIcon color={iconColor} />,
   };
 
   const labelMap: Record<MetricVariant, string> = {
@@ -178,7 +176,7 @@ export function MetricCard({ variant, value, unit, displayValue, hi, lo, sparkDa
         )}
       </div>
       <div className={styles.vr}>
-        <span className={styles.val} style={{ color }}>{valStr}</span>
+        <span className={styles.val} style={{ color: valColor }}>{valStr}</span>
         <span className={styles.unit}>{unit}</span>
       </div>
       {variant === 'soc' && soc !== undefined && (

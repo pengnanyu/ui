@@ -22,9 +22,18 @@ function findField(fields: FieldValue[], nameEn: string): FieldValue | undefined
 const MAX_SPARK = 60;
 const MAX_CHART = 300;
 
-function useSparkHistory(getValue: () => number | null | undefined, deps: readonly unknown[]): number[] {
+function useSparkHistory(getValue: () => number | null | undefined, deps: readonly unknown[], resetKey: string): number[] {
   const [history, setHistory] = useState<number[]>([]);
   const prevRef = useRef<{ val: number | null; ts: number }>({ val: null, ts: 0 });
+  const lastResetRef = useRef(resetKey);
+
+  useEffect(() => {
+    if (resetKey !== lastResetRef.current) {
+      lastResetRef.current = resetKey;
+      setHistory([]);
+      prevRef.current = { val: null, ts: 0 };
+    }
+  }, [resetKey]);
 
   useEffect(() => {
     const v = getValue();
@@ -40,9 +49,11 @@ function useSparkHistory(getValue: () => number | null | undefined, deps: readon
 }
 
 export function BatteryInfoPage() {
-  const { parsedValues, parsedProtocol, protocolDb } = useBmsStore();
+  const { parsedValues, parsedProtocol, protocolDb, deviceVersion } = useBmsStore();
   const { i18n, t } = useTranslation();
   const isZh = i18n.language === 'zh';
+
+  const resetKey = deviceVersion ?? '__none__';
 
   const { safetyItems } = useStatusItems(protocolDb, parsedProtocol, parsedValues);
 
@@ -114,6 +125,15 @@ export function BatteryInfoPage() {
 
   const [chartHistory, setChartHistory] = useState<VoltageCurrentDataPoint[]>([]);
   const lastChartTsRef = useRef(0);
+  const lastChartResetRef = useRef(resetKey);
+
+  useEffect(() => {
+    if (resetKey !== lastChartResetRef.current) {
+      lastChartResetRef.current = resetKey;
+      setChartHistory([]);
+      lastChartTsRef.current = 0;
+    }
+  }, [resetKey]);
 
   useEffect(() => {
     if (!graphVoltage && !graphCurrent) return;
@@ -127,8 +147,8 @@ export function BatteryInfoPage() {
   const sparkVoltage = useMemo(() => chartHistory.slice(-MAX_SPARK).map(p => p.voltage), [chartHistory]);
   const sparkCurrent = useMemo(() => chartHistory.slice(-MAX_SPARK).map(p => p.current), [chartHistory]);
 
-  const socHistory = useSparkHistory(() => soc?.soc, [soc]);
-  const tempHistory = useSparkHistory(() => temperatures.length > 0 ? temperatures[0].temperature : null, [temperatures]);
+  const socHistory = useSparkHistory(() => soc?.soc, [soc], resetKey);
+  const tempHistory = useSparkHistory(() => temperatures.length > 0 ? temperatures[0].temperature : null, [temperatures], resetKey);
 
   const socHi = socHistory.length > 0 ? Math.max(...socHistory) : undefined;
   const socLo = socHistory.length > 0 ? Math.min(...socHistory) : undefined;
@@ -199,6 +219,25 @@ export function BatteryInfoPage() {
   const tempHiStr = temperMax !== undefined ? temperMax.toFixed(1) + '°C' : undefined;
   const tempLoStr = temperMin !== undefined ? temperMin.toFixed(1) + '°C' : undefined;
 
+  const chartSwipeRef = useRef<HTMLDivElement>(null);
+  const [chartDot, setChartDot] = useState(0);
+
+  const handleChartSwipeScroll = useCallback(() => {
+    const el = chartSwipeRef.current;
+    if (!el) return;
+    const sl = el.scrollLeft;
+    const w = el.offsetWidth;
+    const idx = Math.round(sl / w);
+    setChartDot(Math.max(0, Math.min(idx, 1)));
+  }, []);
+
+  const handleChartDotClick = useCallback((idx: number) => {
+    const el = chartSwipeRef.current;
+    if (!el) return;
+    el.scrollTo({ left: idx * el.offsetWidth, behavior: 'smooth' });
+    setChartDot(idx);
+  }, []);
+
   return (
     <div className={styles.page}>
       <div className={styles.metrics}>
@@ -217,6 +256,27 @@ export function BatteryInfoPage() {
           voltageMin={voltageMin}
           balanceFlags={balanceFlags}
         />
+      </div>
+
+      <div className={styles.mainSwipeWrap}>
+        <div className={styles.mainSwipeTrack} ref={chartSwipeRef} onScroll={handleChartSwipeScroll}>
+          <div className={styles.mainSwipeItem}>
+            <CellVoltageCard
+              cellVoltages={cellVoltages}
+              soc={soc?.soc}
+              voltageMax={voltageMax}
+              voltageMin={voltageMin}
+              balanceFlags={balanceFlags}
+            />
+          </div>
+          <div className={styles.mainSwipeItem}>
+            <VoltageCurrentChart history={chartHistory} />
+          </div>
+        </div>
+        <div className={styles.swipeDots}>
+          <button className={`${styles.dot} ${0 === chartDot ? styles.active : ''}`} onClick={() => handleChartDotClick(0)} />
+          <button className={`${styles.dot} ${1 === chartDot ? styles.active : ''}`} onClick={() => handleChartDotClick(1)} />
+        </div>
       </div>
 
       <div className={styles.infoRow}>
