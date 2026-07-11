@@ -542,8 +542,8 @@ function parseBcdTime(registers: number[]): string {
   const yy = (2000 + bcdToDec(year)).toString().padStart(4, '0');
   const mm = bcdToDec(mon).toString().padStart(2, '0');
   const dd = bcdToDec(day).toString().padStart(2, '0');
-  const hh24 = pm ? bcdToDec(hour) + 12 : bcdToDec(hour);
-  const hhStr = hh24.toString().padStart(2, '0');
+  const hhDec = bcdToDec(hour);
+  const hhStr = hhDec.toString().padStart(2, '0');
   const mi = bcdToDec(min).toString().padStart(2, '0');
   const ss = bcdToDec(sec).toString().padStart(2, '0');
 
