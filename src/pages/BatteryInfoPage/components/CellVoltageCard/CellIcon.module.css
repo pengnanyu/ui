@@ -32,6 +32,14 @@
   fill: var(--cell-ok-fill, rgba(80, 250, 123, 0.35));
 }
 
+.vZero .cellVolt {
+  color: var(--color-muted-foreground);
+}
+
+.vZero .cellFill {
+  fill: var(--color-muted);
+}
+
 .vWarn .cellVolt {
   color: var(--c-purple);
 }
