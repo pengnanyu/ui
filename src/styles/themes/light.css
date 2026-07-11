@@ -68,9 +68,9 @@
   --glow-4: radial-gradient(ellipse 350px 350px at 10% 70%, rgba(59,130,246,0.04) 0%, transparent 70%);
 
   --c-green: #1B9E3E;
-  --c-purple: #7C3AED;
-  --c-cyan: #0891B2;
-  --c-blue: #0072D5;
+  --c-purple: #8B5CF6;
+  --c-cyan: #009E8A;
+  --c-blue: #1D5FCC;
 
   --cell-stroke: rgba(0,0,0,0.25);
   --cell-ok-fill: rgba(27,158,62,0.3);

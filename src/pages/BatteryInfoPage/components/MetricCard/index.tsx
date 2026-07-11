@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import * as echarts from 'echarts';
 import styles from './MetricCard.module.css';
 
@@ -68,48 +68,54 @@ function getVariantColor(variant: MetricVariant): string {
   }
 }
 
-function getSparkColor(variant: MetricVariant): string {
-  switch (variant) {
-    case 'soc': return 'var(--c-green)';
-    case 'current': return 'var(--c-purple)';
-    case 'voltage': return 'var(--c-cyan)';
-    case 'temperature': return 'var(--c-blue)';
-  }
-}
+const SPARK_COLORS: Record<MetricVariant, { line: string; fill: string }> = {
+  soc: { line: '#50FA7B', fill: 'rgba(80,250,123,0.12)' },
+  current: { line: '#BB86FC', fill: 'rgba(187,134,252,0.12)' },
+  voltage: { line: '#00D4B8', fill: 'rgba(0,212,184,0.12)' },
+  temperature: { line: '#2970FF', fill: 'rgba(41,112,255,0.12)' },
+};
 
-function SparkLine({ data, color }: { data: number[]; color: string }) {
+function SparkLine({ data, variant }: { data: number[]; variant: MetricVariant }) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
+  const colors = SPARK_COLORS[variant];
 
-  useEffect(() => {
+  const updateChart = useCallback(() => {
     if (!ref.current || data.length < 2) return;
+    const el = ref.current;
+    if (el.clientWidth === 0 || el.clientHeight === 0) return;
+
     let chart = chartRef.current;
     if (!chart) {
-      chart = echarts.init(ref.current, undefined, { renderer: 'canvas' });
+      chart = echarts.init(el, undefined, { renderer: 'canvas' });
       chartRef.current = chart;
     }
-    const fillMatch = color.match(/--c-(\w+)/);
-    let fillColor = 'rgba(75,163,247,0.12)';
-    if (fillMatch) {
-      const computed = getComputedStyle(document.documentElement);
-      const base = computed.getPropertyValue(`--c-${fillMatch[1]}`).trim();
-      if (base) fillColor = base.startsWith('#') ? base + '1F' : 'rgba(75,163,247,0.12)';
-    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const c = isDark ? colors : {
+      line: getComputedStyle(document.documentElement).getPropertyValue(`--c-${variant === 'temperature' ? 'blue' : variant === 'voltage' ? 'cyan' : variant === 'current' ? 'purple' : 'green'}`).trim() || colors.line,
+      fill: colors.fill,
+    };
+
     chart.setOption({
       animation: false,
       grid: { left: 0, right: 0, top: 0, bottom: 0 },
       xAxis: { type: 'category', show: false, boundaryGap: false },
-      yAxis: { type: 'value', show: false },
+      yAxis: { type: 'value', show: false, min: (value: { min: number; max: number }) => value.min - (value.max - value.min) * 0.1 },
       series: [{
         type: 'line',
         data,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 1.5, color },
-        areaStyle: { color: fillColor },
+        lineStyle: { width: 1.5, color: c.line },
+        areaStyle: { color: c.fill },
       }],
     }, true);
-  }, [data, color]);
+  }, [data, colors, variant]);
+
+  useEffect(() => {
+    updateChart();
+  }, [updateChart]);
 
   useEffect(() => {
     const el = ref.current;
@@ -117,6 +123,7 @@ function SparkLine({ data, color }: { data: number[]; color: string }) {
     const ro = new ResizeObserver(() => {
       if (chartRef.current && el.clientWidth > 0 && el.clientHeight > 0) {
         chartRef.current.resize();
+        updateChart();
       }
     });
     ro.observe(el);
@@ -125,7 +132,7 @@ function SparkLine({ data, color }: { data: number[]; color: string }) {
       chartRef.current?.dispose();
       chartRef.current = null;
     };
-  }, []);
+  }, [updateChart]);
 
   if (data.length < 2) return null;
 
@@ -134,7 +141,6 @@ function SparkLine({ data, color }: { data: number[]; color: string }) {
 
 export function MetricCard({ variant, value, unit, displayValue, hi, lo, sparkData, soc }: MetricCardProps) {
   const color = getVariantColor(variant);
-  const sparkColor = getSparkColor(variant);
 
   const iconMap: Record<MetricVariant, React.ReactNode> = {
     soc: <ShieldIcon color={color} />,
@@ -183,7 +189,7 @@ export function MetricCard({ variant, value, unit, displayValue, hi, lo, sparkDa
       )}
       {variant !== 'soc' && sparkData && sparkData.length >= 2 && (
         <div className={styles.spark}>
-          <SparkLine data={sparkData} color={sparkColor} />
+          <SparkLine data={sparkData} variant={variant} />
         </div>
       )}
     </div>
