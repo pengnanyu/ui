@@ -322,9 +322,9 @@ export function BatteryInfoPage() {
 
       <div className={styles.metrics}>
         <MetricCard variant="soc" value={soc?.soc ?? 0} unit="%" soc={soc?.soc} hi={socHi !== undefined ? Math.round(socHi) + '%' : undefined} lo={socLo !== undefined ? Math.round(socLo) + '%' : undefined} sparkData={socHistory} />
-        <MetricCard variant="current" value={pack?.totalCurrent ?? 0} unit="A" hi={currentHi !== undefined ? currentHi.toFixed(2) + 'A' : undefined} lo={currentLo !== undefined ? currentLo.toFixed(2) + 'A' : undefined} sparkData={sparkCurrent} />
-        <MetricCard variant="voltage" value={pack?.totalVoltage ?? 0} unit="V" hi={voltageHiStr} lo={voltageLoStr} sparkData={sparkVoltage} />
         <MetricCard variant="temperature" value={temperatures.length > 0 ? temperatures[0].temperature : 0} unit="°C" hi={tempHiStr} lo={tempLoStr} sparkData={tempHistory} />
+        <MetricCard variant="voltage" value={pack?.totalVoltage ?? 0} unit="V" hi={voltageHiStr} lo={voltageLoStr} sparkData={sparkVoltage} />
+        <MetricCard variant="current" value={pack?.totalCurrent ?? 0} unit="A" hi={currentHi !== undefined ? currentHi.toFixed(2) + 'A' : undefined} lo={currentLo !== undefined ? currentLo.toFixed(2) + 'A' : undefined} sparkData={sparkCurrent} />
       </div>
 
       <div className={styles.mainRow}>
