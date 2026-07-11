@@ -68,6 +68,15 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         axisLabel: { fontSize: 10, color: vColor, formatter: (v: number) => v.toFixed(2) },
         axisLine: { lineStyle: { color: vColor, width: 1.5 } },
         splitLine: { lineStyle: { type: 'dashed', color: gridColor } },
+        scale: true,
+        min: (value: { min: number; max: number }) => {
+          const range = value.max - value.min;
+          return value.min - Math.max(range * 0.1, 0.5);
+        },
+        max: (value: { min: number; max: number }) => {
+          const range = value.max - value.min;
+          return value.max + Math.max(range * 0.1, 0.5);
+        },
       },
       {
         type: 'value',
@@ -79,6 +88,15 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         axisLabel: { fontSize: 10, color: iColor },
         axisLine: { lineStyle: { color: iColor, width: 1.5 } },
         splitLine: { show: false },
+        scale: true,
+        min: (value: { min: number; max: number }) => {
+          const range = value.max - value.min;
+          return value.min - Math.max(range * 0.1, 0.5);
+        },
+        max: (value: { min: number; max: number }) => {
+          const range = value.max - value.min;
+          return value.max + Math.max(range * 0.1, 0.5);
+        },
       },
     ],
     dataZoom: [
@@ -161,9 +179,15 @@ export function VoltageCurrentChart({ history }: VoltageCurrentChartProps) {
     if (!chart) {
       chart = echarts.init(el, undefined, { renderer: 'canvas' });
       instanceRef.current = chart;
+      chart.setOption(buildInitialOption(history), true);
+    } else {
+      chart.setOption({
+        series: [
+          { data: history.map(p => [p.timestamp, p.voltage]) },
+          { data: history.map(p => [p.timestamp, p.current]) },
+        ],
+      });
     }
-
-    chart.setOption(buildInitialOption(history), true);
 
   }, [history]);
 
