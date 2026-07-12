@@ -63,14 +63,6 @@
   line-height: 1;
 }
 
-.balancing {
-  position: absolute;
-  top: -2px;
-  right: -4px;
-  font-size: 10px;
-  color: var(--color-warning);
-  z-index: 2;
-}
 
 @media (max-width: 420px) {
   .cellIcon {

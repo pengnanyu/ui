@@ -37,9 +37,9 @@ export function CellIcon({ index, voltage, isBalancing }: CellIconProps) {
         <rect x="4" y="6" width="32" height="50" rx="4" fill="none" stroke="var(--cell-stroke)" strokeWidth="1.5" />
         <rect x="14" y="2" width="12" height="5" rx="2" fill="var(--cell-stroke)" />
         <rect className={styles.cellFill} x="6" y={fillY} width="28" height={fillH} rx="2" />
-        <text className={styles.cellNum} x="20" y="36" textAnchor="middle" dominantBaseline="middle">{index}</text>
+        {isBalancing && <text x="20" y="26" textAnchor="middle" dominantBaseline="middle" fontSize="10" fill="var(--color-warning)">⚡</text>}
+        <text className={styles.cellNum} x="20" y="38" textAnchor="middle" dominantBaseline="middle">{index}</text>
       </svg>
-      {isBalancing && <span className={styles.balancing}>⚡</span>}
       <span className={styles.cellVolt}>{voltageStr}</span>
     </div>
   );
