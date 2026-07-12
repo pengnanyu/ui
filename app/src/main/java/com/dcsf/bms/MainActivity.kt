@@ -117,7 +117,7 @@ data class AppColors(
     companion object {
         // Colors synced with ui/src/styles/themes/light.css
         val Light = AppColors(
-            bg = Color(0xFFF3F5F9),
+            bg = Color(0xFFF0F4FF),
             surface = Color(0xFFFFFFFF),
             surfaceConn = Color(0xFFECFDF5),
             surfaceConnBorder = Color(0xFFA7F3D0),
@@ -954,7 +954,7 @@ fun BmsApp(
             settings.useWideViewPort = true
             settings.loadWithOverviewMode = true
             // Set background color to match UI theme, preventing white flash
-            val bgHex = if (darkTheme) "#060709" else "#F3F5F9"
+            val bgHex = if (darkTheme) "#060709" else "#F0F4FF"
             setBackgroundColor(android.graphics.Color.parseColor(bgHex))
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
@@ -990,7 +990,7 @@ fun BmsApp(
                 override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                     super.onPageStarted(view, url, favicon)
                     // Set background immediately to prevent white flash
-                    val bg = if (darkTheme) "#060709" else "#F3F5F9"
+                    val bg = if (darkTheme) "#060709" else "#F0F4FF"
                     view?.setBackgroundColor(android.graphics.Color.parseColor(bg))
                 }
             }

@@ -36,6 +36,8 @@ function applyTheme(theme: Theme): void {
   try {
     localStorage.setItem('bms-theme', theme);
   } catch (_e) { }
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#060709' : '#f0f4ff');
 }
 
 export function useTheme(): UseThemeReturn {
