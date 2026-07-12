@@ -14,7 +14,7 @@ interface ParamRowProps {
 export function ParamRow({ param, onValueChange, onBlur }: ParamRowProps) {
   const hasPendingDiff = param.pendingImportValue !== undefined;
   return (
-    <div className={`${styles.row} ${hasPendingDiff ? styles.rowPending : ''}`}>
+    <div className={`${styles.row} ${hasPendingDiff ? styles.rowPending : ''}`} data-param-row>
       <span className={styles.name}>{param.label}</span>
       <span className={styles.currentValue}>{param.displayValue ?? String(param.value)}</span>
       <ParamInput param={param} onValueChange={onValueChange} onBlur={onBlur} hasPendingDiff={hasPendingDiff} />
