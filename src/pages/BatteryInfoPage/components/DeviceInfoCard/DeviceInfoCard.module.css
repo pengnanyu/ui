@@ -10,6 +10,7 @@
   gap: 2px;
   font-size: 13px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .fieldLabel {
@@ -26,12 +27,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+  container-type: inline-size;
 }
 
 .fieldUnit {
   font-size: 13px;
   color: var(--color-muted-foreground);
   margin-left: 2px;
+}
+
+@container (max-width: 100px) {
+  .fieldValue {
+    font-size: 11px;
+  }
+}
+
+@container (max-width: 70px) {
+  .fieldValue {
+    font-size: 10px;
+    letter-spacing: -0.3px;
+  }
 }
 
 .empty {

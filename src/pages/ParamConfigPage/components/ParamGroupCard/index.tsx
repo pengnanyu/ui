@@ -18,35 +18,78 @@ interface ParamGroupCardProps {
 export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBack }: ParamGroupCardProps) {
   const { t } = useTranslation();
   const tableWrapRef = useRef<HTMLDivElement>(null);
+  const activeInputRef = useRef<HTMLElement | null>(null);
+  const prevViewportHeightRef = useRef(window.visualViewport?.height ?? window.innerHeight);
 
-  const handleFocusIn = useCallback((e: FocusEvent) => {
-    const target = e.target as HTMLElement;
-    if (!target || target.tagName !== 'INPUT' && target.tagName !== 'SELECT') return;
+  const scrollActiveInputIntoView = useCallback(() => {
+    const input = activeInputRef.current;
     const wrap = tableWrapRef.current;
-    if (!wrap) return;
-    const row = target.closest('[data-param-row]');
-    if (!row) return;
-    const scrollRowIntoView = () => {
-      const wrapRect = wrap.getBoundingClientRect();
-      const rowRect = row.getBoundingClientRect();
-      const margin = 40;
-      if (rowRect.top < wrapRect.top + margin) {
-        wrap.scrollTop -= (wrapRect.top + margin - rowRect.top);
-      } else if (rowRect.bottom > wrapRect.bottom - margin) {
-        wrap.scrollTop += (rowRect.bottom - wrapRect.bottom + margin);
-      }
-    };
-    requestAnimationFrame(scrollRowIntoView);
-    setTimeout(scrollRowIntoView, 300);
-    setTimeout(scrollRowIntoView, 500);
+    if (!input || !wrap) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const inputRect = input.getBoundingClientRect();
+    const vvBottom = vv.height;
+    const margin = 60;
+    if (inputRect.bottom > vvBottom - margin) {
+      const overflow = inputRect.bottom - (vvBottom - margin);
+      wrap.scrollTop += overflow;
+    }
   }, []);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      const prevH = prevViewportHeightRef.current;
+      const currH = vv.height;
+      prevViewportHeightRef.current = currH;
+      const delta = prevH - currH;
+      if (delta > 20 && activeInputRef.current) {
+        const wrap = tableWrapRef.current;
+        if (wrap) {
+          wrap.scrollTop += delta;
+        }
+      }
+      scrollActiveInputIntoView();
+    };
+
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, [scrollActiveInputIntoView]);
 
   useEffect(() => {
     const wrap = tableWrapRef.current;
     if (!wrap) return;
-    wrap.addEventListener('focusin', handleFocusIn);
-    return () => wrap.removeEventListener('focusin', handleFocusIn);
-  }, [handleFocusIn]);
+
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
+        activeInputRef.current = target;
+        prevViewportHeightRef.current = window.visualViewport?.height ?? window.innerHeight;
+        requestAnimationFrame(scrollActiveInputIntoView);
+        setTimeout(scrollActiveInputIntoView, 100);
+      }
+    };
+
+    const onFocusOut = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target === activeInputRef.current) {
+        activeInputRef.current = null;
+      }
+    };
+
+    wrap.addEventListener('focusin', onFocusIn);
+    wrap.addEventListener('focusout', onFocusOut);
+    return () => {
+      wrap.removeEventListener('focusin', onFocusIn);
+      wrap.removeEventListener('focusout', onFocusOut);
+    };
+  }, [scrollActiveInputIntoView]);
 
   return (
     <div className={styles.group}>
