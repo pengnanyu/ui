@@ -50,8 +50,12 @@ body {
   position: relative;
   background: var(--body-bg);
   color: var(--color-foreground);
-  transition: background-color 0.3s, color 0.3s;
   text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  overflow: hidden;
 }
 
 .bgLayer {

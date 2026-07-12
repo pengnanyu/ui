@@ -10,12 +10,16 @@
   <meta name="apple-mobile-web-app-title" content="锂护卫" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#3b82f6" />
+  <meta name="theme-color" content="#060709" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f0f4ff" media="(prefers-color-scheme: light)" />
   <title>锂护卫 LiSafety</title>
   <style>
-    html[data-theme="dark"] { background: rgb(6,7,9); }
-    html[data-theme="light"] { background: rgb(243,245,249); }
-    html { background: rgb(243,245,249); }
+    html[data-theme="dark"] { background: #060709; }
+    html[data-theme="light"] { background: #f0f4ff; }
+    html { background: #f0f4ff; }
+    body { margin: 0; }
+    html[data-theme="dark"] body { background: #060709; }
+    html[data-theme="light"] body { background: #f0f4ff; }
   </style>
   <script>
     (function() {

@@ -5,7 +5,7 @@ import type { DeviceInfoField } from '@/types';
 import styles from './DeviceInfoCard.module.css';
 
 interface DeviceInfoCardProps {
-  bmsId?: string;
+
   extraFields: DeviceInfoField[];
   noShell?: boolean;
 }

@@ -170,9 +170,7 @@ export function BatteryInfoPage() {
         if (skipInstrIdx.has(f.parentInstructionIndex)) return false;
         if (f.graph) return false;
         if (f.bitTag) return false;
-        if (f.name === 'SOC' || f.name === 'SOH' || f.name === 'Total_Voltage' || f.name === 'Total_Current' || f.name === 'BatteryVoltage' || f.name === 'Current' || f.name === 'Power' || f.name === 'AverageTimeToEmpty' || f.name === 'AverageTimeToFull') return false;
-        if (/bms.*time/i.test(f.name)) return false;
-        if (f.dataType === 'ID' || /bms.*id/i.test(f.name)) return false;
+        if (f.name === 'SOC' || f.name === 'SOH' || f.name === 'Total_Voltage' || f.name === 'Total_Current' || f.name === 'BatteryVoltage' || f.name === 'Current') return false;
         return true;
       })
       .map(f => ({ label: isZh ? f.nameZh : f.name, value: f.displayValue, unit: f.unit }));
@@ -190,10 +188,6 @@ export function BatteryInfoPage() {
     return flags;
   }, [parsedValues]);
 
-  const bmsId = useMemo(() => {
-    const idField = infoFields.find(f => f.dataType === 'ID' || /bms.*id/i.test(f.name));
-    return idField?.displayValue;
-  }, [infoFields]);
 
   const bmsTime = useMemo(() => {
     const timeField = parsedValues.find(f => f.dataType === 'Time' && f.configType.toLowerCase() === 'register');
@@ -263,10 +257,10 @@ export function BatteryInfoPage() {
   }, [t, bmsTime]);
 
   const infoCards = useMemo(() => [
-    { key: 'device', title: deviceInfoTitle, content: <DeviceInfoCard bmsId={bmsId} extraFields={extraFields} noShell /> },
+    { key: 'device', title: deviceInfoTitle, content: <DeviceInfoCard extraFields={extraFields} noShell /> },
     { key: 'temperature', title: tempTitle, content: <TemperatureCard temperatures={temperatures} mosTemperature={mosTemperature} noShell /> },
     { key: 'status', title: statusTitle, content: <StatusCard protocolDb={protocolDb} parsedProtocol={parsedProtocol} parsedValues={parsedValues} noShell /> },
-  ], [t, bmsId, extraFields, tempTitle, temperatures, statusTitle, protocolDb, parsedProtocol, parsedValues]);
+  ], [t, extraFields, tempTitle, temperatures, statusTitle, protocolDb, parsedProtocol, parsedValues]);
 
   const voltageHiStr = voltageMax !== undefined ? (voltageMax / 1000).toFixed(3) + 'V' : undefined;
   const voltageLoStr = voltageMin !== undefined ? (voltageMin / 1000).toFixed(3) + 'V' : undefined;
