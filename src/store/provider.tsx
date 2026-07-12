@@ -3,6 +3,7 @@
  * BMS Provider - 管理BLE通信、协议解析、参数读写
  */
 import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ConnectionStatus, ProtocolDatabase, BridgeMessage } from '@/types';
 import type { BmsStore, DataMemeryGroup, Toast, DebugLog } from './context';
 import { BmsContext } from './context';
@@ -77,6 +78,7 @@ export function parseRegisterKey(key: string): RegisterKey | null {
 }
 
 export function BmsProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const connectionStatusRef = useRef<ConnectionStatus>('disconnected');
   const [protocolDb, setProtocolDb] = useState<ProtocolDatabase | null>(null);
@@ -208,7 +210,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       return;
     }
     emitToast(message, type);
-  }, [emitToast]);
+  }, [emitToast, t]);
 
   const startBatchWrite = useCallback((count: number) => {
     if (!count) return;
