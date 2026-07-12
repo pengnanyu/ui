@@ -80,6 +80,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .infoHdr {
@@ -92,6 +94,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .infoItem {
@@ -135,8 +138,10 @@
 
 .infoSwipeTrack .infoCard {
   min-width: 100%;
+  max-width: 100%;
   scroll-snap-align: start;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .infoSwipeTrack .infoCard .infoBody {
