@@ -35,9 +35,8 @@ export function CellVoltageCard({
     <div className={styles.ctrlSec}>
       <div className={styles.ctrlTtl}>
         <svg style={{ width: 16, height: 16, fill: 'none', stroke: 'var(--c-green)', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', verticalAlign: 'middle', marginRight: 4 }} viewBox="0 0 24 24">
-          <rect x="1" y="6" width="18" height="12" rx="2" />
-          <rect x="4" y="9" width="12" height="6" fill="currentColor" stroke="none" opacity="0.5" />
-          <line x1="23" y1="10" x2="23" y2="14" />
+          <rect x="2" y="6" width="16" height="12" rx="2" />
+          <path d="M22 10v4" />
         </svg>
         {t('battery.cellVoltage')}
         {(maxStr || minStr) && (

@@ -15,8 +15,8 @@ interface StatusCardProps {
   noShell?: boolean;
 }
 
-function buildGroups(items: { name: string; nameZh: string; label: string; active: boolean }[]): Map<string, { name: string; nameZh: string; label: string; active: boolean }[]> {
-  const grouped = new Map<string, { name: string; nameZh: string; label: string; active: boolean }[]>();
+function buildGroups(items: { name: string; nameZh: string; label: string; labelZh: string; active: boolean }[]): Map<string, { name: string; nameZh: string; label: string; labelZh: string; active: boolean }[]> {
+  const grouped = new Map<string, { name: string; nameZh: string; label: string; labelZh: string; active: boolean }[]>();
   for (const item of items) {
     const list = grouped.get(item.name) ?? [];
     list.push(item);
@@ -26,7 +26,8 @@ function buildGroups(items: { name: string; nameZh: string; label: string; activ
 }
 
 export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }: StatusCardProps) {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const isZh = i18n.language === 'zh';
   const { statusItems } = useStatusItems(protocolDb, parsedProtocol, parsedValues);
 
   const statusGroups = useMemo(() => buildGroups(statusItems), [statusItems]);
@@ -38,11 +39,11 @@ export function StatusCard({ protocolDb, parsedProtocol, parsedValues, noShell }
   const renderGroups = () =>
     Array.from(statusGroups.entries()).map(([name, items]) => (
       <div key={name} className={styles.group}>
-        <div className={styles.groupName}>{items[0]?.nameZh || name}</div>
+        <div className={styles.groupName}>{isZh ? (items[0]?.nameZh || name) : name}</div>
         <div className={styles.flagList}>
           {items.map((item, i) => (
             <span key={i} className={`${styles.flag} ${item.active ? styles.flagStatusActive : styles.flagStatusInactive}`}>
-              {item.label}
+              {isZh ? (item.labelZh || item.label) : item.label}
             </span>
           ))}
         </div>

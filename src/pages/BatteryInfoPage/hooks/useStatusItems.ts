@@ -2,6 +2,7 @@
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { FieldValue, ParsedProtocol } from '@/utils/modbus';
 import type { ProtocolDatabase } from '@/types';
 
@@ -9,6 +10,7 @@ export interface StatusItem {
   name: string;
   nameZh: string;
   label: string;
+  labelZh: string;
   active: boolean;
   isSafety: boolean;
   isAlarm: boolean;
@@ -25,8 +27,11 @@ function splitBitDesc(bitDesc: string, byteLen: number): string[] {
 }
 
 export function useStatusItems(protocolDb: ProtocolDatabase | null, parsedProtocol: ParsedProtocol | null, parsedValues: FieldValue[]) {
+  const { i18n } = useTranslation();
+  const isZh = i18n.language === 'zh';
+
   return useMemo(() => {
-    interface BitEntry { nameEn: string; nameZh: string; bitDesc: string; byteLen: number; rawValue: number; }
+    interface BitEntry { nameEn: string; nameZh: string; bitDesc: string; bitDescZh: string; byteLen: number; rawValue: number; }
     const entries: BitEntry[] = [];
 
     if (protocolDb) {
@@ -44,6 +49,7 @@ export function useStatusItems(protocolDb: ProtocolDatabase | null, parsedProtoc
 
         for (const row of bitTagRows) {
           const bitDesc = String(row['BitDesc'] ?? '');
+          const bitDescZh = String(row['BitDescCN'] ?? row['BitDescZh'] ?? row['BitDesc_CN'] ?? row['BitDesc_Zh'] ?? '');
           const byteLen = Number(row['Length']) || 2;
           const nameEn = String(row['Name_English'] ?? '');
           const nameZh = String(row['Name_Chinase'] ?? '');
@@ -57,7 +63,7 @@ export function useStatusItems(protocolDb: ProtocolDatabase | null, parsedProtoc
             }
           }
 
-          entries.push({ nameEn, nameZh, bitDesc, byteLen, rawValue });
+          entries.push({ nameEn, nameZh, bitDesc, bitDescZh, byteLen, rawValue });
         }
       }
     }
@@ -69,12 +75,14 @@ export function useStatusItems(protocolDb: ProtocolDatabase | null, parsedProtoc
       if (/CELL.*BALAN/i.test(e.nameEn)) continue;
       const isAlarm = e.nameEn.toLowerCase().includes('alarm');
       const isSafety = isAlarm || e.nameEn.toLowerCase().includes('safety');
-      const labels = splitBitDesc(e.bitDesc, e.byteLen);
-      for (let i = 0; i < labels.length; i++) {
+      const labelsEn = splitBitDesc(e.bitDesc, e.byteLen);
+      const labelsZh = e.bitDescZh ? splitBitDesc(e.bitDescZh, e.byteLen) : labelsEn;
+      for (let i = 0; i < labelsEn.length; i++) {
         allItems.push({
           name: e.nameEn,
           nameZh: e.nameZh,
-          label: labels[i]!,
+          label: labelsEn[i]!,
+          labelZh: labelsZh[i] ?? labelsEn[i]!,
           active: ((e.rawValue >> i) & 1) === 1,
           isSafety,
           isAlarm,
@@ -91,5 +99,5 @@ export function useStatusItems(protocolDb: ProtocolDatabase | null, parsedProtoc
       safetyActiveCount: safety.filter(f => f.active).length,
       alarmActiveCount: safety.filter(f => f.isAlarm && f.active).length,
     };
-  }, [protocolDb, parsedProtocol, parsedValues]);
+  }, [protocolDb, parsedProtocol, parsedValues, isZh]);
 }
