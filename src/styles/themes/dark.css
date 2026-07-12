@@ -72,9 +72,9 @@
   --c-cyan: #00D4B8;
   --c-blue: #2970FF;
 
-  --cell-stroke: rgba(255,255,255,0.4);
-  --cell-ok-fill: rgba(80,250,123,0.35);
-  --cell-warn-fill: rgba(255,193,7,0.35);
-  --cell-danger-fill: rgba(255,71,87,0.35);
+  --cell-stroke: rgba(255,255,255,0.5);
+  --cell-ok-fill: rgba(80,250,123,0.5);
+  --cell-warn-fill: rgba(255,193,7,0.5);
+  --cell-danger-fill: rgba(255,71,87,0.5);
   --chart-grid: rgba(255,255,255,0.04);
 }
