@@ -71,11 +71,11 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         scale: true,
         min: (value: { min: number; max: number }) => {
           const range = value.max - value.min;
-          return value.min - Math.max(range * 0.1, 0.5);
+          return Math.round((value.min - Math.max(range * 0.1, 0.5)) * 100) / 100;
         },
         max: (value: { min: number; max: number }) => {
           const range = value.max - value.min;
-          return value.max + Math.max(range * 0.1, 0.5);
+          return Math.round((value.max + Math.max(range * 0.1, 0.5)) * 100) / 100;
         },
       },
       {
@@ -85,17 +85,17 @@ function buildInitialOption(dataPoints: VoltageCurrentDataPoint[]) {
         nameGap: 4,
         nameRotate: 0,
         nameTextStyle: { fontSize: 10, color: iColor, align: 'right' },
-        axisLabel: { fontSize: 10, color: iColor },
+        axisLabel: { fontSize: 10, color: iColor, formatter: (v: number) => v.toFixed(2) },
         axisLine: { lineStyle: { color: iColor, width: 1.5 } },
         splitLine: { show: false },
         scale: true,
         min: (value: { min: number; max: number }) => {
           const range = value.max - value.min;
-          return value.min - Math.max(range * 0.1, 0.5);
+          return Math.round((value.min - Math.max(range * 0.1, 0.5)) * 100) / 100;
         },
         max: (value: { min: number; max: number }) => {
           const range = value.max - value.min;
-          return value.max + Math.max(range * 0.1, 0.5);
+          return Math.round((value.max + Math.max(range * 0.1, 0.5)) * 100) / 100;
         },
       },
     ],
