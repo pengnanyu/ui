@@ -349,7 +349,7 @@ export function parseCalendarRecord(
             const val = leRegToValue(r);
             hexParts.push(val.toString(16).toUpperCase().padStart(4, '0'));
           }
-          displayValue = hexParts.join(' ');
+          displayValue = hexParts.join('');
           break;
         }
         case 'ushort Temper': {
@@ -701,7 +701,7 @@ export function parseDataFields(
           const val = leRegToValue(r);
           hexParts.push(val.toString(16).toUpperCase().padStart(4, '0'));
         }
-        displayValue = hexParts.join(' ');
+        displayValue = hexParts.join('');
         rawValue = 0;
         value = 0;
         break;

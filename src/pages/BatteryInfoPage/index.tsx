@@ -20,7 +20,7 @@ function findField(fields: FieldValue[], nameEn: string): FieldValue | undefined
 }
 
 const MAX_SPARK = 60;
-const MAX_CHART = 300;
+
 
 function useSparkHistory(getValue: () => number | null | undefined, deps: readonly unknown[], resetKey: string): number[] {
   const [history, setHistory] = useState<number[]>([]);
@@ -46,6 +46,30 @@ function useSparkHistory(getValue: () => number | null | undefined, deps: readon
   }, deps);
 
   return history;
+}
+
+function useCumulativeMinMax(getValue: () => number | null | undefined, deps: readonly unknown[], resetKey: string): { hi: number | undefined; lo: number | undefined } {
+  const [minMax, setMinMax] = useState<{ hi: number | undefined; lo: number | undefined }>({ hi: undefined, lo: undefined });
+  const lastResetRef = useRef(resetKey);
+
+  useEffect(() => {
+    if (resetKey !== lastResetRef.current) {
+      lastResetRef.current = resetKey;
+      setMinMax({ hi: undefined, lo: undefined });
+    }
+  }, [resetKey]);
+
+  useEffect(() => {
+    const v = getValue();
+    if (v === null || v === undefined) return;
+    setMinMax(prev => ({
+      hi: prev.hi === undefined ? v : Math.max(prev.hi, v),
+      lo: prev.lo === undefined ? v : Math.min(prev.lo, v),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return minMax;
 }
 
 export function BatteryInfoPage() {
@@ -147,7 +171,7 @@ export function BatteryInfoPage() {
     if (ts === lastChartTsRef.current) return;
     lastChartTsRef.current = ts;
     const pt: VoltageCurrentDataPoint = { timestamp: ts, voltage: graphVoltage?.value ?? 0, current: graphCurrent?.value ?? 0 };
-    setChartHistory(prev => [...prev.slice(-MAX_CHART), pt]);
+    setChartHistory(prev => [...prev, pt]);
   }, [graphVoltage, graphCurrent]);
 
   const sparkVoltage = useMemo(() => chartHistory.slice(-MAX_SPARK).map(p => p.voltage), [chartHistory]);
@@ -156,10 +180,8 @@ export function BatteryInfoPage() {
   const socHistory = useSparkHistory(() => soc?.soc, [soc], resetKey);
   const tempHistory = useSparkHistory(() => temperatures.length > 0 ? temperatures[0].temperature : null, [temperatures], resetKey);
 
-  const socHi = socHistory.length > 0 ? Math.max(...socHistory) : undefined;
-  const socLo = socHistory.length > 0 ? Math.min(...socHistory) : undefined;
-  const currentHi = sparkCurrent.length > 0 ? Math.max(...sparkCurrent) : undefined;
-  const currentLo = sparkCurrent.length > 0 ? Math.min(...sparkCurrent) : undefined;
+  const { hi: socHi, lo: socLo } = useCumulativeMinMax(() => soc?.soc, [soc], resetKey);
+  const { hi: currentHi, lo: currentLo } = useCumulativeMinMax(() => pack?.totalCurrent, [pack?.totalCurrent], resetKey);
 
   const extraFields = useMemo(() => {
     const skipInstrIdx = new Set<number>();

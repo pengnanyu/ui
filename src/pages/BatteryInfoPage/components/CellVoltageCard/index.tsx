@@ -26,6 +26,9 @@ export function CellVoltageCard({
     ? (voltageDiff < 50 ? styles.diffGood : voltageDiff < 100 ? styles.diffWarn : styles.diffBad)
     : '';
 
+  const maxStr = voltageMax !== undefined ? (voltageMax / 1000).toFixed(3) + 'V' : undefined;
+  const minStr = voltageMin !== undefined ? (voltageMin / 1000).toFixed(3) + 'V' : undefined;
+
   return (
     <div className={styles.ctrlSec}>
       <div className={styles.ctrlTtl}>
@@ -35,6 +38,12 @@ export function CellVoltageCard({
           <line x1="23" y1="10" x2="23" y2="14" />
         </svg>
         单体电压
+        {(maxStr || minStr) && (
+          <span style={{ display: 'flex', gap: 8, marginLeft: 'auto', fontSize: 12, fontFamily: "'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace" }}>
+            {maxStr && <span style={{ color: 'var(--c-green)' }}>↑{maxStr}</span>}
+            {minStr && <span style={{ color: 'var(--c-purple)' }}>↓{minStr}</span>}
+          </span>
+        )}
         {voltageDiff !== undefined && (
           <span className={`${styles.csDiff} ${diffClass}`}>Δ{voltageDiff}mV</span>
         )}
