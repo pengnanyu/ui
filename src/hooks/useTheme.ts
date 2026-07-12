@@ -38,6 +38,7 @@ function applyTheme(theme: Theme): void {
   } catch (_e) { }
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', theme === 'dark' ? '#060709' : '#f0f4ff');
+  document.body.style.backgroundColor = theme === 'dark' ? '#060709' : '#f0f4ff';
 }
 
 export function useTheme(): UseThemeReturn {
