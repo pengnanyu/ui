@@ -290,7 +290,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     if (sendMessageRef.current) {
       sendMessageRef.current({ type: 'bms:frame-send', payload: { frame: hex.replace(/ /g, '') } });
     }
-  }, [addDebugLog]);
+  }, []);
 
   const executePendingWriteOrPollRef = useRef<() => void>(() => { });
   const writeFieldRef = useRef<(fieldRowIndex: number, newValue: number) => void>(() => { });
@@ -472,7 +472,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     };
     responseTimeoutCbRef.current = batchTimeoutCb;
     responseTimerRef.current = setTimeout(batchTimeoutCb, RESPONSE_TIMEOUT);
-  }, [sendFrame, showToast, sendInstructionFrame]);
+  }, [sendFrame, showToast, sendInstructionFrame, t]);
 
   sendNextBatchFrameRef.current = sendNextBatchFrame;
 
@@ -604,7 +604,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     };
     responseTimeoutCbRef.current = calTimeoutCb;
     responseTimerRef.current = setTimeout(calTimeoutCb, RESPONSE_TIMEOUT);
-  }, [sendFrame, showToast]);
+  }, [sendFrame, showToast, t]);
 
   const startCalendarPoll = useCallback(() => {
     const groups = calendarGroupsRef.current;
@@ -631,7 +631,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       pendingCalendarReadRef.current = true;
       showToast(t('battery.waitingInit'), 'success');
     }
-  }, [startCalendarPoll, showToast]);
+  }, [startCalendarPoll, showToast, t]);
 
   const finishCalendarPoll = useCallback(() => {
     calendarPollingRef.current = false;
@@ -640,7 +640,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const msg = count > 0 ? t('battery.readDone', { count }) : t('battery.readDoneEmpty');
     showToast(msg, 'success');
     startPeriodicPollRef.current();
-  }, [showToast]);
+  }, [showToast, t]);
 
   const advanceCalendarPoll = useCallback((registers: number[]) => {
     const groups = calendarGroupsRef.current;
@@ -828,7 +828,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         })());
       }
     }
-  }, [startPeriodicPoll, flushUpdates, checkVerifyResult, showToast, startCalendarPoll]);
+  }, [startPeriodicPoll, flushUpdates, checkVerifyResult, showToast, startCalendarPoll, t]);
 
   advancePollRef.current = advancePoll;
 
@@ -846,17 +846,20 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         clearTimeout(manualFrameTimerRef.current);
         manualFrameTimerRef.current = null;
       }
-      const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
-
+      return;
     }
 
     if (isWritingRef.current) {
       const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
       if (data.length < 5 || !verifyCrc(data)) {
+        isWritingRef.current = false;
+        executePendingWriteOrPollRef.current();
         return;
       }
       const recvFc = data[1]! & 0x7F;
       if (recvFc !== 0x10) {
+        isWritingRef.current = false;
+        executePendingWriteOrPollRef.current();
         return;
       }
       isWritingRef.current = false;
@@ -1016,7 +1019,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     waitingResponseRef.current = false;
     if (responseTimerRef.current) { clearTimeout(responseTimerRef.current); responseTimerRef.current = null; }
     advancePollRef.current();
-  }, [stopVersionRetry, loadProtocolDb, addDebugLog]);
+  }, [stopVersionRetry, loadProtocolDb]);
 
   const handleRawData = useCallback((payload: unknown) => {
     if (connectionStatusRef.current !== 'connected') return;
@@ -1256,7 +1259,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       responseTimeoutCbRef.current = writeTimeoutCb;
       responseTimerRef.current = setTimeout(writeTimeoutCb, RESPONSE_TIMEOUT);
     }
-  }, [sendFrame, clearInjectedTimers, showToast]);
+  }, [sendFrame, clearInjectedTimers, showToast, t]);
 
   writeFieldRef.current = writeField;
 
