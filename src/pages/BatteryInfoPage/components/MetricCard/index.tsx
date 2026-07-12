@@ -2,6 +2,7 @@
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
 import { useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as echarts from 'echarts';
 import styles from './MetricCard.module.css';
 
@@ -165,11 +166,12 @@ export function MetricCard({ variant, value, unit, displayValue, hi, lo, sparkDa
     temperature: <ThermIcon color={iconColor} />,
   };
 
+  const { t } = useTranslation();
   const labelMap: Record<MetricVariant, string> = {
     soc: 'SOC',
-    current: '电流',
-    voltage: '电压',
-    temperature: '温度',
+    current: t('battery.current'),
+    voltage: t('battery.voltage'),
+    temperature: t('battery.temperature'),
   };
 
   const valStr = displayValue ?? (

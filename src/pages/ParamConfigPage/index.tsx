@@ -125,7 +125,7 @@ export function ParamConfigPage() {
           type: 'bms:download-file',
           payload: { filename: defaultName, content: json, mimeType: 'application/json' },
         });
-        showToast(isZh ? `已保存到下载目录: ${defaultName}` : `Saved to Downloads: ${defaultName}`, 'success');
+        showToast(t('battery.savedToDownloads', { name: defaultName }), 'success');
         return;
       }
       if (window.showSaveFilePicker) {
@@ -174,11 +174,11 @@ export function ParamConfigPage() {
         try {
           const data = JSON.parse(reader.result as string);
           if (!data.version || !data.params) {
-            showToast(isZh ? '无效的配置文件格式' : 'Invalid config file format', 'error');
+            showToast(t('battery.invalidConfigFormat'), 'error');
             return;
           }
           if (data.version !== deviceVersion) {
-            showToast(isZh ? `版本不匹配: 文件=${data.version}, 当前=${deviceVersion}` : `Version mismatch: file=${data.version}, current=${deviceVersion}`, 'error');
+            showToast(t('battery.versionMismatch', { file: data.version, current: deviceVersion }), 'error');
             return;
           }
           const pending = new Map<number, number>();
@@ -201,10 +201,10 @@ export function ParamConfigPage() {
           }
           setPendingImport(pending);
           if (pending.size === 0) {
-            showToast(isZh ? '没有需要写入的差异参数' : 'No differences to write', 'error');
+            showToast(t('battery.noDiffToWrite'), 'error');
           }
         } catch {
-          showToast(isZh ? '解析文件失败' : 'Failed to parse file', 'error');
+          showToast(t('battery.parseFileFailed'), 'error');
         }
       };
       reader.readAsText(file);

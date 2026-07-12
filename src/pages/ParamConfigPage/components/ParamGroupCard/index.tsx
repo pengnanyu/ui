@@ -94,7 +94,7 @@ export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBac
           <button
             className={styles.backBtn}
             onClick={(e) => { e.stopPropagation(); onBack(); }}
-            aria-label="返回"
+            aria-label={t('battery.back')}
           >
             ‹
           </button>

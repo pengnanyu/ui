@@ -20,17 +20,16 @@
 .navItem {
   min-width: 0;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 2px;
+  padding: 6px 8px;
   border-radius: 8px;
   cursor: pointer;
   border: none;
   background: transparent;
   color: var(--color-muted-foreground);
   transition: color 0.2s, transform 0.15s;
-  white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
   position: relative;
 }
@@ -73,9 +72,10 @@
 }
 
 .navLabel {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  text-align: center;
 }

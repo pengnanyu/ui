@@ -200,8 +200,8 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         batchWriteErrorRef.current = false;
         emitToast(
           err
-            ? (i18n.language === 'zh' ? '批量写入完成（部分失败）' : 'Batch write done (some failed)')
-            : (i18n.language === 'zh' ? `${total}项参数写入成功` : `${total} params written OK`),
+            ? t('battery.batchWritePartial')
+            : t('battery.batchWriteOk', { count: total }),
           err ? 'error' : 'success'
         );
       }
@@ -278,13 +278,13 @@ export function BmsProvider({ children }: { children: ReactNode }) {
   const sendManualFrame = useCallback((frame: number[]) => {
     if (connectionStatusRef.current !== 'connected') return;
     const hex = frame.map(b => b.toString(16).padStart(2, '0')).join(' ');
-    addDebugLog('send', hex, '手动发送');
+
     manualFramePendingRef.current = true;
     if (manualFrameTimerRef.current) clearTimeout(manualFrameTimerRef.current);
     manualFrameTimerRef.current = setTimeout(() => {
       if (manualFramePendingRef.current) {
         manualFramePendingRef.current = false;
-        addDebugLog('recv', '', '⚠ 手动发送超时');
+
       }
     }, RESPONSE_TIMEOUT);
     if (sendMessageRef.current) {
@@ -433,9 +433,9 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       batchWriteDoneRef.current = 0;
       batchWriteErrorRef.current = false;
       if (err) {
-        showToast(i18n.language === 'zh' ? `批量写入完成（部分失败）` : `Batch write done (some failed)`, 'error');
+        showToast(t('battery.batchWritePartial'), 'error');
       } else {
-        showToast(i18n.language === 'zh' ? `${total}帧批量写入成功` : `${total} frames batch written OK`, 'success');
+        showToast(t('battery.batchWriteFramesOk', { count: total }), 'success');
       }
       flushUpdatesRef.current();
       const regIndices = registerInstrIndicesRef.current;
@@ -598,7 +598,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         calendarPollingRef.current = false;
         pendingCalendarReadRef.current = false;
         setIsCalendarReading(false);
-        showToast(i18n.language === 'zh' ? '读取失败' : 'Read failed', 'error');
+        showToast(t('battery.readFailed'), 'error');
         startPeriodicPollRef.current();
       }
     };
@@ -624,12 +624,12 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     setIsCalendarReading(true);
     if (initPhaseRef.current === 'periodic') {
       pendingCalendarReadRef.current = true;
-      showToast(i18n.language === 'zh' ? '等待当前轮询完成后读取...' : 'Waiting for poll cycle...', 'success');
+      showToast(t('battery.waitingPoll'), 'success');
     } else if (initPhaseRef.current === 'idle') {
       startCalendarPoll();
     } else {
       pendingCalendarReadRef.current = true;
-      showToast(i18n.language === 'zh' ? '等待初始化完成后读取...' : 'Waiting for init...', 'success');
+      showToast(t('battery.waitingInit'), 'success');
     }
   }, [startCalendarPoll, showToast]);
 
@@ -637,9 +637,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     calendarPollingRef.current = false;
     setIsCalendarReading(false);
     const count = calendarRecordsRef.current.filter(r => !r.isEmpty).length;
-    const msg = i18n.language === 'zh'
-      ? (count > 0 ? `读取完成，共${count}条记录` : '读取完成，无异常记录')
-      : (count > 0 ? `Read complete, ${count} record(s)` : 'Read complete, no faults');
+    const msg = count > 0 ? t('battery.readDone', { count }) : t('battery.readDoneEmpty');
     showToast(msg, 'success');
     startPeriodicPollRef.current();
   }, [showToast]);
@@ -765,7 +763,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       }
       const fieldName = writeExpectedValueRef.current?.fieldName ?? '';
       if (!verifyOk) {
-        showToast(i18n.language === 'zh' ? `${fieldName} 写入验证失败（数据不一致）` : `${fieldName} verify failed (mismatch)`, 'error');
+        showToast(t('battery.writeVerifyFail', { field: fieldName }), 'error');
       }
       writeExpectedValueRef.current = null;
       flushUpdates();
@@ -849,7 +847,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         manualFrameTimerRef.current = null;
       }
       const respHex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
-      addDebugLog('recv', respHex);
+
     }
 
     if (isWritingRef.current) {
@@ -877,17 +875,17 @@ export function BmsProvider({ children }: { children: ReactNode }) {
         }
         if (isTimeSyncWriteRef.current) {
           isTimeSyncWriteRef.current = false;
-          addDebugLog('recv', respHex, '⏰ 时间同步: 写入失败(设备返回异常)');
+
           executePendingWriteOrPollRef.current();
           return;
         }
-        showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入失败 [${respHex}]` : `${writeFieldNameRef.current} write failed [${respHex}]`, 'error');
+        showToast(t('battery.writeFail', { field: writeFieldNameRef.current, hex: respHex }), 'error');
         executePendingWriteOrPollRef.current();
         return;
       }
       if (isTimeSyncWriteRef.current) {
         isTimeSyncWriteRef.current = false;
-        addDebugLog('recv', respHex, '⏰ 时间同步: 写入成功');
+
         executePendingWriteOrPollRef.current();
         return;
       }
@@ -908,11 +906,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       // Single write success - show response data immediately
       if (isTimeSyncWriteRef.current) {
         isTimeSyncWriteRef.current = false;
-        addDebugLog('recv', respHex, '⏰ 时间同步: 写入成功');
+
         executePendingWriteOrPollRef.current();
         return;
       }
-      showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入成功 [${respHex}]` : `${writeFieldNameRef.current} write OK [${respHex}]`, 'success');
+      showToast(t('battery.writeOk', { field: writeFieldNameRef.current, hex: respHex }), 'success');
       const writeInstrIdx = writeInstrIdxRef.current;
       if (writeInstrIdx >= 0) {
         isVerifyReadRef.current = true;
@@ -1251,7 +1249,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
           writeField(fieldRowIndex, newValue, true);
         } else {
           isWritingRef.current = false;
-          showToast(i18n.language === 'zh' ? `${writeFieldNameRef.current} 写入超时` : `${writeFieldNameRef.current} write timeout`, 'error');
+          showToast(t('battery.writeTimeout', { field: writeFieldNameRef.current }), 'error');
           executePendingWriteOrPollRef.current();
         }
       };
@@ -1302,14 +1300,11 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const timeField = Array.from(parsedValuesMapRef.current.values())
       .find(f => f.dataType === 'Time' && f.configType.toLowerCase() === 'register');
     if (!timeField) {
-      addDebugLog('send', '', '⏰ 时间同步: 未找到Time字段(configType=Register, dataType=Time)');
       return false;
     }
 
-    // Parse BMS time from display value
     const bmsTime = parseBmsTimeDisplay(timeField.displayValue);
     if (!bmsTime) {
-      addDebugLog('send', '', `⏰ 时间同步: 无法解析BMS时间 [${timeField.displayValue}]`);
       return false;
     }
 
@@ -1319,7 +1314,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const diffMin = Math.round(diffMs / 60000);
 
     if (diffMs <= FIVE_MINUTES) {
-      addDebugLog('send', '', `⏰ 时间同步: 误差${diffMin}分钟 < 5分钟，无需同步`);
+
       return false;
     }
 
@@ -1335,9 +1330,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
     const frame = buildWriteFrame(inst.slaveAddr, timeField.absAddr, leRegs);
     const frameHex = frame.map(b => b.toString(16).padStart(2, '0')).join(' ');
 
-    addDebugLog('send', frameHex, `⏰ 时间同步: BMS时间=${timeField.displayValue} 系统时间=${now.toLocaleString('zh-CN', { hour12: false })} 误差${diffMin}分钟`);
 
-    // Inject the write (same mechanism as writeField but with time sync flag)
     clearInjectedTimers();
     isWritingRef.current = true;
     isTimeSyncWriteRef.current = true;
@@ -1351,7 +1344,7 @@ export function BmsProvider({ children }: { children: ReactNode }) {
       if (!isWritingRef.current) return;
       isWritingRef.current = false;
       isTimeSyncWriteRef.current = false;
-      addDebugLog('recv', '', '⏰ 时间同步: 写入超时');
+
       executePendingWriteOrPollRef.current();
     };
     responseTimeoutCbRef.current = timeoutCb;

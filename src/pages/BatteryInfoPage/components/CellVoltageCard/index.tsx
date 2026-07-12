@@ -1,6 +1,7 @@
 /**
  * Copyright (c) 2024 深圳市德诚四方科技有限公司. All rights reserved.
  */
+import { useTranslation } from 'react-i18next';
 import type { CellVoltage } from '@/types';
 import { CellIcon } from './CellIcon';
 import styles from './CellVoltageCard.module.css';
@@ -21,6 +22,7 @@ export function CellVoltageCard({
   voltageMin,
   balanceFlags,
 }: CellVoltageCardProps) {
+  const { t } = useTranslation();
   const voltageDiff = (voltageMax !== undefined && voltageMin !== undefined) ? voltageMax - voltageMin : undefined;
   const diffClass = voltageDiff !== undefined
     ? (voltageDiff < 50 ? styles.diffGood : voltageDiff < 100 ? styles.diffWarn : styles.diffBad)
@@ -37,7 +39,7 @@ export function CellVoltageCard({
           <rect x="4" y="9" width="12" height="6" fill="currentColor" stroke="none" opacity="0.5" />
           <line x1="23" y1="10" x2="23" y2="14" />
         </svg>
-        单体电压
+        {t('battery.cellVoltage')}
         {(maxStr || minStr) && (
           <span style={{ display: 'flex', gap: 8, marginLeft: 'auto', fontSize: 12, fontFamily: "'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace" }}>
             {maxStr && <span style={{ color: 'var(--c-green)' }}>↑{maxStr}</span>}

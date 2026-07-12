@@ -17,9 +17,9 @@ function NavIcon({ name }: { name: string }) {
     case 'info':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
+          <rect x="2" y="14" width="16" height="6" rx="2" />
+          <rect x="4" y="8" width="16" height="6" rx="2" />
+          <rect x="6" y="2" width="16" height="6" rx="2" />
         </svg>
       );
     case 'settings':
