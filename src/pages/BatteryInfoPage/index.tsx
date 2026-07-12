@@ -192,6 +192,7 @@ export function BatteryInfoPage() {
         if (skipInstrIdx.has(f.parentInstructionIndex)) return false;
         if (f.graph) return false;
         if (f.bitTag) return false;
+        if (f.dataType === 'Time') return false;
         if (f.name === 'SOC' || f.name === 'SOH' || f.name === 'Total_Voltage' || f.name === 'Total_Current' || f.name === 'BatteryVoltage' || f.name === 'Current') return false;
         return true;
       })

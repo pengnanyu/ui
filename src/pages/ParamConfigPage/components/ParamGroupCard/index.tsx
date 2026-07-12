@@ -19,48 +19,20 @@ export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBac
   const { t } = useTranslation();
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const activeInputRef = useRef<HTMLElement | null>(null);
-  const prevViewportHeightRef = useRef(window.visualViewport?.height ?? window.innerHeight);
 
   const scrollActiveInputIntoView = useCallback(() => {
     const input = activeInputRef.current;
     const wrap = tableWrapRef.current;
     if (!input || !wrap) return;
     const vv = window.visualViewport;
-    if (!vv) return;
+    const viewBottom = vv ? vv.height : window.innerHeight;
     const inputRect = input.getBoundingClientRect();
-    const vvBottom = vv.height;
-    const margin = 60;
-    if (inputRect.bottom > vvBottom - margin) {
-      const overflow = inputRect.bottom - (vvBottom - margin);
+    const margin = 80;
+    if (inputRect.bottom > viewBottom - margin) {
+      const overflow = inputRect.bottom - (viewBottom - margin);
       wrap.scrollTop += overflow;
     }
   }, []);
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const onResize = () => {
-      const prevH = prevViewportHeightRef.current;
-      const currH = vv.height;
-      prevViewportHeightRef.current = currH;
-      const delta = prevH - currH;
-      if (delta > 20 && activeInputRef.current) {
-        const wrap = tableWrapRef.current;
-        if (wrap) {
-          wrap.scrollTop += delta;
-        }
-      }
-      scrollActiveInputIntoView();
-    };
-
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
-    return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
-    };
-  }, [scrollActiveInputIntoView]);
 
   useEffect(() => {
     const wrap = tableWrapRef.current;
@@ -70,15 +42,16 @@ export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBac
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
         activeInputRef.current = target;
-        prevViewportHeightRef.current = window.visualViewport?.height ?? window.innerHeight;
-        requestAnimationFrame(scrollActiveInputIntoView);
-        setTimeout(scrollActiveInputIntoView, 100);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(scrollActiveInputIntoView);
+        });
+        setTimeout(scrollActiveInputIntoView, 150);
+        setTimeout(scrollActiveInputIntoView, 400);
       }
     };
 
     const onFocusOut = (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      if (target === activeInputRef.current) {
+      if ((e.target as HTMLElement) === activeInputRef.current) {
         activeInputRef.current = null;
       }
     };
@@ -88,6 +61,26 @@ export function ParamGroupCard({ groupName, params, onValueChange, onBlur, onBac
     return () => {
       wrap.removeEventListener('focusin', onFocusIn);
       wrap.removeEventListener('focusout', onFocusOut);
+    };
+  }, [scrollActiveInputIntoView]);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onViewportChange = () => {
+      if (activeInputRef.current) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(scrollActiveInputIntoView);
+        });
+      }
+    };
+
+    vv.addEventListener('resize', onViewportChange);
+    vv.addEventListener('scroll', onViewportChange);
+    return () => {
+      vv.removeEventListener('resize', onViewportChange);
+      vv.removeEventListener('scroll', onViewportChange);
     };
   }, [scrollActiveInputIntoView]);
 

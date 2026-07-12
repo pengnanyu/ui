@@ -21,6 +21,7 @@
 }
 
 .fieldValue {
+  display: block;
   color: var(--color-foreground);
   font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SFMono-Regular', monospace;
   font-weight: 700;
@@ -28,7 +29,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
-  container-type: inline-size;
 }
 
 .fieldUnit {
@@ -37,16 +37,10 @@
   margin-left: 2px;
 }
 
-@container (max-width: 100px) {
+@media (max-width: 380px) {
   .fieldValue {
     font-size: 11px;
-  }
-}
-
-@container (max-width: 70px) {
-  .fieldValue {
-    font-size: 10px;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.2px;
   }
 }
 
