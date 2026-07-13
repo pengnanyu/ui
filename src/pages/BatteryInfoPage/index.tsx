@@ -49,13 +49,13 @@ function useSparkHistory(getValue: () => number | null | undefined, deps: readon
 }
 
 function useCumulativeMinMax(getValue: () => number | null | undefined, deps: readonly unknown[], resetKey: string): { hi: number | undefined; lo: number | undefined } {
-  const [minMax, setMinMax] = useState<{ hi: number | undefined; lo: number | undefined }>({ hi: undefined, lo: undefined });
+  const [minMax, setMinMax] = useState<{ hi: number | undefined; lo: number | undefined }>({ hi: 0, lo: 65535 });
   const lastResetRef = useRef(resetKey);
 
   useEffect(() => {
     if (resetKey !== lastResetRef.current) {
       lastResetRef.current = resetKey;
-      setMinMax({ hi: undefined, lo: undefined });
+      setMinMax({ hi: 0, lo: 65535 });
     }
   }, [resetKey]);
 
@@ -63,8 +63,8 @@ function useCumulativeMinMax(getValue: () => number | null | undefined, deps: re
     const v = getValue();
     if (v === null || v === undefined) return;
     setMinMax(prev => ({
-      hi: prev.hi === undefined ? v : Math.max(prev.hi, v),
-      lo: prev.lo === undefined ? v : Math.min(prev.lo, v),
+      hi: Math.max(prev.hi ?? 0, v),
+      lo: Math.min(prev.lo ?? 65535, v),
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
