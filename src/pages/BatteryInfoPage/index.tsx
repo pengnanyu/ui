@@ -49,27 +49,34 @@ function useSparkHistory(getValue: () => number | null | undefined, deps: readon
 }
 
 function useCumulativeMinMax(getValue: () => number | null | undefined, deps: readonly unknown[], resetKey: string): { hi: number | undefined; lo: number | undefined } {
-  const [minMax, setMinMax] = useState<{ hi: number | undefined; lo: number | undefined }>({ hi: 0, lo: 65535 });
+  const minMaxRef = useRef<{ hi: number | undefined; lo: number | undefined }>({ hi: undefined, lo: undefined });
   const lastResetRef = useRef(resetKey);
+  const [, forceUpdate] = useState(0);
 
   useEffect(() => {
     if (resetKey !== lastResetRef.current) {
       lastResetRef.current = resetKey;
-      setMinMax({ hi: 0, lo: 65535 });
+      minMaxRef.current = { hi: undefined, lo: undefined };
+      forceUpdate(n => n + 1);
     }
   }, [resetKey]);
 
   useEffect(() => {
     const v = getValue();
-    if (v === null || v === undefined) return;
-    setMinMax(prev => ({
-      hi: Math.max(prev.hi ?? 0, v),
-      lo: Math.min(prev.lo ?? 65535, v),
-    }));
+    if (v === null || v === undefined || v === 0) return;
+    const prev = minMaxRef.current;
+    const next = {
+      hi: prev.hi === undefined ? v : Math.max(prev.hi, v),
+      lo: prev.lo === undefined ? v : Math.min(prev.lo, v),
+    };
+    if (next.hi !== prev.hi || next.lo !== prev.lo) {
+      minMaxRef.current = next;
+      forceUpdate(n => n + 1);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
-  return minMax;
+  return minMaxRef.current;
 }
 
 export function BatteryInfoPage() {
