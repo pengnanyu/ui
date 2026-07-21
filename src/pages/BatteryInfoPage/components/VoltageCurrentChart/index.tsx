@@ -181,11 +181,30 @@ export function VoltageCurrentChart({ history }: VoltageCurrentChartProps) {
       instanceRef.current = chart;
       chart.setOption(buildInitialOption(history), true);
     } else {
+      const zoom = readZoomRange(chart);
+      const isFullView = !zoom || (zoom.start === 0 && zoom.end === 100);
       chart.setOption({
         series: [
           { data: history.map(p => [p.timestamp, p.voltage]) },
           { data: history.map(p => [p.timestamp, p.current]) },
         ],
+        ...(isFullView
+          ? {
+              dataZoom: [
+                {
+                  type: 'inside',
+                  xAxisIndex: 0,
+                  startValue: history[0].timestamp,
+                  endValue: history[history.length - 1].timestamp,
+                  zoomOnMouseWheel: true,
+                  moveOnMouseMove: true,
+                  moveOnMouseDrag: true,
+                  preventDefaultMouseMove: false,
+                  filterMode: 'none',
+                },
+              ],
+            }
+          : {}),
       });
     }
 
